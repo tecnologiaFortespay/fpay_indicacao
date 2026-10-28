@@ -285,6 +285,9 @@ isOneToOne: false
 "save_partner_rule":
 { Args: { "payload": Json }; Returns: string
                            },
+"set_referral_status":
+{ Args: { "new_status": string,"target": string }; Returns: undefined
+                           },
 "valid_cnpj":
 { Args: { "value": string }; Returns: boolean
                            }

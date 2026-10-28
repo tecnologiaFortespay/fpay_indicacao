@@ -1506,3 +1506,27 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Contagem de indicações por situação (Visão geral). */
+.fp-status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+}
+.fp-status-strip > a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.fp-status-strip strong {
+  font-size: 16px;
+}
+.fp-kpi-grid a.fp-kpi {
+  text-decoration: none;
+  color: inherit;
+}
+.fp-kpi-grid a.fp-kpi[aria-current="page"] {
+  border-color: var(--fp-red-600);
+  box-shadow: inset 3px 0 var(--fp-red-600);
+}

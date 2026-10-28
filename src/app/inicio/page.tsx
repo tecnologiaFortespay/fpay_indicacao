@@ -7,7 +7,9 @@ import { requireUser } from "@/lib/auth/session";
 import { competencyLabel, currentCompetency, formatDateTime, isCompetency } from "@/lib/competency";
 import { directorOverview, latestCompetency } from "@/lib/dashboard/queries";
 import { latestImport } from "@/lib/imports/queries";
-import { partnerKindLabels } from "@/lib/labels";
+import { partnerKindLabels, referralStatusLabels, type ReferralStatus } from "@/lib/labels";
+import { referralStatusCounts } from "@/lib/referrals/queries";
+import { referralStatusClass } from "@/lib/referrals/transitions";
 import { formatCurrency, formatInteger } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Visão geral" };
@@ -36,7 +38,12 @@ export default async function HomePage({ searchParams }: PageProps) {
   const competency = isCompetency(params.competency)
     ? params.competency
     : (latest ?? currentCompetency());
-  const [overview, last] = await Promise.all([directorOverview(competency), latestImport()]);
+  const [overview, last, counts] = await Promise.all([
+    directorOverview(competency),
+    latestImport(),
+    referralStatusCounts(),
+  ]);
+  const statusEntries = Object.entries(referralStatusLabels) as [ReferralStatus, string][];
   const monthLabel = competencyLabel(competency);
   return (
     <AppShell title="Visão geral">
@@ -136,6 +143,20 @@ export default async function HomePage({ searchParams }: PageProps) {
           Conta só a indicação ativa de cada CNPJ (perdidas e canceladas ficam de fora) e respeita o
           prazo em meses da regra, quando houver.
         </p>
+      </section>
+      <section className="fp-panel mt-6">
+        <div className="fp-panel-heading">
+          <h2>Indicações por situação</h2>
+          <Link href="/indicacoes">Ver indicações →</Link>
+        </div>
+        <div className="fp-form-section fp-status-strip">
+          {statusEntries.map(([value, label]) => (
+            <Link key={value} href={`/indicacoes?status=${value}`}>
+              <span className={referralStatusClass(value)}>{label}</span>
+              <strong className="fp-num">{formatInteger(counts[value])}</strong>
+            </Link>
+          ))}
+        </div>
       </section>
     </AppShell>
   );

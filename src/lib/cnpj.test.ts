@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCnpj, isValidCnpj, normalizeCnpj } from "./cnpj";
+import { cnpjWithDigits, formatCnpj, isValidCnpj, normalizeCnpj } from "./cnpj";
 
 describe("cnpj", () => {
   it("validates check digits", () => {
@@ -21,5 +21,13 @@ describe("cnpj", () => {
     expect(normalizeCnpj(" 11.222.333/0001-81 ")).toBe("11222333000181");
     expect(normalizeCnpj("12.abc.345/01de-35")).toBe("12ABC34501DE35");
     expect(formatCnpj("11222333000181")).toBe("11.222.333/0001-81");
+  });
+});
+
+describe("cnpjWithDigits", () => {
+  it("builds valid numbers from a 12-character base", () => {
+    expect(cnpjWithDigits("112223330001")).toBe("11222333000181");
+    expect(cnpjWithDigits("12.abc.345/01de")).toBe("12ABC34501DE35");
+    expect(isValidCnpj(cnpjWithDigits("114447770001"))).toBe(true);
   });
 });

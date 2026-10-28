@@ -39,7 +39,11 @@ key), `NEXT_PUBLIC_APP_URL` e, para scripts, `SUPABASE_SERVICE_ROLE_KEY`. As mig
 `supabase/migrations` são aplicadas com `npx supabase db push` (após `npx supabase link`).
 
 Configuração de Auth no projeto real: confirmação de e-mail **desligada** (o convite já valida a
-origem) e senha mínima de 8 caracteres, como em `supabase/config.toml`.
+origem), senha mínima de 8 caracteres, e `https://<dominio>/auth/callback` na lista de URLs de
+redirecionamento (recuperação de senha), como em `supabase/config.toml`.
+
+As variáveis `NEXT_PUBLIC_*` são fixadas **no build**: gere o build com os valores finais
+(`NEXT_PUBLIC_APP_URL` entra nos links de convite e de recuperação de senha).
 
 ## Scripts
 
@@ -49,7 +53,7 @@ origem) e senha mínima de 8 caracteres, como em `supabase/config.toml`.
 | `npm run lint` / `typecheck` / `format` | ESLint, `tsc`, Prettier |
 | `npm test` | testes unitários (leitor de CSV, CNPJ, competência, moeda) |
 | `npm run test:db` | testes das funções SQL e da RLS contra o Supabase local |
-| `npm run test:e2e` | Playwright: **zera o banco local**, faz build e executa o roteiro do Denis |
+| `npm run test:e2e` | Playwright: **zera os dados do banco local** (TRUNCATE via `docker exec`), faz build e executa o roteiro do Denis |
 | `npm run db:start` / `db:stop` / `db:status` / `db:reset` | Supabase local |
 | `npm run db:types` | regenera `src/lib/supabase/types.ts` depois de uma migration |
 | `npm run bootstrap` | cria diretor ou analista |

@@ -13,11 +13,15 @@ export function navigationFor(role: Role): NavArea[] {
     return [{ id: "imports", href: "/importacoes", label: "Importações", icon: "calculation" }];
   }
   if (role === "partner") {
-    return [{ id: "overview", href: "/inicio", label: "Meu painel", icon: "home" }];
+    return [
+      { id: "overview", href: "/inicio", label: "Meu painel", icon: "home" },
+      { id: "referrals", href: "/indicacoes", label: "Minhas indicações", icon: "commercial" },
+    ];
   }
   return [
     { id: "overview", href: "/inicio", label: "Visão geral", icon: "home" },
     { id: "partners", href: "/parceiros", label: "Parceiros", icon: "people" },
+    { id: "referrals", href: "/indicacoes", label: "Indicações", icon: "commercial" },
     { id: "imports", href: "/importacoes", label: "Importações", icon: "calculation" },
   ];
 }

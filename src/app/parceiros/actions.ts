@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { databaseError, formValue } from "@/lib/actions";
 import { actionUser } from "@/lib/auth/session";
+import { normalizeCnpj } from "@/lib/cnpj";
 import { authConfig } from "@/lib/env";
 import type { FormState } from "@/lib/auth/validation";
 import { competencyToDate, isCompetency } from "@/lib/competency";
@@ -118,7 +119,11 @@ export async function createReferral(_previous: FormState, form: FormData): Prom
   const supabase = await createClient();
   const result = await supabase.rpc("create_referral", { payload });
   if (result.error) {
-    return { error: databaseError(result.error) };
+    const message = databaseError(result.error);
+    if (result.error.message === "REFERRAL_DUPLICATE" && user.profile.role === "director") {
+      return { error: await withFirstReferrer(message, payload.cnpj) };
+    }
+    return { error: message };
   }
   if (payload.partner_id !== "") {
     revalidatePartner(payload.partner_id);
@@ -216,4 +221,19 @@ export async function rejectPartner(_previous: FormState, form: FormData): Promi
   }
   revalidatePartner(partnerId);
   return { success: "Cadastro recusado." };
+}
+
+// Só o diretor vê quem indicou primeiro (o parceiro recebe apenas a data).
+async function withFirstReferrer(message: string, cnpj: string): Promise<string> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("referrals")
+    .select("partners(name)")
+    .eq("cnpj", normalizeCnpj(cnpj))
+    .maybeSingle();
+  const name = data?.partners?.name;
+  if (!name) {
+    return message;
+  }
+  return `${message.replace(/\.$/, "")} por ${name}.`;
 }

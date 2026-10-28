@@ -42,3 +42,11 @@ export function formatCnpj(value: string): string {
   const digits = value.slice(12, 14);
   return `${part1}.${part2}.${part3}/${part4}-${digits}`;
 }
+
+// Completa uma base de 12 caracteres com os dois dígitos verificadores (útil em testes e fixtures).
+export function cnpjWithDigits(base: string): string {
+  const normalized = normalizeCnpj(base).slice(0, 12);
+  const first = checkDigit(normalized);
+  const second = checkDigit(normalized + String(first));
+  return normalized + String(first) + String(second);
+}

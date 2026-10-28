@@ -33,3 +33,18 @@ Esperado que **não** aconteça: vidas somadas ao reenviar; parceiro sem regra c
 10. Senha: em **Entrar → Esqueci minha senha**, informe um e-mail; o link do e-mail leva a **Definir nova senha**; depois entre com a senha nova. (No ambiente local, o e-mail aparece no Mailpit em http://127.0.0.1:54344.)
 
 Esperado que **não** aconteça: link público de cadastro; parceiro ativo sem regra ou sem meio de pagamento; parceiro pendente vendo qualquer tela interna; convite aceito duas vezes ou depois da validade.
+
+## Fatia 3 — Indicações com os 7 status e bloqueio de CNPJ duplicado
+
+Antes: dois parceiros aprovados com login (ex.: Unidade Natal e Unidade Manaus).
+
+1. Entre como **Natal**, em **Minhas indicações → Nova indicação**, registre o CNPJ Y com a empresa e vidas estimadas. A indicação aparece como **Indicada**.
+2. Entre como **Manaus** e tente registrar o mesmo CNPJ Y: "CNPJ já indicado em dd/mm/aaaa", sem o nome de quem indicou; nada é cadastrado.
+3. Entre como **diretor**, em **Indicações**: a linha de Y mostra "Unidade Natal". Tente registrar Y em nome de Manaus: a mensagem traz "por Unidade Natal".
+4. Na linha de Y, mude para **Em negociação** e depois **Fechada**. Só as transições permitidas aparecem na lista (ex.: uma indicação só pode ser cancelada depois de ativa).
+5. Como analista (ou diretor), importe um CSV de outubro em que Y tem 20 vidas: Y passa a **Ativa** e mostra as vidas do mês, para o diretor e para Natal.
+6. Importe outro CSV de outubro sem Y: Y passa a **Inadimplente**.
+7. Mude Y para **Cancelada**: as vidas de meses a partir do cancelamento deixam de contar. Em **Visão geral**, o bloco "Indicações por situação" mostra a contagem.
+8. Manaus continua sem ver nada de Natal ("Nenhuma indicação encontrada").
+
+Esperado que **não** aconteça: segundo registro do mesmo CNPJ; parceiro mudando situação; analista vendo indicações; indicação perdida ou cancelada contando vidas.

@@ -1,4 +1,5 @@
 import "server-only";
+import { referralStatusLabels } from "@/lib/labels";
 
 type DatabaseError = {
   code?: string;
@@ -26,6 +27,8 @@ export function databaseError(error: DatabaseError): string {
       return "Já existe uma vigência começando nesse mês para este parceiro.";
     case "REFERRAL_DUPLICATE":
       return `CNPJ já indicado em ${detail}.`;
+    case "REFERRAL_TRANSITION":
+      return transitionMessage(detail);
     default:
       break;
   }
@@ -49,4 +52,14 @@ export function databaseError(error: DatabaseError): string {
 export function formValue(form: FormData, name: string): string {
   const value = form.get(name);
   return typeof value === "string" ? value : "";
+}
+
+function statusLabel(status: string): string {
+  return referralStatusLabels[status as keyof typeof referralStatusLabels] ?? status;
+}
+
+// detail vem como "situação_atual>situação_pedida".
+function transitionMessage(detail: string): string {
+  const [current, requested] = detail.split(">");
+  return `Não é possível mudar de «${statusLabel(current)}» para «${statusLabel(requested)}». Recarregue a página.`;
 }
