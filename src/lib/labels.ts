@@ -48,3 +48,18 @@ export const invitationStatusLabels = {
   used: "Cadastro feito",
   expired: "Expirado",
 } as const;
+
+export const closingStatusLabels = {
+  open: "Em preparação",
+  closed: "Fechado",
+} as const;
+
+export const decisionLabels = {
+  pay: "Pagar",
+  accumulate: "Acumular",
+} as const;
+
+export const partnerResponseLabels = {
+  confirmed: "Confirmado",
+  disputed: "Contestado",
+} as const;

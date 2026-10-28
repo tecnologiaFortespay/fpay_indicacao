@@ -80,7 +80,9 @@ test("fatia 1: cadastrar parceiro, regra e indicação, importar o CSV e ver vid
   // Importações: três lotes, com autor e mês.
   await page.goto("/importacoes");
   await expect(page.getByRole("link", { name: /setembro-v2\.csv/ })).toContainText("Diretor E2E");
-  await expect(page.getByText("3 lote(s)")).toBeVisible();
+  // Três lotes deste roteiro (outros roteiros podem ter importado antes).
+  await expect(page.getByRole("link", { name: /setembro\.csv/ })).toHaveCount(2);
+  await expect(page.getByRole("link", { name: /setembro-v2\.csv/ })).toHaveCount(1);
 });
 
 test("arquivo sem as colunas esperadas é recusado com explicação", async ({ page }) => {

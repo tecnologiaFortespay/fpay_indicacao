@@ -21,6 +21,7 @@ describe("parseBiCsv", () => {
     const result = parseBiCsv(csv);
     expect(result.rows).toEqual([
       {
+        line_number: 2,
         cnpj: CNPJ_A,
         competency: "2026-09-01",
         lives: 48,
@@ -38,6 +39,7 @@ describe("parseBiCsv", () => {
     const result = parseBiCsv(csv);
     expect(result.rows).toEqual([
       {
+        line_number: 2,
         cnpj: CNPJ_B,
         competency: "2026-09-01",
         lives: 1234,

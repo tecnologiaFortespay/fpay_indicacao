@@ -48,3 +48,19 @@ Antes: dois parceiros aprovados com login (ex.: Unidade Natal e Unidade Manaus).
 8. Manaus continua sem ver nada de Natal ("Nenhuma indicação encontrada").
 
 Esperado que **não** aconteça: segundo registro do mesmo CNPJ; parceiro mudando situação; analista vendo indicações; indicação perdida ou cancelada contando vidas.
+
+## Fatia 4 — Fechamento mensal: conferir, marcar quem paga, fechar lote, saldo pendente que carrega
+
+Antes: parceiro aprovado com regra e indicação; CSVs de agosto e setembro importados (hoje é outubro).
+
+1. Entre como **diretor**, em **Fechamento do mês**. Escolha outubro (mês corrente) e tente **Preparar cálculo**: bloqueado ("só é possível fechar um mês já encerrado").
+2. Escolha agosto. A etapa 01 mostra se há importação de agosto feita depois do fim do mês (sem ela o fechamento não é liberado).
+3. **Preparar cálculo**: a tabela mostra, por parceiro ativo, vidas, valor por vida, valor do mês, ajuste, saldo anterior e total, com o meio de pagamento de cada um.
+4. Em Natal, informe ajuste `-10,00` com motivo e **Salvar ajuste**: o total cai para R$ 50,00. **Recalcular** mantém o ajuste.
+5. Tente **Fechar lote** sem confirmar a conferência: bloqueado. Confirme e feche **sem marcar Natal**: agosto fica **Fechado**, Natal "Acumular".
+6. **Visão geral** mostra o saldo pendente (R$ 50,00) no total e na linha de Natal.
+7. Importe de novo um CSV com agosto e setembro: as linhas de agosto aparecem no lote como ignoradas ("Mês já fechado"); setembro entra normalmente. Tentar criar ou alterar uma vigência que alcance agosto é recusado.
+8. Escolha setembro e **Preparar cálculo**: Natal mostra saldo anterior R$ 50,00 + R$ 72,00 = R$ 122,00. Marque Natal, confirme e feche: Natal "Pagar", total a pagar R$ 122,00. O saldo pendente na Visão geral volta a zero.
+9. A lista de fechamentos registrados mostra os meses, quando foram preparados e fechados; cada mês fechado guarda valor do mês, ajuste, saldo anterior, total, decisão, data e quem decidiu.
+
+Esperado que **não** aconteça: fechar o mês corrente; fechar setembro com agosto aberto; fechar sem importação pós-mês; alterar ajuste, vigência ou importar vidas de um mês fechado.

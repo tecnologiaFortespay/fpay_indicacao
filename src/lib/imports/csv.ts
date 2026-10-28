@@ -4,6 +4,7 @@ import { formatCnpj, isValidCnpj, normalizeCnpj } from "@/lib/cnpj";
 // (docs/csv-bi.md); only this file and its tests change when it does.
 
 export type ImportRow = {
+  line_number: number;
   cnpj: string;
   competency: string;
   lives: number;
@@ -222,6 +223,7 @@ export function parseBiCsv(content: string): ParsedImport {
     const existing = rowsByKey.get(key);
     if (!existing) {
       rowsByKey.set(key, {
+        line_number: lineNumber,
         cnpj,
         competency,
         lives,

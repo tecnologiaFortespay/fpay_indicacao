@@ -23,7 +23,47 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "companies": {
+            "closing_items": {
+                  Row: {
+                    "adjustment": number,"adjustment_note": string | null,"closing_id": string,"decided_at": string | null,"decided_by": string | null,"decision": string | null,"id": string,"lives": number,"month_amount": number,"partner_id": string,"partner_note": string | null,"partner_response": string | null,"partner_response_at": string | null,"previous_balance": number,"total": number | null,"value_per_life": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "adjustment"?: number,"adjustment_note"?: string | null,"closing_id": string,"decided_at"?: string | null,"decided_by"?: string | null,"decision"?: string | null,"id"?: string,"lives"?: number,"month_amount"?: number,"partner_id": string,"partner_note"?: string | null,"partner_response"?: string | null,"partner_response_at"?: string | null,"previous_balance"?: number,"total"?: never,"value_per_life"?: number | null
+                  }
+                  Update: {
+                    "adjustment"?: number,"adjustment_note"?: string | null,"closing_id"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision"?: string | null,"id"?: string,"lives"?: number,"month_amount"?: number,"partner_id"?: string,"partner_note"?: string | null,"partner_response"?: string | null,"partner_response_at"?: string | null,"previous_balance"?: number,"total"?: never,"value_per_life"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "closing_items_closing_id_fkey"
+      columns: ["closing_id"]
+isOneToOne: false
+      referencedRelation: "closings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "closing_items_partner_id_fkey"
+      columns: ["partner_id"]
+isOneToOne: false
+      referencedRelation: "partners"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"closings": {
+                  Row: {
+                    "closed_at": string | null,"closed_by": string | null,"competency": string,"id": string,"prepared_at": string,"prepared_by": string | null,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "closed_at"?: string | null,"closed_by"?: string | null,"competency": string,"id"?: string,"prepared_at"?: string,"prepared_by"?: string | null,"status"?: string
+                  }
+                  Update: {
+                    "closed_at"?: string | null,"closed_by"?: string | null,"competency"?: string,"id"?: string,"prepared_at"?: string,"prepared_by"?: string | null,"status"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"companies": {
                   Row: {
                     "cnpj": string,"first_competency": string | null,"group_name": string | null,"name": string,"updated_at": string
                   }
@@ -240,6 +280,9 @@ isOneToOne: false
             "approve_partner":
 { Args: { "payload": Json }; Returns: undefined
                            },
+"close_closing":
+{ Args: { "paid_partner_ids": (string)[],"target": string }; Returns: undefined
+                           },
 "create_invitation":
 { Args: { "payload": Json }; Returns: string
                            },
@@ -267,11 +310,17 @@ isOneToOne: false
 "is_analyst":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"is_closed_competency":
+{ Args: { "month": string }; Returns: boolean
+                           },
 "is_director":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "my_partner_id":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"prepare_closing":
+{ Args: { "month": string }; Returns: string
                            },
 "register_partner":
 { Args: { "payload": Json,"secret": string }; Returns: string
@@ -284,6 +333,9 @@ isOneToOne: false
                            },
 "save_partner_rule":
 { Args: { "payload": Json }; Returns: string
+                           },
+"set_closing_adjustment":
+{ Args: { "amount": number,"note": string,"target": string }; Returns: undefined
                            },
 "set_referral_status":
 { Args: { "new_status": string,"target": string }; Returns: undefined

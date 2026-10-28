@@ -18,7 +18,10 @@ export function databaseError(error: DatabaseError): string {
     case "INVITATION_FIELDS":
     case "REGISTRATION_FIELDS":
     case "APPROVAL_FIELDS":
+    case "CLOSING_FIELDS":
       return detail || "Confira os campos informados.";
+    case "RULE_LOCKED":
+      return `Há fechamento fechado até ${detail}: vigências desse período não mudam mais. Crie uma vigência posterior.`;
     case "INVITATION_INVALID":
       return "Convite inválido, expirado ou já utilizado.";
     case "ALREADY_REGISTERED":

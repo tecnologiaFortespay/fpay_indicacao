@@ -68,5 +68,6 @@ src/lib/               env, sessão, leitor de CSV, consultas por domínio, rót
 tests/db/              testes de banco (Vitest)   ·   e2e/   testes de ponta a ponta (Playwright)
 ```
 
-Limite do projeto: no máximo 12 tabelas. Hoje: 9 (`profiles`, `partners`, `partner_rules`,
-`companies`, `referrals`, `import_batches`, `import_rows`, `monthly_lives`, `invitations`).
+Limite do projeto: no máximo 12 tabelas. Hoje: 11 (`profiles`, `partners`, `partner_rules`,
+`companies`, `referrals`, `import_batches`, `import_rows`, `monthly_lives`, `invitations`,
+`closings`, `closing_items`).

@@ -14,6 +14,7 @@ describe("money", () => {
     expect(parseMoneyInput("R$ 2,00")).toBe("2.00");
     expect(parseMoneyInput("1.234,56")).toBe("1234.56");
     expect(parseMoneyInput("2")).toBe("2.00");
+    expect(parseMoneyInput("-10,00")).toBe("-10.00");
     expect(parseMoneyInput("abc")).toBeNull();
     expect(parseMoneyInput("1,234")).toBeNull();
   });

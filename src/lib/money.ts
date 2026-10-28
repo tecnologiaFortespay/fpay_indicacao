@@ -19,7 +19,7 @@ export function formatInteger(value: number | string | null | undefined): string
 export function parseMoneyInput(input: string): string | null {
   const cleaned = input.replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "");
   const normalized = cleaned.replace(",", ".");
-  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) {
+  if (!/^-?\d+(\.\d{1,2})?$/.test(normalized)) {
     return null;
   }
   return Number(normalized).toFixed(2);

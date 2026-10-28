@@ -2,9 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { pendingBalances } from "@/lib/closings/queries";
 import { Field } from "@/components/fields";
 import { requireUser } from "@/lib/auth/session";
-import { competencyLabel, currentCompetency, formatDateTime, isCompetency } from "@/lib/competency";
+import {
+  competencyLabel,
+  currentCompetency,
+  dateToCompetency,
+  formatDateTime,
+  isCompetency,
+} from "@/lib/competency";
 import { directorOverview, latestCompetency } from "@/lib/dashboard/queries";
 import { latestImport } from "@/lib/imports/queries";
 import { partnerKindLabels, referralStatusLabels, type ReferralStatus } from "@/lib/labels";
@@ -38,10 +45,11 @@ export default async function HomePage({ searchParams }: PageProps) {
   const competency = isCompetency(params.competency)
     ? params.competency
     : (latest ?? currentCompetency());
-  const [overview, last, counts] = await Promise.all([
+  const [overview, last, counts, pending] = await Promise.all([
     directorOverview(competency),
     latestImport(),
     referralStatusCounts(),
+    pendingBalances(),
   ]);
   const statusEntries = Object.entries(referralStatusLabels) as [ReferralStatus, string][];
   const monthLabel = competencyLabel(competency);
@@ -54,7 +62,7 @@ export default async function HomePage({ searchParams }: PageProps) {
           <button className="fp-button-secondary">Consultar</button>
         </form>
       </div>
-      <div className="fp-kpi-grid fp-management-kpis fp-simple-kpis">
+      <div className="fp-kpi-grid fp-management-kpis">
         <article className="fp-kpi fp-kpi-hero">
           <div className="fp-kpi-heading">
             <h2>Valor a pagar</h2>
@@ -72,6 +80,21 @@ export default async function HomePage({ searchParams }: PageProps) {
           </div>
           <p className="fp-kpi-value fp-num">{formatInteger(overview.total_lives)}</p>
           <p className="fp-kpi-description">Vidas de clientes indicados que pagaram no mês.</p>
+        </article>
+        <article className="fp-kpi">
+          <div className="fp-kpi-heading">
+            <h2>Saldo pendente</h2>
+            <span>
+              {pending.competency
+                ? `desde ${competencyLabel(dateToCompetency(pending.competency))}`
+                : "nenhum fechamento"}
+            </span>
+          </div>
+          <p className="fp-kpi-value fp-num">{formatCurrency(pending.total)}</p>
+          <p className="fp-kpi-description">
+            Acumulado de quem não foi marcado no último lote fechado; entra como saldo anterior no
+            próximo.
+          </p>
         </article>
         <article className="fp-kpi">
           <div className="fp-kpi-heading">
@@ -105,6 +128,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                   <th className="fp-num">Vidas pagas</th>
                   <th className="fp-num">Valor por vida</th>
                   <th className="fp-num">Valor do mês</th>
+                  <th className="fp-num">Saldo pendente</th>
                 </tr>
               </thead>
               <tbody>
@@ -125,6 +149,9 @@ export default async function HomePage({ searchParams }: PageProps) {
                           : "—"}
                     </td>
                     <td className="fp-num">{formatCurrency(row.amount)}</td>
+                    <td className="fp-num">
+                      {formatCurrency(pending.by_partner.get(row.partner_id) ?? 0)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -134,6 +161,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                   <td className="fp-num">{formatInteger(overview.total_lives)}</td>
                   <td />
                   <td className="fp-num">{formatCurrency(overview.total_amount)}</td>
+                  <td className="fp-num">{formatCurrency(pending.total)}</td>
                 </tr>
               </tfoot>
             </table>

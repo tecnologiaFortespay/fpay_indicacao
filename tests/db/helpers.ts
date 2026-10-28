@@ -88,7 +88,8 @@ export const CNPJ_B = "00000000000191";
 export const CNPJ_C = "12ABC34501DE35";
 
 export function rows(entries: [string, string, number][]) {
-  return entries.map(([cnpj, competency, lives]) => ({
+  return entries.map(([cnpj, competency, lives], index) => ({
+    line_number: index + 2,
     cnpj,
     competency,
     lives,
