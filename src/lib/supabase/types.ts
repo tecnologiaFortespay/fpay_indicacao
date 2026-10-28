@@ -1,0 +1,378 @@
+
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+
+export type Database = {
+  
+  "graphql_public": {
+          Tables: {
+            [_ in never]: never
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "graphql":
+{ Args: { "extensions"?: Json,"operationName"?: string,"query"?: string,"variables"?: Json }; Returns: Json
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"public": {
+          Tables: {
+            "companies": {
+                  Row: {
+                    "cnpj": string,"first_competency": string | null,"group_name": string | null,"name": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cnpj": string,"first_competency"?: string | null,"group_name"?: string | null,"name": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "cnpj"?: string,"first_competency"?: string | null,"group_name"?: string | null,"name"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"import_batches": {
+                  Row: {
+                    "competencies": (string)[],"created_at": string,"created_by": string,"file_hash": string,"file_name": string,"id": string,"rows_ignored": number,"rows_imported": number,"rows_read": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "competencies"?: (string)[],"created_at"?: string,"created_by": string,"file_hash": string,"file_name": string,"id"?: string,"rows_ignored"?: number,"rows_imported"?: number,"rows_read"?: number
+                  }
+                  Update: {
+                    "competencies"?: (string)[],"created_at"?: string,"created_by"?: string,"file_hash"?: string,"file_name"?: string,"id"?: string,"rows_ignored"?: number,"rows_imported"?: number,"rows_read"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"import_rows": {
+                  Row: {
+                    "batch_id": string,"id": number,"line_number": number,"outcome": string,"raw_line": string,"reason": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "batch_id": string,"id"?: never,"line_number": number,"outcome": string,"raw_line": string,"reason": string
+                  }
+                  Update: {
+                    "batch_id"?: string,"id"?: never,"line_number"?: number,"outcome"?: string,"raw_line"?: string,"reason"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "import_rows_batch_id_fkey"
+      columns: ["batch_id"]
+isOneToOne: false
+      referencedRelation: "import_batches"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"monthly_lives": {
+                  Row: {
+                    "batch_id": string,"cnpj": string,"competency": string,"imported_at": string,"lives": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "batch_id": string,"cnpj": string,"competency": string,"imported_at"?: string,"lives": number
+                  }
+                  Update: {
+                    "batch_id"?: string,"cnpj"?: string,"competency"?: string,"imported_at"?: string,"lives"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "monthly_lives_batch_id_fkey"
+      columns: ["batch_id"]
+isOneToOne: false
+      referencedRelation: "import_batches"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "monthly_lives_cnpj_fkey"
+      columns: ["cnpj"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["cnpj"]
+    }
+                  ]
+                },"partner_rules": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"id": string,"partner_id": string,"term_months": number | null,"valid_from": string,"value_per_life": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"partner_id": string,"term_months"?: number | null,"valid_from": string,"value_per_life": number
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"partner_id"?: string,"term_months"?: number | null,"valid_from"?: string,"value_per_life"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "partner_rules_partner_id_fkey"
+      columns: ["partner_id"]
+isOneToOne: false
+      referencedRelation: "partners"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"partners": {
+                  Row: {
+                    "approved_at": string | null,"approved_by": string | null,"bank_account": string | null,"bank_branch": string | null,"bank_name": string | null,"city": string | null,"contact_email": string | null,"contact_name": string | null,"contact_phone": string | null,"created_at": string,"created_by": string | null,"id": string,"kind": string,"name": string,"payment_method": string | null,"pix_key": string | null,"rejection_reason": string | null,"state": string | null,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"bank_account"?: string | null,"bank_branch"?: string | null,"bank_name"?: string | null,"city"?: string | null,"contact_email"?: string | null,"contact_name"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind": string,"name": string,"payment_method"?: string | null,"pix_key"?: string | null,"rejection_reason"?: string | null,"state"?: string | null,"status"?: string
+                  }
+                  Update: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"bank_account"?: string | null,"bank_branch"?: string | null,"bank_name"?: string | null,"city"?: string | null,"contact_email"?: string | null,"contact_name"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind"?: string,"name"?: string,"payment_method"?: string | null,"pix_key"?: string | null,"rejection_reason"?: string | null,"state"?: string | null,"status"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"profiles": {
+                  Row: {
+                    "created_at": string,"display_name": string,"partner_id": string | null,"role": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"display_name": string,"partner_id"?: string | null,"role": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"display_name"?: string,"partner_id"?: string | null,"role"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "profiles_partner_id_fkey"
+      columns: ["partner_id"]
+isOneToOne: false
+      referencedRelation: "partners"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"referrals": {
+                  Row: {
+                    "activated_competency": string | null,"cnpj": string,"company_name": string,"created_at": string,"created_by": string | null,"estimated_lives": number | null,"id": string,"partner_id": string,"status": string,"status_changed_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activated_competency"?: string | null,"cnpj": string,"company_name": string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"id"?: string,"partner_id": string,"status"?: string,"status_changed_at"?: string
+                  }
+                  Update: {
+                    "activated_competency"?: string | null,"cnpj"?: string,"company_name"?: string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"id"?: string,"partner_id"?: string,"status"?: string,"status_changed_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "referrals_cnpj_fkey"
+      columns: ["cnpj"]
+isOneToOne: true
+      referencedRelation: "companies"
+      referencedColumns: ["cnpj"]
+    },{
+      foreignKeyName: "referrals_partner_id_fkey"
+      columns: ["partner_id"]
+isOneToOne: false
+      referencedRelation: "partners"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            "partner_month_amounts": {
+                  Row: {
+                    "amount": number | null,"competency": string,"lives": number | null,"partner_id": string,"value_per_life": number | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "referrals_partner_id_fkey"
+      columns: ["partner_id"]
+isOneToOne: false
+      referencedRelation: "partners"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"referral_month_lives": {
+                  Row: {
+                    "cnpj": string,"competency": string,"lives": number,"partner_id": string,"referral_id": string,"term_months": number | null,"value_per_life": number | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "referrals_cnpj_fkey"
+      columns: ["cnpj"]
+isOneToOne: true
+      referencedRelation: "companies"
+      referencedColumns: ["cnpj"]
+    },{
+      foreignKeyName: "referrals_partner_id_fkey"
+      columns: ["partner_id"]
+isOneToOne: false
+      referencedRelation: "partners"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Functions: {
+            "create_referral":
+{ Args: { "payload": Json }; Returns: string
+                           },
+"current_profile":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"current_role_name":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"delete_partner_rule":
+{ Args: { "target": string }; Returns: undefined
+                           },
+"import_lives":
+{ Args: { "batch": Json,"rows": Json }; Returns: string
+                           },
+"is_analyst":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"is_director":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"my_partner_id":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"save_partner":
+{ Args: { "payload": Json }; Returns: string
+                           },
+"save_partner_rule":
+{ Args: { "payload": Json }; Returns: string
+                           },
+"valid_cnpj":
+{ Args: { "value": string }; Returns: boolean
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        }
+}
+
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
+
+export const Constants = {
+  "graphql_public": {
+          Enums: {
+            
+          }
+        },"public": {
+          Enums: {
+            
+          }
+        }
+} as const

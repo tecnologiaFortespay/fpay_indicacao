@@ -1,0 +1,93 @@
+/* Fortes Pay · Sistema Órbita · design tokens */
+:root {
+  /* Neutros */
+  --fp-ink-900: #1c1d20; /* sidebar, texto principal, saldo */
+  --fp-ink-800: #2a2b2f;
+  --fp-ink-700: #34363b;
+  --fp-ink-600: #3f4247;
+  --fp-text-2: #54575d; /* texto de apoio */
+  --fp-text-3: #6d7076; /* rótulos, metadados */
+  --fp-text-4: #a3a5a9; /* separadores de texto */
+  --fp-bg: #f4f4f3; /* área de trabalho */
+  --fp-surface: #ffffff;
+  --fp-surface-2: #f8f8f7;
+  --fp-border: #e4e4e2;
+  --fp-border-input: #dadad7;
+  --fp-line: #ededeb;
+  --fp-line-soft: #f3f3f1;
+
+  /* Marca */
+  --fp-red-600: #cc0000; /* ação primária, ativo, liquidação */
+  --fp-red-700: #a80000; /* hover */
+  --fp-red-text: #b00000; /* links e valores negativos sobre claro */
+  --fp-red-bright: #e01919; /* acento sobre escuro */
+  --fp-red-soft: #fce8e8;
+  --fp-red-tint: #fbf3f3; /* linha selecionada */
+
+  /* Prévia / estimativa */
+  --fp-wine-700: #7a0a0a;
+  --fp-wine-600: #8e0b0b;
+  --fp-wine-soft: #f6e6e6;
+  --fp-wine-border: #d9a3a3;
+
+  /* Semânticos */
+  --fp-amber-600: #b66a10;
+  --fp-amber-text: #8a4f0a;
+  --fp-amber-soft: #fff1dc;
+  --fp-amber-tint: #fff8ee;
+  --fp-green-600: #118a62;
+  --fp-green-text: #0b6b4b;
+  --fp-green-soft: #e6f4ee;
+
+  /* Tipografia */
+  --fp-font-sans: "Geist", system-ui, sans-serif;
+  --fp-font-mono: "Geist Mono", ui-monospace, monospace;
+  --fp-fs-display: 40px;
+  --fp-fs-h1: 28px;
+  --fp-fs-h2: 16px;
+  --fp-fs-body: 13.5px;
+  --fp-fs-small: 12.5px;
+  --fp-fs-label: 11.5px;
+
+  /* Forma */
+  --fp-radius-sm: 6px;
+  --fp-radius-md: 9px;
+  --fp-radius-lg: 14px;
+  --fp-radius-xl: 16px;
+  --fp-shadow-card: 0 1px 2px rgba(28, 29, 32, 0.04);
+  --fp-shadow-hero: 0 14px 34px rgba(28, 29, 32, 0.22);
+  --fp-shadow-cta: 0 8px 20px rgba(204, 0, 0, 0.28);
+  --fp-focus: 0 0 0 3px rgba(204, 0, 0, 0.3);
+
+  /* Layout */
+  --fp-sidebar-w: 252px;
+  --fp-sidebar-rail: 72px;
+  --fp-gap: 14px;
+}
+
+[data-theme="dark"] {
+  --fp-bg: #111214;
+  --fp-surface: #1c1d20;
+  --fp-surface-2: #232428;
+  --fp-border: rgba(255, 255, 255, 0.08);
+  --fp-line: rgba(255, 255, 255, 0.06);
+  --fp-ink-900: #f4f4f3;
+  --fp-text-2: #b3b5b9;
+  --fp-text-3: #9a9ca1;
+  --fp-red-600: #e01919;
+  --fp-red-text: #ff9c9c;
+  --fp-wine-700: #ffb3b3;
+}
+
+/* Números financeiros: sempre tabulares */
+.fp-num {
+  font-family: var(--fp-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
