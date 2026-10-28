@@ -105,3 +105,10 @@ export function batch(name: string) {
     issues: [],
   };
 }
+
+// Para chamadas sem retorno (update, funções void): falha só se houver erro.
+export function done(result: { error: { message: string } | null }, operation: string): void {
+  if (result.error) {
+    throw new Error(`${operation}: ${result.error.message}`);
+  }
+}

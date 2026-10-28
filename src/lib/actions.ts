@@ -14,7 +14,14 @@ export function databaseError(error: DatabaseError): string {
     case "RULE_FIELDS":
     case "REFERRAL_FIELDS":
     case "IMPORT_FIELDS":
+    case "INVITATION_FIELDS":
+    case "REGISTRATION_FIELDS":
+    case "APPROVAL_FIELDS":
       return detail || "Confira os campos informados.";
+    case "INVITATION_INVALID":
+      return "Convite inválido, expirado ou já utilizado.";
+    case "ALREADY_REGISTERED":
+      return "Esta conta já tem um cadastro na plataforma. Entre com ela.";
     case "RULE_DUPLICATE":
       return "Já existe uma vigência começando nesse mês para este parceiro.";
     case "REFERRAL_DUPLICATE":

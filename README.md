@@ -28,8 +28,9 @@ npm run bootstrap -- --email analista@exemplo.com --role analyst --name "Analist
 npm run dev               # http://localhost:3000
 ```
 
-Perfis internos (diretor e analista de dados) são criados pelo script acima. Parceiros entram por
-convite gerado pelo diretor (Fatia 2).
+Perfis internos (diretor e analista de dados) são criados pelo script acima. Parceiros entram só por
+convite: o diretor gera o link em **Parceiros → Convites**, a unidade preenche o cadastro, e o diretor
+aprova informando a regra (valor por vida, vigência, prazo) e o meio de pagamento.
 
 ## Projeto real (Supabase da Fortes Pay)
 
@@ -63,5 +64,5 @@ src/lib/               env, sessão, leitor de CSV, consultas por domínio, rót
 tests/db/              testes de banco (Vitest)   ·   e2e/   testes de ponta a ponta (Playwright)
 ```
 
-Limite do projeto: no máximo 12 tabelas. Hoje: 8 (`profiles`, `partners`, `partner_rules`,
-`companies`, `referrals`, `import_batches`, `import_rows`, `monthly_lives`).
+Limite do projeto: no máximo 12 tabelas. Hoje: 9 (`profiles`, `partners`, `partner_rules`,
+`companies`, `referrals`, `import_batches`, `import_rows`, `monthly_lives`, `invitations`).

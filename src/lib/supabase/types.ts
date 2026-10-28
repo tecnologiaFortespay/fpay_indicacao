@@ -71,6 +71,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"invitations": {
+                  Row: {
+                    "created_at": string,"created_by": string,"expires_at": string,"id": string,"kind": string,"partner_id": string | null,"partner_name": string,"token_hash": string,"used_at": string | null,"used_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by": string,"expires_at": string,"id"?: string,"kind": string,"partner_id"?: string | null,"partner_name": string,"token_hash": string,"used_at"?: string | null,"used_by"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"expires_at"?: string,"id"?: string,"kind"?: string,"partner_id"?: string | null,"partner_name"?: string,"token_hash"?: string,"used_at"?: string | null,"used_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "invitations_partner_id_fkey"
+      columns: ["partner_id"]
+isOneToOne: false
+      referencedRelation: "partners"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"monthly_lives": {
                   Row: {
                     "batch_id": string,"cnpj": string,"competency": string,"imported_at": string,"lives": number
@@ -217,7 +237,13 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "create_referral":
+            "approve_partner":
+{ Args: { "payload": Json }; Returns: undefined
+                           },
+"create_invitation":
+{ Args: { "payload": Json }; Returns: string
+                           },
+"create_referral":
 { Args: { "payload": Json }; Returns: string
                            },
 "current_profile":
@@ -232,6 +258,12 @@ isOneToOne: false
 "import_lives":
 { Args: { "batch": Json,"rows": Json }; Returns: string
                            },
+"invitation_preview":
+{ Args: { "secret": string }; Returns: Json
+                           },
+"invitation_token_hash":
+{ Args: { "secret": string }; Returns: string
+                           },
 "is_analyst":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
@@ -240,6 +272,12 @@ isOneToOne: false
                            },
 "my_partner_id":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"register_partner":
+{ Args: { "payload": Json,"secret": string }; Returns: string
+                           },
+"reject_partner":
+{ Args: { "reason": string,"target": string }; Returns: undefined
                            },
 "save_partner":
 { Args: { "payload": Json }; Returns: string

@@ -19,20 +19,10 @@ test("fatia 1: cadastrar parceiro, regra e indicação, importar o CSV e ver vid
   const run = fixtures();
   await login(page, run.director.email, run.password);
 
-  // 2. Parceiro "Unidade Natal" com PIX.
+  // 2. Parceiro "Unidade Natal" já aprovado (cadastro por convite é o roteiro da Fatia 2).
   await page.goto("/parceiros");
-  // O formulário já vem aberto quando não há parceiros; abre só se estiver fechado.
-  const disclosure = page.locator("details.fp-disclosure");
-  const alreadyOpen = await disclosure.evaluate((element) => (element as HTMLDetailsElement).open);
-  if (!alreadyOpen) {
-    await disclosure.locator("summary").click();
-  }
-  await page.getByLabel("Nome do parceiro (unidade ou pessoa)").fill("Unidade Natal");
-  await page.getByLabel("Cidade").fill("Natal");
-  await page.getByLabel("UF").fill("RN");
-  await page.getByLabel(/^Meio de pagamento/).selectOption("pix");
-  await page.getByLabel("Chave PIX").fill("natal@fortespay.local");
-  await page.getByRole("button", { name: "Cadastrar parceiro" }).click();
+  await expect(page.getByText("Novo parceiro")).toHaveCount(0);
+  await page.getByRole("link", { name: /Unidade Natal/ }).click();
   await expect(page).toHaveURL(/\/parceiros\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { level: 1, name: "Unidade Natal" })).toBeVisible();
 

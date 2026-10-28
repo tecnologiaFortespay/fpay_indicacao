@@ -3,25 +3,114 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
+import { ApprovalForm, RejectionForm } from "@/components/approval-form";
 import { Field } from "@/components/fields";
 import { MutationForm } from "@/components/mutation-form";
 import { PartnerForm } from "@/components/partner-form";
 import { requireRole } from "@/lib/auth/session";
 import { formatCnpj } from "@/lib/cnpj";
 import { competencyLabel, currentCompetency, dateToCompetency, formatDate } from "@/lib/competency";
-import { partnerKindLabels, partnerStatusLabels, referralStatusLabels } from "@/lib/labels";
+import {
+  partnerKindLabels,
+  partnerStatusLabels,
+  paymentMethodLabels,
+  referralStatusLabels,
+} from "@/lib/labels";
 import { formatCurrency, formatInteger } from "@/lib/money";
 import {
   getPartner,
   listPartnerMonthAmounts,
   listPartnerReferrals,
   listPartnerRules,
+  type Partner,
 } from "@/lib/partners/queries";
 import { createReferral, deletePartnerRule, savePartnerRule } from "../actions";
 
 export const metadata: Metadata = { title: "Parceiro" };
 
 type PageProps = { params: Promise<{ id: string }> };
+
+function placeOf(partner: Partner): string {
+  if (!partner.city) {
+    return "—";
+  }
+  return partner.state ? `${partner.city}/${partner.state}` : partner.city;
+}
+
+function PendingPartner({
+  partner,
+  kind,
+  status,
+}: {
+  partner: Partner;
+  kind: string;
+  status: string;
+}) {
+  const payment = partner.payment_method
+    ? paymentMethodLabels[partner.payment_method as keyof typeof paymentMethodLabels]
+    : "não informado";
+  const contact = [partner.contact_email, partner.contact_phone].filter(Boolean).join(" · ") || "—";
+  return (
+    <AppShell title={partner.name}>
+      <Link href="/parceiros" className="fp-detail-back">
+        ← Parceiros
+      </Link>
+      <div className="fp-detail-total">
+        <div>
+          <span>Situação</span>
+          <strong className="text-base">{status}</strong>
+        </div>
+        <div>
+          <span>Tipo</span>
+          <strong className="text-base">{kind}</strong>
+        </div>
+        <div>
+          <span>Local</span>
+          <strong className="text-base">{placeOf(partner)}</strong>
+        </div>
+        <div>
+          <span>Responsável</span>
+          <strong className="text-base">{partner.contact_name ?? "—"}</strong>
+        </div>
+        <div>
+          <span>Contato</span>
+          <strong className="text-base">{contact}</strong>
+        </div>
+        <div>
+          <span>Cadastrado em</span>
+          <strong className="text-base">{formatDate(partner.created_at)}</strong>
+        </div>
+        <div>
+          <span>Pagamento informado</span>
+          <strong className="text-base">{payment}</strong>
+        </div>
+      </div>
+      {partner.status === "rejected" && partner.rejection_reason && (
+        <p className="orbita-alert mb-6">Recusado: {partner.rejection_reason}</p>
+      )}
+      <section className="fp-panel">
+        <div className="fp-panel-heading">
+          <h2>Aprovar cadastro</h2>
+          <span>regra e meio de pagamento são obrigatórios para liberar o acesso</span>
+        </div>
+        <div className="fp-form-section">
+          <ApprovalForm partner={partner} />
+        </div>
+      </section>
+      {partner.status === "pending" && (
+        <section className="fp-panel mt-6">
+          <div className="fp-panel-heading">
+            <h2>Recusar cadastro</h2>
+            <span>o parceiro continua sem acesso e vê o motivo</span>
+          </div>
+          <div className="fp-form-section">
+            <RejectionForm partner={partner} />
+          </div>
+        </section>
+      )}
+    </AppShell>
+  );
+}
 
 export default async function PartnerDetailPage({ params }: PageProps) {
   await requireRole("director");
@@ -33,14 +122,17 @@ export default async function PartnerDetailPage({ params }: PageProps) {
   if (!partner) {
     notFound();
   }
+  const kind = partnerKindLabels[partner.kind as keyof typeof partnerKindLabels] ?? partner.kind;
+  const status =
+    partnerStatusLabels[partner.status as keyof typeof partnerStatusLabels] ?? partner.status;
+  if (partner.status !== "active") {
+    return <PendingPartner partner={partner} kind={kind} status={status} />;
+  }
   const [rules, referrals, amounts] = await Promise.all([
     listPartnerRules(id),
     listPartnerReferrals(id),
     listPartnerMonthAmounts(id),
   ]);
-  const kind = partnerKindLabels[partner.kind as keyof typeof partnerKindLabels] ?? partner.kind;
-  const status =
-    partnerStatusLabels[partner.status as keyof typeof partnerStatusLabels] ?? partner.status;
   return (
     <AppShell title={partner.name}>
       <Link href="/parceiros" className="fp-detail-back">
@@ -57,13 +149,13 @@ export default async function PartnerDetailPage({ params }: PageProps) {
         </div>
         <div>
           <span>Local</span>
-          <strong className="text-base">
-            {partner.city ? `${partner.city}${partner.state ? `/${partner.state}` : ""}` : "—"}
-          </strong>
+          <strong className="text-base">{placeOf(partner)}</strong>
         </div>
         <div>
-          <span>Cadastrado em</span>
-          <strong className="text-base">{formatDate(partner.created_at)}</strong>
+          <span>Aprovado em</span>
+          <strong className="text-base">
+            {partner.approved_at ? formatDate(partner.approved_at) : "—"}
+          </strong>
         </div>
       </div>
 

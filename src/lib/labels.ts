@@ -42,3 +42,9 @@ export type PartnerKind = keyof typeof partnerKindLabels;
 export type PartnerStatus = keyof typeof partnerStatusLabels;
 export type PaymentMethod = keyof typeof paymentMethodLabels;
 export type ReferralStatus = keyof typeof referralStatusLabels;
+
+export const invitationStatusLabels = {
+  open: "Aguardando cadastro",
+  used: "Cadastro feito",
+  expired: "Expirado",
+} as const;
