@@ -68,6 +68,18 @@ Passos, nesta ordem:
 5. **Build com os valores finais**: as variáveis `NEXT_PUBLIC_*` entram no build
    (`NEXT_PUBLIC_APP_URL` vai nos links de convite e de recuperação de senha).
 
+## Deploy (DigitalOcean App Platform)
+
+- Origem: este repositório no GitHub, branch `main`. Node 22 (`engines` no `package.json`).
+- Build: `npm run build`. Execução: `npm start` (o Next lê a porta em `PORT`).
+- Variáveis com escopo **build e execução**, porque as `NEXT_PUBLIC_*` entram no build:
+  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_APP_URL` (endereço
+  público do app, usado nos links de convite e de recuperação de senha) e
+  `NEXT_PUBLIC_ENVIRONMENT_LABEL` (vazio em produção). Não configure `SUPABASE_SERVICE_ROLE_KEY`
+  nem `SUPABASE_DB_URL` no app: só os scripts locais usam.
+- Depois do primeiro deploy, no Supabase: Site URL = `https://<domínio>` e
+  `https://<domínio>/auth/callback` nas Redirect URLs (seção "Projeto real").
+
 ## Scripts
 
 | Comando                                                   | O que faz                                                                                                         |
