@@ -16,6 +16,7 @@ export function navigationFor(role: Role): NavArea[] {
     return [
       { id: "overview", href: "/inicio", label: "Meu painel", icon: "home" },
       { id: "referrals", href: "/indicacoes", label: "Minhas indicações", icon: "commercial" },
+      { id: "closings", href: "/fechamentos", label: "Meus fechamentos", icon: "finance" },
     ];
   }
   return [

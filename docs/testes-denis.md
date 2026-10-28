@@ -64,3 +64,17 @@ Antes: parceiro aprovado com regra e indicação; CSVs de agosto e setembro impo
 9. A lista de fechamentos registrados mostra os meses, quando foram preparados e fechados; cada mês fechado guarda valor do mês, ajuste, saldo anterior, total, decisão, data e quem decidiu.
 
 Esperado que **não** aconteça: fechar o mês corrente; fechar setembro com agosto aberto; fechar sem importação pós-mês; alterar ajuste, vigência ou importar vidas de um mês fechado.
+
+## Fatia 5 — Painel do parceiro com "dados atualizados em"
+
+Antes: parceiro aprovado com indicações ativas, importações feitas e pelo menos um mês fechado.
+
+1. Entre como **parceiro**. **Meu painel** mostra: vidas pagas no mês (até o dia de hoje), valor a receber (prévia = vidas × seu valor por vida), saldo pendente e o último fechamento, mais "Dados atualizados em dd/mm/aaaa hh:mm", igual à última importação feita pela Fortes Pay.
+2. Peça ao analista para subir um CSV novo. Recarregue: o carimbo e as vidas mudam.
+3. Troque o mês no seletor: os números seguem o mês escolhido.
+4. A lista de indicações mostra a situação de cada cliente e as vidas do mês; inadimplentes ficam destacados para você cobrar.
+5. Em **Meus fechamentos**, cada mês fechado traz vidas, valor do mês, ajuste (com o motivo), saldo anterior, total e se foi pago ou acumulado. No mês mais recente, **Confirmar valor** ou **Contestar** com uma explicação.
+6. Entre como **diretor**: em Fechamento do mês, a coluna "Resposta do parceiro" mostra a confirmação ou a contestação com o texto.
+7. Como parceiro, tente abrir `/parceiros`, `/fechamento` ou `/importacoes`: volta para o seu painel. Nenhum dado de outro parceiro aparece.
+
+Esperado que **não** aconteça: parceiro vendo importações, outros parceiros ou fechamentos em preparação; parceiro respondendo pelo fechamento de outro; contestação sem explicação.

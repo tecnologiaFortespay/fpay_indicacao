@@ -283,6 +283,9 @@ isOneToOne: false
 "close_closing":
 { Args: { "paid_partner_ids": (string)[],"target": string }; Returns: undefined
                            },
+"closing_is_closed":
+{ Args: { "target": string }; Returns: boolean
+                           },
 "create_invitation":
 { Args: { "payload": Json }; Returns: string
                            },
@@ -316,8 +319,14 @@ isOneToOne: false
 "is_director":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"last_import_at":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
 "my_partner_id":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"partner_has_closing_item":
+{ Args: { "target": string }; Returns: boolean
                            },
 "prepare_closing":
 { Args: { "month": string }; Returns: string
@@ -327,6 +336,9 @@ isOneToOne: false
                            },
 "reject_partner":
 { Args: { "reason": string,"target": string }; Returns: undefined
+                           },
+"respond_closing_item":
+{ Args: { "note": string,"response": string,"target": string }; Returns: undefined
                            },
 "save_partner":
 { Args: { "payload": Json }; Returns: string

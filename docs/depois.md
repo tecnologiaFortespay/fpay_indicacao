@@ -18,3 +18,6 @@ Regra 4 da seção 11: nada fora do documento entra sem decisão explícita.
 - Penetração por região (depende da fonte de município/UF, a confirmar).
 - Carga inicial do histórico da planilha da Géssica.
 - Deploy e CI no GitHub da Fortes Pay.
+- Aviso de confirmação depois de aprovar/recusar cadastro e de mudar situação de indicação (hoje a tela só muda de estado).
+- Avisar o parceiro por e-mail quando o mês dele é fechado (hoje ele vê ao entrar no painel).
+- Parceiro alterar a resposta ao fechamento depois de confirmar/contestar (hoje a tela mostra só a resposta dada).

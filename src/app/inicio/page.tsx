@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { PartnerPanel } from "@/components/partner-panel";
 import { pendingBalances } from "@/lib/closings/queries";
 import { Field } from "@/components/fields";
 import { requireUser } from "@/lib/auth/session";
@@ -28,19 +29,10 @@ export default async function HomePage({ searchParams }: PageProps) {
   if (user.profile.role === "analyst") {
     redirect("/importacoes");
   }
-  if (user.profile.role === "partner") {
-    return (
-      <AppShell title="Meu painel">
-        <div className="fp-empty">
-          <h2>Seu painel está sendo preparado</h2>
-          <p>
-            Em breve você verá aqui suas vidas pagas no mês, o valor a receber e os fechamentos.
-          </p>
-        </div>
-      </AppShell>
-    );
-  }
   const params = await searchParams;
+  if (user.profile.role === "partner") {
+    return <PartnerPanel user={user} requestedCompetency={params.competency} />;
+  }
   const latest = await latestCompetency();
   const competency = isCompetency(params.competency)
     ? params.competency
