@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { adminClient, ensureStaffUser } from "../scripts/bootstrap.mjs";
+import { assertLocalSupabase } from "../tests/local-only";
 
 export const FIXTURES_PATH = ".local/e2e-fixtures.json";
 
@@ -78,7 +79,8 @@ function resetLocalData() {
 }
 
 export default async function globalSetup() {
-  process.loadEnvFile(".env.local");
+  process.loadEnvFile(".env.test");
+  assertLocalSupabase(process.env.NEXT_PUBLIC_SUPABASE_URL);
   resetLocalData();
   const password = "Senha-e2e-12345";
   const director = await ensureStaffUser({

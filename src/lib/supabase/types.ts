@@ -79,14 +79,14 @@ isOneToOne: false
                   ]
                 },"import_batches": {
                   Row: {
-                    "competencies": (string)[],"created_at": string,"created_by": string,"file_hash": string,"file_name": string,"id": string,"rows_ignored": number,"rows_imported": number,"rows_read": number
+                    "competencies": (string)[],"created_at": string,"created_by": string,"file_hash": string,"file_name": string,"id": string,"rows_ignored": number,"rows_imported": number,"rows_read": number,"rows_skipped": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "competencies"?: (string)[],"created_at"?: string,"created_by": string,"file_hash": string,"file_name": string,"id"?: string,"rows_ignored"?: number,"rows_imported"?: number,"rows_read"?: number
+                    "competencies"?: (string)[],"created_at"?: string,"created_by": string,"file_hash": string,"file_name": string,"id"?: string,"rows_ignored"?: number,"rows_imported"?: number,"rows_read"?: number,"rows_skipped"?: number
                   }
                   Update: {
-                    "competencies"?: (string)[],"created_at"?: string,"created_by"?: string,"file_hash"?: string,"file_name"?: string,"id"?: string,"rows_ignored"?: number,"rows_imported"?: number,"rows_read"?: number
+                    "competencies"?: (string)[],"created_at"?: string,"created_by"?: string,"file_hash"?: string,"file_name"?: string,"id"?: string,"rows_ignored"?: number,"rows_imported"?: number,"rows_read"?: number,"rows_skipped"?: number
                   }
                   Relationships: [
                     

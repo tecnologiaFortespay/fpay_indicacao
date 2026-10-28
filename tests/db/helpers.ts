@@ -9,7 +9,7 @@ const options = { auth: { persistSession: false, autoRefreshToken: false } };
 function env(name: string): string {
   const value = process.env[name];
   if (!value) {
-    throw new Error(`Defina ${name} em .env.local (Supabase local).`);
+    throw new Error(`Defina ${name} em .env.test (Supabase local).`);
   }
   return value;
 }
@@ -98,12 +98,14 @@ export function rows(entries: [string, string, number][]) {
   }));
 }
 
-export function batch(name: string) {
+// competency: mês do arquivo ('YYYY-MM-01'); cobre o mês mesmo sem linha de empresa indicada.
+export function batch(name: string, competency?: string) {
   return {
     file_name: name,
     file_hash: randomUUID().replace(/-/g, "").padEnd(64, "0"),
     rows_read: 1,
     issues: [],
+    ...(competency ? { competency } : {}),
   };
 }
 

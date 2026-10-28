@@ -1,16 +1,7 @@
-import { expect, test, type Page } from "@playwright/test";
-import { biCsv, fixtures, login } from "./helpers";
+import { expect, test } from "@playwright/test";
+import { fixtures, importExport, login } from "./helpers";
 
 const CNPJ_A = "11.444.777/0001-61";
-
-async function importCsv(page: Page, name: string, content: string) {
-  await page.goto("/importacoes");
-  await page
-    .getByLabel("Arquivo CSV")
-    .setInputFiles({ name, mimeType: "text/csv", buffer: Buffer.from(content, "utf8") });
-  await page.getByRole("button", { name: "Importar", exact: true }).click();
-  await expect(page).toHaveURL(/\/importacoes\/[0-9a-f-]{36}$/);
-}
 
 // Roteiro do Denis, Fatia 4 (docs/testes-denis.md). Usa junho e julho de 2026 para não colidir com os meses dos outros roteiros.
 test("fatia 4: conferir, ajustar, marcar quem paga, fechar lote e carregar o saldo pendente", async ({
@@ -29,14 +20,12 @@ test("fatia 4: conferir, ajustar, marcar quem paga, fechar lote e carregar o sal
   await page.getByLabel("Empresa", { exact: true }).fill("Empresa A");
   await page.getByRole("button", { name: "Registrar indicação" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Indicação registrada." })).toBeVisible();
-  await importCsv(
-    page,
-    "ago-set.csv",
-    biCsv([
-      { cnpj: CNPJ_A, company: "Empresa A", lives: 40, month: "2026-06" },
-      { cnpj: CNPJ_A, company: "Empresa A", lives: 48, month: "2026-07" },
-    ]),
-  );
+  await importExport(page, "junho.xlsx", "2026-06", [
+    { cnpj: CNPJ_A, company: "Empresa A", lives: 40 },
+  ]);
+  await importExport(page, "julho.xlsx", "2026-07", [
+    { cnpj: CNPJ_A, company: "Empresa A", lives: 48 },
+  ]);
 
   // Outubro (mês corrente) não fecha.
   await page.goto("/fechamento?competency=2026-10");
@@ -72,16 +61,14 @@ test("fatia 4: conferir, ajustar, marcar quem paga, fechar lote e carregar o sal
     page.getByRole("heading", { name: "Saldo pendente" }).locator("..").locator(".."),
   ).toContainText("50,00");
 
-  // 5. CSV de agosto depois do fechamento é ignorado com motivo; setembro continua entrando.
-  await importCsv(
-    page,
-    "ago-set-v2.csv",
-    biCsv([
-      { cnpj: CNPJ_A, company: "Empresa A", lives: 99, month: "2026-06" },
-      { cnpj: CNPJ_A, company: "Empresa A", lives: 48, month: "2026-07" },
-    ]),
-  );
+  // 5. Export de junho depois do fechamento é ignorado com motivo; julho continua entrando.
+  await importExport(page, "junho-v2.xlsx", "2026-06", [
+    { cnpj: CNPJ_A, company: "Empresa A", lives: 99 },
+  ]);
   await expect(page.getByRole("cell", { name: /Mês já fechado \(06\/2026\)/ })).toBeVisible();
+  await importExport(page, "julho-v2.xlsx", "2026-07", [
+    { cnpj: CNPJ_A, company: "Empresa A", lives: 48 },
+  ]);
 
   // 6–7. Setembro: saldo anterior de Natal R$ 50,00 + R$ 72,00 = R$ 122,00; marcar Natal e fechar.
   await page.goto("/fechamento?competency=2026-07");

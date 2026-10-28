@@ -45,7 +45,7 @@ export default async function ImportDetailPage({ params }: PageProps) {
           <strong className="text-base">{batch.author}</strong>
         </div>
         <div>
-          <span>Mês(es)</span>
+          <span>Mês</span>
           <strong className="text-base">{months || "—"}</strong>
         </div>
         <div>
@@ -55,6 +55,10 @@ export default async function ImportDetailPage({ params }: PageProps) {
         <div>
           <span>Importadas</span>
           <strong className="fp-num">{batch.rows_imported}</strong>
+        </div>
+        <div>
+          <span>Fora da plataforma</span>
+          <strong className="fp-num">{batch.rows_skipped}</strong>
         </div>
         <div>
           <span>Ignoradas</span>
@@ -67,7 +71,10 @@ export default async function ImportDetailPage({ params }: PageProps) {
           <span>{rows.length} linha(s)</span>
         </div>
         {rows.length === 0 ? (
-          <p className="fp-panel-footnote">Todas as linhas entraram como estavam no arquivo.</p>
+          <p className="fp-panel-footnote">
+            Nenhuma linha ignorada ou mesclada. Empresas sem indicação na plataforma só são
+            contadas.
+          </p>
         ) : (
           <div className="fp-table-wrap">
             <table className="fp-table">

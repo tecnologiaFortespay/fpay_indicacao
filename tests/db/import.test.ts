@@ -124,7 +124,7 @@ describe("fatia 1 — importação e cálculo vidas × valor vigente", () => {
   it("no mês mais recente, CNPJ ausente fica inadimplente e volta a ativo quando reaparece", async () => {
     ok(
       await director.rpc("import_lives", {
-        batch: batch("outubro-sem-a.csv"),
+        batch: batch("outubro-sem-a.xlsx", "2099-10-01"),
         rows: rows([[CNPJ_B, "2099-10-01", 10]]),
       }),
       "import_lives (october without A)",
@@ -253,5 +253,58 @@ describe("fatia 1 — importação e cálculo vidas × valor vigente", () => {
       ]),
     });
     expect(repeated.error?.message).toBe("IMPORT_FIELDS");
+  });
+
+  it("empresas sem indicação na plataforma são contadas e não gravadas", async () => {
+    const id = ok(
+      await director.rpc("import_lives", {
+        batch: batch("novembro.xlsx", "2099-11-01"),
+        rows: rows([
+          [CNPJ_A, "2099-11-01", 30],
+          [CNPJ_B, "2099-11-01", 5],
+        ]),
+      }),
+      "import_lives (november)",
+    );
+    const saved = ok(
+      await director
+        .from("import_batches")
+        .select("rows_imported, rows_skipped, rows_ignored, competencies")
+        .eq("id", id)
+        .single(),
+      "batch (november)",
+    );
+    expect(saved).toEqual({
+      rows_imported: 1,
+      rows_skipped: 1,
+      rows_ignored: 0,
+      competencies: ["2099-11-01"],
+    });
+    expect(
+      ok(await director.from("companies").select("cnpj").eq("cnpj", CNPJ_B), "companies"),
+    ).toEqual([]);
+    expect(
+      ok(await director.from("monthly_lives").select("cnpj").eq("cnpj", CNPJ_B), "lives"),
+    ).toEqual([]);
+  });
+
+  it("arquivo do mês sem nenhuma empresa indicada ainda cobre o mês: ativos ficam inadimplentes", async () => {
+    const id = ok(
+      await director.rpc("import_lives", {
+        batch: batch("dezembro.xlsx", "2099-12-01"),
+        rows: rows([[CNPJ_B, "2099-12-01", 5]]),
+      }),
+      "import_lives (december)",
+    );
+    const saved = ok(
+      await director
+        .from("import_batches")
+        .select("rows_imported, rows_skipped, competencies")
+        .eq("id", id)
+        .single(),
+      "batch (december)",
+    );
+    expect(saved).toEqual({ rows_imported: 0, rows_skipped: 1, competencies: ["2099-12-01"] });
+    expect((await referralStatus(director, CNPJ_A)).status).toBe("delinquent");
   });
 });

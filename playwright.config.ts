@@ -1,9 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
-import { existsSync } from "node:fs";
+import { assertLocalSupabase } from "./tests/local-only";
 
-if (existsSync(".env.local")) {
-  process.loadEnvFile(".env.local");
-}
+// Os testes de ponta a ponta usam só o Supabase local (.env.test); .env.local nunca é lido aqui.
+process.loadEnvFile(".env.test");
+const supabaseUrl = assertLocalSupabase(process.env.NEXT_PUBLIC_SUPABASE_URL);
 
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 3100);
 
@@ -28,6 +28,12 @@ export default defineConfig({
     url: `http://localhost:${port}/login`,
     reuseExistingServer: !process.env.CI,
     timeout: 240000,
-    env: { NEXT_PUBLIC_APP_URL: `http://localhost:${port}` },
+    // As variáveis NEXT_PUBLIC_* entram no build; passadas aqui, o Next não lê .env.local.
+    env: {
+      NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+      NEXT_PUBLIC_APP_URL: `http://localhost:${port}`,
+      NEXT_PUBLIC_ENVIRONMENT_LABEL: process.env.NEXT_PUBLIC_ENVIRONMENT_LABEL ?? "Teste",
+    },
   },
 });

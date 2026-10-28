@@ -5,7 +5,12 @@ import { Pagination } from "@/components/fields";
 import { MutationForm } from "@/components/mutation-form";
 import { OrbitaIcon } from "@/components/orbita-icon";
 import { requireRole } from "@/lib/auth/session";
-import { competencyLabel, dateToCompetency, formatDateTime } from "@/lib/competency";
+import {
+  competencyLabel,
+  currentCompetency,
+  dateToCompetency,
+  formatDateTime,
+} from "@/lib/competency";
 import { BATCH_PAGE_SIZE, latestImport, listBatches } from "@/lib/imports/queries";
 import { uploadImport } from "./actions";
 
@@ -22,7 +27,7 @@ export default async function ImportsPage({ searchParams }: PageProps) {
     <AppShell title="Importações">
       <section className="fp-panel">
         <div className="fp-panel-heading">
-          <h2>Enviar CSV do BI</h2>
+          <h2>Enviar o export do BI</h2>
           <span>
             {last
               ? `Última importação em ${formatDateTime(last.created_at)} por ${last.author}`
@@ -31,21 +36,36 @@ export default async function ImportsPage({ searchParams }: PageProps) {
         </div>
         <div className="fp-form-section">
           <p className="mb-4 text-sm text-muted-foreground">
-            Envie o arquivo exatamente como sai do BI (colunas grupo, empresa, CNPJ, vidas e mês).
-            Cada mês presente no arquivo substitui os dados daquele mês; subir o mesmo arquivo duas
-            vezes não duplica vidas. Limite: 5 MB.
+            Envie a planilha <strong>Detalhamento Empresas</strong> exportada do BI com o filtro do
+            mês, do jeito que sai de lá (Excel). A coluna <strong>C. Cash-in</strong> é lida como
+            vidas pagas do mês. Só as empresas indicadas na plataforma entram; as demais são
+            contadas como “fora da plataforma”. O envio substitui os dados do mês escolhido; subir o
+            mesmo arquivo duas vezes não duplica vidas. Limite: 5 MB.
           </p>
           <MutationForm action={uploadImport} label="Importar" pendingLabel="Importando…">
-            <label className="block text-sm font-medium">
-              Arquivo CSV
-              <input
-                type="file"
-                name="file"
-                accept=".csv,text/csv"
-                required
-                className="mt-2 block w-full rounded border p-3"
-              />
-            </label>
+            <div className="fp-form-grid">
+              <label className="block text-sm font-medium">
+                Mês de referência
+                <input
+                  type="month"
+                  name="competency"
+                  defaultValue={currentCompetency()}
+                  max={currentCompetency()}
+                  required
+                  className="mt-2 block w-full rounded border p-3"
+                />
+              </label>
+              <label className="block text-sm font-medium">
+                Planilha do BI
+                <input
+                  type="file"
+                  name="file"
+                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  required
+                  className="mt-2 block w-full rounded border p-3"
+                />
+              </label>
+            </div>
           </MutationForm>
         </div>
       </section>
@@ -64,7 +84,8 @@ export default async function ImportsPage({ searchParams }: PageProps) {
                 {batch.competencies
                   .map((date) => competencyLabel(dateToCompetency(date)))
                   .join(", ") || "sem mês"}{" "}
-                · {batch.rows_imported} importada(s) · {batch.rows_ignored} ignorada(s)
+                · {batch.rows_imported} importada(s) · {batch.rows_skipped} fora da plataforma ·{" "}
+                {batch.rows_ignored} ignorada(s)
               </small>
             </span>
             <OrbitaIcon name="arrow" />

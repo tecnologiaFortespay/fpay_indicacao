@@ -2,7 +2,7 @@
 
 Cada fatia tem um roteiro de ponta a ponta. O mesmo roteiro roda automatizado em `e2e/`.
 
-## Fatia 1 — Importar o CSV do BI e ver vidas do mês por parceiro com o valor calculado
+## Fatia 1 — Importar o export do BI e ver vidas do mês por parceiro com o valor calculado
 
 Antes: diretor e analista criados com `npm run bootstrap`; um parceiro "Unidade Natal" já aprovado (pelo roteiro da Fatia 2).
 
@@ -10,14 +10,14 @@ Antes: diretor e analista criados com `npm run bootstrap`; um parceiro "Unidade 
 2. Em **Parceiros**, abra "Unidade Natal". Você cai na ficha do parceiro.
 3. Em **Regras de remuneração → Nova vigência**, informe valor por vida `1,50`, vigência `agosto de 2026`, prazo em branco. Salve: a vigência aparece na lista.
 4. Em **Indicações → Registrar indicação**, informe o CNPJ `11.222.333/0001-81` e a empresa. Salve: a indicação aparece como **Indicada**.
-5. Em **Importações**, envie um CSV de setembro em que esse CNPJ tem 48 vidas (colunas grupo, empresa, CNPJ, vidas, mês). Você cai no detalhe do lote: linhas lidas, importadas e ignoradas, "todas as linhas entraram".
+5. Em **Importações**, escolha o mês de referência setembro de 2026 e envie a planilha **Detalhamento Empresas** exportada do BI com o filtro de setembro, em que esse CNPJ tem 48 em "C. Cash-in" (docs/arquivo-bi.md). Você cai no detalhe do lote: linhas lidas, importadas, fora da plataforma (empresas sem indicação, que não entram) e ignoradas.
 6. Em **Visão geral**, escolha setembro de 2026: Unidade Natal · 48 vidas · R$ 1,50 · R$ 72,00, e "Dados atualizados em … por …".
 7. Envie o **mesmo** arquivo de novo: surge um novo lote e as vidas continuam 48 (não 96).
 8. Envie um arquivo em que o CNPJ tem 50 vidas: a Visão geral passa a mostrar 50 e R$ 75,00. Na ficha do parceiro, a indicação está **Ativa**.
 9. Entre como **analista**: a tela inicial é Importações, o menu não tem Parceiros, e digitar `/parceiros` na barra volta para Importações.
-10. Como analista, envie um CSV com uma linha de CNPJ inválido: o lote mostra a linha ignorada com o motivo "CNPJ inválido.".
+10. Como analista, envie uma planilha com uma linha de CNPJ inválido: o lote mostra a linha ignorada com o motivo "CNPJ inválido.". Escolher um mês diferente do filtro do arquivo é recusado com explicação.
 
-Esperado que **não** aconteça: vidas somadas ao reenviar; parceiro sem regra com valor diferente de zero (aparece "sem regra vigente"); analista enxergando parceiros, regras ou indicações.
+Esperado que **não** aconteça: vidas somadas ao reenviar; empresa sem indicação entrando no cálculo; parceiro sem regra com valor diferente de zero (aparece "sem regra vigente"); analista enxergando parceiros, regras ou indicações.
 
 ## Fatia 2 — Cadastro de parceiro por convite, aprovação com regra e meio de pagamento obrigatórios
 
@@ -42,8 +42,8 @@ Antes: dois parceiros aprovados com login (ex.: Unidade Natal e Unidade Manaus).
 2. Entre como **Manaus** e tente registrar o mesmo CNPJ Y: "CNPJ já indicado em dd/mm/aaaa", sem o nome de quem indicou; nada é cadastrado.
 3. Entre como **diretor**, em **Indicações**: a linha de Y mostra "Unidade Natal". Tente registrar Y em nome de Manaus: a mensagem traz "por Unidade Natal".
 4. Na linha de Y, mude para **Em negociação** e depois **Fechada**. Só as transições permitidas aparecem na lista (ex.: uma indicação só pode ser cancelada depois de ativa).
-5. Como analista (ou diretor), importe um CSV de outubro em que Y tem 20 vidas: Y passa a **Ativa** e mostra as vidas do mês, para o diretor e para Natal.
-6. Importe outro CSV de outubro sem Y: Y passa a **Inadimplente**.
+5. Como analista (ou diretor), importe o export de outubro em que Y tem 20 vidas: Y passa a **Ativa** e mostra as vidas do mês, para o diretor e para Natal.
+6. Importe outro export de outubro sem Y: Y passa a **Inadimplente**.
 7. Mude Y para **Cancelada**: as vidas de meses a partir do cancelamento deixam de contar. Em **Visão geral**, o bloco "Indicações por situação" mostra a contagem.
 8. Manaus continua sem ver nada de Natal ("Nenhuma indicação encontrada").
 
@@ -51,7 +51,7 @@ Esperado que **não** aconteça: segundo registro do mesmo CNPJ; parceiro mudand
 
 ## Fatia 4 — Fechamento mensal: conferir, marcar quem paga, fechar lote, saldo pendente que carrega
 
-Antes: parceiro aprovado com regra e indicação; CSVs de agosto e setembro importados (hoje é outubro).
+Antes: parceiro aprovado com regra e indicação; exports de agosto e de setembro importados (hoje é outubro).
 
 1. Entre como **diretor**, em **Fechamento do mês**. Escolha outubro (mês corrente) e tente **Preparar cálculo**: bloqueado ("só é possível fechar um mês já encerrado").
 2. Escolha agosto. A etapa 01 mostra se há importação de agosto feita depois do fim do mês (sem ela o fechamento não é liberado).
@@ -59,7 +59,7 @@ Antes: parceiro aprovado com regra e indicação; CSVs de agosto e setembro impo
 4. Em Natal, informe ajuste `-10,00` com motivo e **Salvar ajuste**: o total cai para R$ 50,00. **Recalcular** mantém o ajuste.
 5. Tente **Fechar lote** sem confirmar a conferência: bloqueado. Confirme e feche **sem marcar Natal**: agosto fica **Fechado**, Natal "Acumular".
 6. **Visão geral** mostra o saldo pendente (R$ 50,00) no total e na linha de Natal.
-7. Importe de novo um CSV com agosto e setembro: as linhas de agosto aparecem no lote como ignoradas ("Mês já fechado"); setembro entra normalmente. Tentar criar ou alterar uma vigência que alcance agosto é recusado.
+7. Importe de novo o export de agosto: as linhas aparecem no lote como ignoradas ("Mês já fechado"); o export de setembro continua entrando. Tentar criar ou alterar uma vigência que alcance agosto é recusado.
 8. Escolha setembro e **Preparar cálculo**: Natal mostra saldo anterior R$ 50,00 + R$ 72,00 = R$ 122,00. Marque Natal, confirme e feche: Natal "Pagar", total a pagar R$ 122,00. O saldo pendente na Visão geral volta a zero.
 9. A lista de fechamentos registrados mostra os meses, quando foram preparados e fechados; cada mês fechado guarda valor do mês, ajuste, saldo anterior, total, decisão, data e quem decidiu.
 
@@ -70,7 +70,7 @@ Esperado que **não** aconteça: fechar o mês corrente; fechar setembro com ago
 Antes: parceiro aprovado com indicações ativas, importações feitas e pelo menos um mês fechado.
 
 1. Entre como **parceiro**. **Meu painel** mostra: vidas pagas no mês (até o dia de hoje), valor a receber (prévia = vidas × seu valor por vida), saldo pendente e o último fechamento, mais "Dados atualizados em dd/mm/aaaa hh:mm", igual à última importação feita pela Fortes Pay.
-2. Peça ao analista para subir um CSV novo. Recarregue: o carimbo e as vidas mudam.
+2. Peça ao analista para subir um export novo. Recarregue: o carimbo e as vidas mudam.
 3. Troque o mês no seletor: os números seguem o mês escolhido.
 4. A lista de indicações mostra a situação de cada cliente e as vidas do mês; inadimplentes ficam destacados para você cobrar.
 5. Em **Meus fechamentos**, cada mês fechado traz vidas, valor do mês, ajuste (com o motivo), saldo anterior, total e se foi pago ou acumulado. No mês mais recente, **Confirmar valor** ou **Contestar** com uma explicação.

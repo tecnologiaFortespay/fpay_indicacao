@@ -1,16 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
-import { biCsv, fixtures, login } from "./helpers";
+import { fixtures, importExport, login } from "./helpers";
 
 const CNPJ_Y = "12.ABC.345/01DE-35";
-
-async function importCsv(page: Page, name: string, content: string) {
-  await page.goto("/importacoes");
-  await page
-    .getByLabel("Arquivo CSV")
-    .setInputFiles({ name, mimeType: "text/csv", buffer: Buffer.from(content, "utf8") });
-  await page.getByRole("button", { name: "Importar", exact: true }).click();
-  await expect(page).toHaveURL(/\/importacoes\/[0-9a-f-]{36}$/);
-}
 
 // Depois de "Alterar" a linha é re-renderizada com a nova situação (e o formulário some quando não há mais transição).
 async function changeStatus(page: Page, company: string, status: string, label: string) {
@@ -75,11 +66,9 @@ test("fatia 3: indicações com as 7 situações e bloqueio de CNPJ duplicado", 
   await changeStatus(page, "Empresa Y", "signed", "Fechada");
 
   // 5. O CSV de outubro traz Y: Ativa.
-  await importCsv(
-    page,
-    "outubro.csv",
-    biCsv([{ cnpj: CNPJ_Y, company: "Empresa Y", lives: 20, month: "2026-10" }]),
-  );
+  await importExport(page, "outubro.xlsx", "2026-10", [
+    { cnpj: CNPJ_Y, company: "Empresa Y", lives: 20 },
+  ]);
   await page.goto("/indicacoes");
   await expect(page.getByRole("row", { name: /Empresa Y/ })).toContainText("Ativa");
   await expect(page.getByRole("row", { name: /Empresa Y/ })).toContainText("20");
@@ -87,11 +76,9 @@ test("fatia 3: indicações com as 7 situações e bloqueio de CNPJ duplicado", 
   await expect(natal.getByRole("row", { name: /Empresa Y/ })).toContainText("Ativa");
 
   // 6. O CSV seguinte de outubro vem sem Y: Inadimplente.
-  await importCsv(
-    page,
-    "outubro-v2.csv",
-    biCsv([{ cnpj: "00.000.000/0001-91", company: "Outra", lives: 3, month: "2026-10" }]),
-  );
+  await importExport(page, "outubro-v2.xlsx", "2026-10", [
+    { cnpj: "00.000.000/0001-91", company: "Outra", lives: 3 },
+  ]);
   await page.goto("/indicacoes");
   await expect(page.getByRole("row", { name: /Empresa Y/ })).toContainText("Inadimplente");
 

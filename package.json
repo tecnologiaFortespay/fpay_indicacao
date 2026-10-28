@@ -21,7 +21,8 @@
     "db:status": "supabase status",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local > src/lib/supabase/types.ts",
-    "bootstrap": "node --env-file=.env.local scripts/bootstrap.mjs"
+    "bootstrap": "node --env-file=.env.local scripts/bootstrap.mjs",
+    "db:push": "node --env-file=.env.local scripts/db-push.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -29,6 +30,7 @@
     "@supabase/supabase-js": "^2.118.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "fflate": "^0.8.3",
     "geist": "^1.8.2",
     "next": "16.4.3",
     "react": "19.3.0",

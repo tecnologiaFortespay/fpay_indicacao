@@ -48,3 +48,9 @@ next-env.d.ts
 
 # o modelo de variáveis é versionado; os valores reais ficam só em .env.local
 !.env.example
+# chaves de demonstração do Supabase local, usadas só pelos testes
+!.env.test
+
+# exportações do BI (dados reais de clientes) nunca entram no repositório
+*.xlsx
+*.xls
