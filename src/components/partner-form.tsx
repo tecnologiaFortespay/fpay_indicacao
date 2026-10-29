@@ -1,14 +1,10 @@
 import { Field, SelectField } from "@/components/fields";
 import { MutationForm } from "@/components/mutation-form";
 import { savePartner } from "@/app/parceiros/actions";
-import { partnerKindLabels, paymentMethodLabels } from "@/lib/labels";
+import { partnerKindLabels } from "@/lib/labels";
 import type { Partner } from "@/lib/partners/queries";
 
 const kindOptions = Object.entries(partnerKindLabels) as [string, string][];
-const paymentOptions: [string, string][] = [
-  ["", "Selecione"],
-  ...(Object.entries(paymentMethodLabels) as [string, string][]),
-];
 
 export function PartnerForm({ partner }: { partner?: Partner }) {
   return (
@@ -55,38 +51,6 @@ export function PartnerForm({ partner }: { partner?: Partner }) {
           type="tel"
           maxLength={40}
           defaultValue={partner?.contact_phone ?? ""}
-        />
-        <SelectField
-          label="Meio de pagamento"
-          name="payment_method"
-          required
-          options={paymentOptions}
-          defaultValue={partner?.payment_method ?? ""}
-          hint="Cartão: crédito na plataforma Fortes Pay. PIX: informe a chave. Depósito: banco, agência e conta."
-        />
-        <Field
-          label="Chave PIX"
-          name="pix_key"
-          maxLength={120}
-          defaultValue={partner?.pix_key ?? ""}
-        />
-        <Field
-          label="Banco"
-          name="bank_name"
-          maxLength={120}
-          defaultValue={partner?.bank_name ?? ""}
-        />
-        <Field
-          label="Agência"
-          name="bank_branch"
-          maxLength={20}
-          defaultValue={partner?.bank_branch ?? ""}
-        />
-        <Field
-          label="Conta"
-          name="bank_account"
-          maxLength={40}
-          defaultValue={partner?.bank_account ?? ""}
         />
       </div>
     </MutationForm>

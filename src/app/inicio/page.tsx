@@ -161,7 +161,8 @@ export default async function HomePage({ searchParams }: PageProps) {
         )}
         <p className="fp-panel-footnote">
           Conta só a indicação ativa de cada CNPJ (perdidas e canceladas ficam de fora) e respeita o
-          prazo em meses da regra, quando houver.
+          prazo em meses. Valor por vida é a regra do parceiro no mês; indicações com valor próprio
+          entram no valor do mês com o delas.
         </p>
       </section>
       <section className="fp-panel mt-6">

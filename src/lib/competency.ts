@@ -48,6 +48,27 @@ export function competencyLabel(competency: string): string {
   }).format(date);
 }
 
+const SHORT_MONTHS = [
+  "jan",
+  "fev",
+  "mar",
+  "abr",
+  "mai",
+  "jun",
+  "jul",
+  "ago",
+  "set",
+  "out",
+  "nov",
+  "dez",
+];
+
+// "2027-07" → "jul/2027".
+export function shortCompetencyLabel(competency: string): string {
+  const [year, month] = competency.split("-").map(Number);
+  return `${SHORT_MONTHS[month - 1]}/${year}`;
+}
+
 export function formatDateTime(value: string | Date): string {
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",

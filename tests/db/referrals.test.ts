@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { cnpjWithDigits } from "@/lib/cnpj";
+import { addMonths, competencyToDate, currentCompetency } from "@/lib/competency";
 import { adminClient, batch, createUser, done, ok, rows, userClient, type Client } from "./helpers";
 
 let admin: Client;
@@ -13,12 +14,15 @@ let manausId: string;
 const CNPJ_Y = cnpjWithDigits("114447770001");
 const CNPJ_Z = cnpjWithDigits("223334440001");
 const CNPJ_W = cnpjWithDigits("335556660001");
+// Mês anterior e mês corrente: o cancelamento feito hoje encerra a contagem a partir deste mês.
+const PREVIOUS = competencyToDate(addMonths(currentCompetency(), -1));
+const CURRENT = competencyToDate(currentCompetency());
 
 async function activePartner(name: string): Promise<string> {
   const partner = ok(
     await admin
       .from("partners")
-      .insert({ name, kind: "unit", status: "active", payment_method: "card" })
+      .insert({ name, kind: "unit", status: "active" })
       .select("id")
       .single(),
     "insert partner",
@@ -156,11 +160,11 @@ describe("fatia 3 — indicações com 7 situações e CNPJ único", () => {
       }),
       "referral W",
     );
-    // Cliente que pagou em setembro e outubro de 2026 (status ativo gravado direto, como a importação faria).
+    // Cliente que pagou no mês anterior e no corrente (status ativo gravado direto, como a importação faria).
     done(
       await admin
         .from("referrals")
-        .update({ status: "active", activated_competency: "2026-09-01" })
+        .update({ status: "active", activated_competency: PREVIOUS })
         .eq("id", cancelledId),
       "activate W",
     );
@@ -168,9 +172,9 @@ describe("fatia 3 — indicações com 7 situações e CNPJ único", () => {
       await director.rpc("import_lives", {
         batch: batch("zw.csv"),
         rows: rows([
-          [CNPJ_Z, "2026-09-01", 5],
-          [CNPJ_W, "2026-09-01", 7],
-          [CNPJ_W, "2026-10-01", 9],
+          [CNPJ_Z, PREVIOUS, 5],
+          [CNPJ_W, PREVIOUS, 7],
+          [CNPJ_W, CURRENT, 9],
         ]),
       }),
       "import Z/W",
@@ -184,10 +188,10 @@ describe("fatia 3 — indicações com 7 situações e CNPJ único", () => {
       "lives before cancel",
     );
     expect(before).toEqual([
-      { cnpj: CNPJ_W, competency: "2026-09-01", lives: 7 },
-      { cnpj: CNPJ_W, competency: "2026-10-01", lives: 9 },
+      { cnpj: CNPJ_W, competency: PREVIOUS, lives: 7 },
+      { cnpj: CNPJ_W, competency: CURRENT, lives: 9 },
     ]);
-    // Cancelamento em outubro de 2026: setembro continua contando, outubro não.
+    // Cancelamento hoje: o mês anterior continua contando, o corrente não.
     done(
       await director.rpc("set_referral_status", { target: cancelledId, new_status: "cancelled" }),
       "cancel",
@@ -199,7 +203,7 @@ describe("fatia 3 — indicações com 7 situações e CNPJ único", () => {
         .in("cnpj", [CNPJ_Z, CNPJ_W]),
       "lives after cancel",
     );
-    expect(after).toEqual([{ cnpj: CNPJ_W, competency: "2026-09-01", lives: 7 }]);
+    expect(after).toEqual([{ cnpj: CNPJ_W, competency: PREVIOUS, lives: 7 }]);
     const twice = await director.rpc("set_referral_status", {
       target: cancelledId,
       new_status: "negotiating",

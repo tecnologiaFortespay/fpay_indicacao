@@ -7,19 +7,13 @@ export const roleLabels = {
 
 export const partnerKindLabels = {
   unit: "Unidade",
-  external: "Indicador externo",
+  external: "Parceiro externo",
 } as const;
 
 export const partnerStatusLabels = {
   pending: "Aguardando aprovação",
   active: "Ativo",
   rejected: "Recusado",
-} as const;
-
-export const paymentMethodLabels = {
-  card: "Cartão (crédito na plataforma Fortes Pay)",
-  pix: "PIX",
-  bank_transfer: "Depósito / transferência bancária",
 } as const;
 
 export const referralStatusLabels = {
@@ -40,7 +34,6 @@ export const importOutcomeLabels = {
 export type Role = keyof typeof roleLabels;
 export type PartnerKind = keyof typeof partnerKindLabels;
 export type PartnerStatus = keyof typeof partnerStatusLabels;
-export type PaymentMethod = keyof typeof paymentMethodLabels;
 export type ReferralStatus = keyof typeof referralStatusLabels;
 
 export const invitationStatusLabels = {
@@ -57,6 +50,12 @@ export const closingStatusLabels = {
 export const decisionLabels = {
   pay: "Pagar",
   accumulate: "Acumular",
+} as const;
+
+// Como o parceiro lê a decisão do fechamento.
+export const partnerDecisionLabels = {
+  pay: "Pagar",
+  accumulate: "Acumulado para o próximo mês",
 } as const;
 
 export const partnerResponseLabels = {

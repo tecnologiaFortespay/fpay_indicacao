@@ -6,15 +6,17 @@ import { Field, SelectField } from "@/components/fields";
 import { MutationForm } from "@/components/mutation-form";
 import { requireRole, type AuthorizedUser } from "@/lib/auth/session";
 import { formatCnpj } from "@/lib/cnpj";
-import { competencyLabel, formatDate } from "@/lib/competency";
+import { competencyLabel, dateToCompetency, formatDate } from "@/lib/competency";
 import { latestCompetency } from "@/lib/dashboard/queries";
 import { referralStatusLabels, type ReferralStatus } from "@/lib/labels";
 import { formatInteger } from "@/lib/money";
 import { listPartnerOptions } from "@/lib/partners/queries";
+import { referralConfigLabel } from "@/lib/referrals/config";
 import {
   listReferrals,
-  livesByReferral,
+  referralMonthValues,
   referralStatusCounts,
+  type ReferralMonth,
   type ReferralRow,
 } from "@/lib/referrals/queries";
 import { allowedTransitions, referralStatusClass } from "@/lib/referrals/transitions";
@@ -32,18 +34,22 @@ function StatusChip({ status }: { status: string }) {
   return <span className={referralStatusClass(status)}>{label}</span>;
 }
 
+function firstPaidMonth(referral: ReferralRow): string {
+  return referral.activated_competency
+    ? competencyLabel(dateToCompetency(referral.activated_competency))
+    : "—";
+}
+
 function ReferralTable({
   referrals,
-  lives,
+  months,
   competency,
-  showPartner,
-  canChangeStatus,
+  director,
 }: {
   referrals: ReferralRow[];
-  lives: Map<string, number>;
+  months: Map<string, ReferralMonth>;
   competency: string | null;
-  showPartner: boolean;
-  canChangeStatus: boolean;
+  director: boolean;
 }) {
   if (referrals.length === 0) {
     return <p className="fp-panel-footnote">Nenhuma indicação encontrada.</p>;
@@ -55,14 +61,16 @@ function ReferralTable({
           <tr>
             <th>Empresa</th>
             <th>CNPJ</th>
-            {showPartner && <th>Parceiro</th>}
+            {director && <th>Parceiro</th>}
             <th>Situação</th>
+            <th>1º mês pago</th>
+            {director && <th>Valor e prazo</th>}
             <th className="fp-num">Vidas estimadas</th>
             <th className="fp-num">
               {competency ? `Vidas em ${competencyLabel(competency)}` : "Vidas pagas"}
             </th>
             <th>Indicada em</th>
-            {canChangeStatus && <th>Mudar situação</th>}
+            {director && <th>Mudar situação</th>}
           </tr>
         </thead>
         <tbody>
@@ -70,24 +78,33 @@ function ReferralTable({
             const options = allowedTransitions(referral.status).map(
               (status) => [status, referralStatusLabels[status]] as [string, string],
             );
+            const month = months.get(referral.id);
             return (
               <tr key={referral.id}>
-                <td>{referral.company_name}</td>
+                <td>
+                  {director ? (
+                    <Link href={`/indicacoes/${referral.id}`}>{referral.company_name}</Link>
+                  ) : (
+                    referral.company_name
+                  )}
+                </td>
                 <td className="fp-num">{formatCnpj(referral.cnpj)}</td>
-                {showPartner && <td>{referral.partner_name}</td>}
+                {director && <td>{referral.partner_name}</td>}
                 <td>
                   <StatusChip status={referral.status} />
                 </td>
+                <td>{firstPaidMonth(referral)}</td>
+                {director && (
+                  <td>{referralConfigLabel(referral.value_per_life, referral.term_months)}</td>
+                )}
                 <td className="fp-num">
                   {referral.estimated_lives === null
                     ? "—"
                     : formatInteger(referral.estimated_lives)}
                 </td>
-                <td className="fp-num">
-                  {lives.has(referral.id) ? formatInteger(lives.get(referral.id)) : "—"}
-                </td>
+                <td className="fp-num">{month ? formatInteger(month.lives) : "—"}</td>
                 <td>{formatDate(referral.created_at)}</td>
-                {canChangeStatus && (
+                {director && (
                   <td>
                     {options.length === 0 ? (
                       "—"
@@ -122,9 +139,11 @@ function ReferralTable({
 async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
   const partnerId = user.profile.partner?.id ?? "";
   const competency = await latestCompetency();
-  const [referrals, lives] = await Promise.all([
+  const [referrals, months] = await Promise.all([
     listReferrals({ partnerId }),
-    competency ? livesByReferral(competency) : Promise.resolve(new Map<string, number>()),
+    competency
+      ? referralMonthValues(competency)
+      : Promise.resolve(new Map<string, ReferralMonth>()),
   ]);
   return (
     <AppShell title="Minhas indicações">
@@ -156,14 +175,14 @@ async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
         </div>
         <ReferralTable
           referrals={referrals}
-          lives={lives}
+          months={months}
           competency={competency}
-          showPartner={false}
-          canChangeStatus={false}
+          director={false}
         />
         <p className="fp-panel-footnote">
           Ativa: o cliente pagou e as vidas contam. Inadimplente: cliente ativo sem pagamento no
-          último mês importado. A situação muda automaticamente a cada importação do BI.
+          último mês importado. A situação muda automaticamente a cada importação do BI. Valor e
+          prazo de cada indicação aparecem em Meu painel.
         </p>
       </section>
     </AppShell>
@@ -176,18 +195,23 @@ async function DirectorReferrals({ params }: { params: { status?: string; partne
     : undefined;
   const partnerId = z.uuid().safeParse(params.partner).success ? params.partner : undefined;
   const competency = await latestCompetency();
-  const [referrals, counts, options, lives] = await Promise.all([
+  const [referrals, counts, options, months] = await Promise.all([
     listReferrals({ partnerId, status }),
     referralStatusCounts(),
     listPartnerOptions(),
-    competency ? livesByReferral(competency) : Promise.resolve(new Map<string, number>()),
+    competency
+      ? referralMonthValues(competency)
+      : Promise.resolve(new Map<string, ReferralMonth>()),
   ]);
   const partnerOptions: [string, string][] = [["", "Todos os parceiros"], ...options];
   const statusOptions: [string, string][] = [["", "Todas as situações"], ...statusEntries];
   return (
     <AppShell title="Indicações">
       <div className="fp-management-intro">
-        <p>Indicações de todos os parceiros, com a situação atual de cada CNPJ.</p>
+        <p>
+          Indicações de todos os parceiros, com a situação de cada CNPJ. Abra uma indicação para
+          definir valor por vida e prazo próprios.
+        </p>
       </div>
       <div className="fp-kpi-grid fp-management-kpis">
         {statusEntries.map(([value, label]) => (
@@ -225,13 +249,7 @@ async function DirectorReferrals({ params }: { params: { status?: string; partne
           <span />
           <button className="fp-button-secondary">Filtrar</button>
         </form>
-        <ReferralTable
-          referrals={referrals}
-          lives={lives}
-          competency={competency}
-          showPartner
-          canChangeStatus
-        />
+        <ReferralTable referrals={referrals} months={months} competency={competency} director />
       </section>
       <section className="fp-panel mt-6">
         <div className="fp-panel-heading">
@@ -256,6 +274,20 @@ async function DirectorReferrals({ params }: { params: { status?: string; partne
               />
               <Field label="Empresa" name="company_name" required maxLength={240} />
               <Field label="Vidas estimadas" name="estimated_lives" type="number" min={0} />
+              <Field
+                label="Valor por vida da indicação (R$)"
+                name="value_per_life"
+                inputMode="decimal"
+                hint="Em branco = regra do parceiro."
+              />
+              <Field
+                label="Prazo da indicação em meses"
+                name="term_months"
+                type="number"
+                min={1}
+                max={120}
+                hint="Em branco = regra do parceiro."
+              />
             </div>
           </MutationForm>
         </div>

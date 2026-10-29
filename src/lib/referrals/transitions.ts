@@ -19,7 +19,10 @@ export function referralStatusClass(status: string): string {
   if (status === "active") {
     return "fp-status fp-status-success";
   }
-  if (status === "delinquent" || status === "negotiating" || status === "signed") {
+  if (status === "delinquent") {
+    return "fp-status fp-status-danger";
+  }
+  if (status === "negotiating" || status === "signed") {
     return "fp-status fp-status-pending";
   }
   return "fp-status";

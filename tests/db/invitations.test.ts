@@ -78,8 +78,6 @@ describe("fatia 2 — convite, cadastro e aprovação", () => {
       city: "Natal",
       state: "rn",
       contact_name: "Ana",
-      payment_method: "pix",
-      pix_key: "ana@pix",
     });
     const partnerId = ok(result, "register_partner");
     const profile = ok(await client.rpc("current_profile"), "current_profile") as {
@@ -125,7 +123,7 @@ describe("fatia 2 — convite, cadastro e aprovação", () => {
     expect(result.error?.message).toBe("INVITATION_INVALID");
   });
 
-  it("aprovação exige regra e meio de pagamento com dados; depois o parceiro entra e lê só o que é dele", async () => {
+  it("aprovação exige a regra (sem meio de pagamento); depois o parceiro entra e lê só o que é dele", async () => {
     const { secret } = await invite("Unidade Manaus");
     const { client, result } = await registerWithNewUser(secret, {
       name: "Unidade Manaus",
@@ -138,35 +136,22 @@ describe("fatia 2 — convite, cadastro e aprovação", () => {
       valid_from: "2026-10-01",
       term_months: "",
     };
-    const noPayment = await director.rpc("approve_partner", { payload: base });
-    expect(noPayment.error?.details).toBe("Informe o meio de pagamento.");
-    const noPix = await director.rpc("approve_partner", {
-      payload: { ...base, payment_method: "pix" },
-    });
-    expect(noPix.error?.details).toBe("Informe a chave PIX.");
     const noValue = await director.rpc("approve_partner", {
-      payload: { partner_id: partnerId, payment_method: "card", valid_from: "2026-10-01" },
+      payload: { partner_id: partnerId, valid_from: "2026-10-01" },
     });
-    expect(noValue.error?.message).toBe("APPROVAL_FIELDS");
-    const analystTry = await analyst.rpc("approve_partner", {
-      payload: { ...base, payment_method: "card" },
+    expect(noValue.error?.details).toBe("Informe o valor por vida (ex.: 1,50).");
+    const noStart = await director.rpc("approve_partner", {
+      payload: { partner_id: partnerId, value_per_life: "2.00" },
     });
+    expect(noStart.error?.details).toBe("Informe o mês de início da vigência.");
+    const analystTry = await analyst.rpc("approve_partner", { payload: base });
     expect(analystTry.error?.code).toBe("42501");
-    done(
-      await director.rpc("approve_partner", {
-        payload: { ...base, payment_method: "pix", pix_key: "dora@pix" },
-      }),
-      "approve",
-    );
+    done(await director.rpc("approve_partner", { payload: base }), "approve");
     const approved = ok(
-      await director
-        .from("partners")
-        .select("status, payment_method, pix_key")
-        .eq("id", partnerId)
-        .single(),
+      await director.from("partners").select("status").eq("id", partnerId).single(),
       "approved",
     );
-    expect(approved).toEqual({ status: "active", payment_method: "pix", pix_key: "dora@pix" });
+    expect(approved).toEqual({ status: "active" });
     const rules = ok(
       await client
         .from("partner_rules")
@@ -179,9 +164,7 @@ describe("fatia 2 — convite, cadastro e aprovação", () => {
     expect(allPartners).toEqual([{ id: partnerId }]);
     const invitations = ok(await client.from("invitations").select("id"), "invitations as partner");
     expect(invitations).toEqual([]);
-    const alreadyActive = await director.rpc("approve_partner", {
-      payload: { ...base, payment_method: "card" },
-    });
+    const alreadyActive = await director.rpc("approve_partner", { payload: base });
     expect(alreadyActive.error?.details).toBe("Este parceiro já está ativo.");
   });
 

@@ -2,22 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth-shell";
-import { Field, SelectField } from "@/components/fields";
+import { Field } from "@/components/fields";
 import { MutationForm } from "@/components/mutation-form";
 import { currentUser, landingPath } from "@/lib/auth/session";
 import { formatDate } from "@/lib/competency";
 import { invitationPreview } from "@/lib/invitations/queries";
-import { partnerKindLabels, paymentMethodLabels } from "@/lib/labels";
+import { partnerKindLabels } from "@/lib/labels";
 import { registerPartner } from "../actions";
 
 export const metadata: Metadata = { title: "Convite" };
 
 type PageProps = { params: Promise<{ token: string }> };
-
-const paymentOptions: [string, string][] = [
-  ["", "Informar depois"],
-  ...(Object.entries(paymentMethodLabels) as [string, string][]),
-];
 
 export default async function InvitationPage({ params }: PageProps) {
   const { token } = await params;
@@ -70,7 +65,7 @@ export default async function InvitationPage({ params }: PageProps) {
       <MutationForm action={registerPartner} label="Enviar cadastro" pendingLabel="Enviando…">
         <input type="hidden" name="token" value={token} />
         <Field
-          label="Nome da unidade ou do indicador"
+          label="Nome da unidade ou do parceiro"
           name="name"
           required
           maxLength={160}
@@ -111,18 +106,6 @@ export default async function InvitationPage({ params }: PageProps) {
             />
           </div>
         )}
-        <SelectField
-          label="Meio de pagamento"
-          name="payment_method"
-          options={paymentOptions}
-          hint="Como você prefere receber. Pode deixar para informar na aprovação."
-        />
-        <Field label="Chave PIX" name="pix_key" maxLength={120} />
-        <div className="fp-form-grid">
-          <Field label="Banco" name="bank_name" maxLength={120} />
-          <Field label="Agência" name="bank_branch" maxLength={20} />
-          <Field label="Conta" name="bank_account" maxLength={40} />
-        </div>
       </MutationForm>
     </AuthShell>
   );

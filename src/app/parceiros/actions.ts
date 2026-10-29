@@ -35,11 +35,6 @@ export async function savePartner(_previous: FormState, form: FormData): Promise
     contact_name: formValue(form, "contact_name"),
     contact_email: formValue(form, "contact_email"),
     contact_phone: formValue(form, "contact_phone"),
-    payment_method: formValue(form, "payment_method"),
-    pix_key: formValue(form, "pix_key"),
-    bank_name: formValue(form, "bank_name"),
-    bank_branch: formValue(form, "bank_branch"),
-    bank_account: formValue(form, "bank_account"),
   };
   const supabase = await createClient();
   const result = await supabase.rpc("save_partner", { payload });
@@ -110,11 +105,19 @@ export async function createReferral(_previous: FormState, form: FormData): Prom
   if (!user) {
     return forbidden;
   }
+  // Valor e prazo da indicação: só o formulário do diretor tem esses campos; em branco = regra do parceiro.
+  const rawValue = formValue(form, "value_per_life").trim();
+  const valuePerLife = rawValue === "" ? "" : parseMoneyInput(rawValue);
+  if (valuePerLife === null) {
+    return { error: "Informe o valor por vida da indicação como 1,50, ou deixe em branco." };
+  }
   const payload = {
     partner_id: formValue(form, "partner_id"),
     cnpj: formValue(form, "cnpj"),
     company_name: formValue(form, "company_name"),
     estimated_lives: formValue(form, "estimated_lives"),
+    value_per_life: valuePerLife,
+    term_months: formValue(form, "term_months"),
   };
   const supabase = await createClient();
   const result = await supabase.rpc("create_referral", { payload });
@@ -184,11 +187,6 @@ export async function approvePartner(_previous: FormState, form: FormData): Prom
   }
   const payload = {
     partner_id: partnerId,
-    payment_method: formValue(form, "payment_method"),
-    pix_key: formValue(form, "pix_key"),
-    bank_name: formValue(form, "bank_name"),
-    bank_branch: formValue(form, "bank_branch"),
-    bank_account: formValue(form, "bank_account"),
     value_per_life: valuePerLife,
     valid_from: competencyToDate(validFrom),
     term_months: formValue(form, "term_months"),

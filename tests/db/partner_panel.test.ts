@@ -19,7 +19,7 @@ async function activePartner(name: string): Promise<string> {
   return ok(
     await admin
       .from("partners")
-      .insert({ name, kind: "unit", status: "active", payment_method: "card" })
+      .insert({ name, kind: "unit", status: "active" })
       .select("id")
       .single(),
     "partner",

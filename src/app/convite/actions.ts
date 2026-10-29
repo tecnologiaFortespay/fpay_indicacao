@@ -25,11 +25,6 @@ export async function registerPartner(_previous: FormState, form: FormData): Pro
     state: formValue(form, "state"),
     contact_name: formValue(form, "contact_name"),
     contact_phone: formValue(form, "contact_phone"),
-    payment_method: formValue(form, "payment_method"),
-    pix_key: formValue(form, "pix_key"),
-    bank_name: formValue(form, "bank_name"),
-    bank_branch: formValue(form, "bank_branch"),
-    bank_account: formValue(form, "bank_account"),
   };
   const supabase = await createClient();
   const {

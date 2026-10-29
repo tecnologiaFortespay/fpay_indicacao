@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cnpjWithDigits } from "@/lib/cnpj";
+import { addMonths, competencyToDate, currentCompetency } from "@/lib/competency";
 import { adminClient, batch, createUser, done, ok, rows, userClient, type Client } from "./helpers";
 
 let admin: Client;
@@ -11,15 +12,21 @@ let natalClient: Client;
 
 const CNPJ_N = cnpjWithDigits("445556660001");
 const CNPJ_T = cnpjWithDigits("556667770001");
-const AUGUST = "2026-08-01";
-const SEPTEMBER = "2026-09-01";
-const OCTOBER = "2026-10-01";
+// Meses relativos a hoje, como no roteiro (escrito com hoje em outubro: agosto e setembro fecham).
+const TODAY = currentCompetency();
+const BEFORE_FIRST = competencyToDate(addMonths(TODAY, -3));
+const AUGUST = competencyToDate(addMonths(TODAY, -2));
+const SEPTEMBER = competencyToDate(addMonths(TODAY, -1));
+const OCTOBER = competencyToDate(TODAY);
+const NEXT_MONTH = competencyToDate(addMonths(TODAY, 1));
+// "MM/YYYY", como as mensagens do banco escrevem o mês.
+const AUGUST_LABEL = `${AUGUST.slice(5, 7)}/${AUGUST.slice(0, 4)}`;
 
 async function activePartner(name: string): Promise<string> {
   const partner = ok(
     await admin
       .from("partners")
-      .insert({ name, kind: "unit", status: "active", payment_method: "card" })
+      .insert({ name, kind: "unit", status: "active" })
       .select("id")
       .single(),
     "insert partner",
@@ -68,7 +75,7 @@ beforeAll(async () => {
         payload: {
           partner_id: partnerId,
           value_per_life: value,
-          valid_from: "2026-07-01",
+          valid_from: BEFORE_FIRST,
           term_months: "",
         },
       }),
@@ -103,7 +110,19 @@ afterAll(async () => {
 describe("fatia 4 — fechamento mensal", () => {
   it("só fecha mês encerrado, com importação feita depois do fim do mês, em ordem", async () => {
     const current = await director.rpc("prepare_closing", { month: OCTOBER });
-    expect(current.error?.details).toBe("Só é possível fechar um mês já encerrado.");
+    expect(current.error?.details).toBe(
+      "Mês ainda não encerrado: só é possível fechar um mês que já terminou.",
+    );
+    // Setembro não passa na frente de agosto, mesmo sem nenhum fechamento de agosto ainda.
+    const blocker = ok(
+      await director.rpc("closing_blocker", { month: SEPTEMBER }),
+      "closing_blocker",
+    );
+    expect(blocker).toBe(AUGUST);
+    const skipAugust = await director.rpc("prepare_closing", { month: SEPTEMBER });
+    expect(skipAugust.error?.details).toBe(`Feche primeiro o mês ${AUGUST_LABEL}.`);
+    const analystBlocker = await analyst.rpc("closing_blocker", { month: SEPTEMBER });
+    expect(analystBlocker.error?.code).toBe("42501");
     // Importação datada de dentro do mês não libera agosto.
     const batches = ok(
       await admin
@@ -116,7 +135,7 @@ describe("fatia 4 — fechamento mensal", () => {
       done(
         await admin
           .from("import_batches")
-          .update({ created_at: "2026-08-20T12:00:00-03:00" })
+          .update({ created_at: `${AUGUST.slice(0, 8)}20T12:00:00-03:00` })
           .eq("id", b.id),
         "backdate",
       );
@@ -179,7 +198,7 @@ describe("fatia 4 — fechamento mensal", () => {
     expect(august.natal).toMatchObject({ adjustment: -10, total: 50 });
     // Setembro não pode ser preparado com agosto aberto.
     const outOfOrder = await director.rpc("prepare_closing", { month: SEPTEMBER });
-    expect(outOfOrder.error?.details).toBe("Feche primeiro o mês 08/2026.");
+    expect(outOfOrder.error?.details).toBe(`Feche primeiro o mês ${AUGUST_LABEL}.`);
   });
 
   it("fecha agosto pagando só Teresina; Natal acumula e o mês fica imutável", async () => {
@@ -234,7 +253,7 @@ describe("fatia 4 — fechamento mensal", () => {
       "log",
     );
     expect(log).toEqual([
-      { reason: "Mês já fechado (08/2026); a linha não entrou.", outcome: "ignored" },
+      { reason: `Mês já fechado (${AUGUST_LABEL}); a linha não entrou.`, outcome: "ignored" },
     ]);
     const augustLives = ok(
       await director
@@ -246,18 +265,66 @@ describe("fatia 4 — fechamento mensal", () => {
       "lives",
     );
     expect(augustLives.lives).toBe(40);
-    // Vigência que alcança agosto não muda mais.
+    // Vigência que alcança agosto não muda mais: mês fechado vem antes de "vigência duplicada".
     const locked = await director.rpc("save_partner_rule", {
       payload: { partner_id: natalId, value_per_life: "9.00", valid_from: AUGUST, term_months: "" },
     });
     expect(locked.error?.message).toBe("RULE_LOCKED");
-    expect(locked.error?.details).toBe("08/2026");
+    expect(locked.error?.details).toBe(AUGUST_LABEL);
+    const lockedDuplicate = await director.rpc("save_partner_rule", {
+      payload: {
+        partner_id: natalId,
+        value_per_life: "9.00",
+        valid_from: BEFORE_FIRST,
+        term_months: "",
+      },
+    });
+    expect(lockedDuplicate.error?.message).toBe("RULE_LOCKED");
+    // Como foi pago: só na linha paga de mês fechado, só pelo diretor.
+    const augustItems = ok(
+      await director
+        .from("closing_items")
+        .select("id, partner_id")
+        .eq("closing_id", august.closing.id)
+        .in("partner_id", [natalId, teresinaId]),
+      "august items",
+    );
+    const paidItem = augustItems.find((item) => item.partner_id === teresinaId);
+    const accumulatedItem = augustItems.find((item) => item.partner_id === natalId);
+    done(
+      await director.rpc("set_payment_note", {
+        target: paidItem?.id ?? "",
+        note: " PIX em 05/09 ",
+      }),
+      "payment note",
+    );
+    const note = ok(
+      await director
+        .from("closing_items")
+        .select("payment_note")
+        .eq("id", paidItem?.id ?? "")
+        .single(),
+      "note",
+    );
+    expect(note.payment_note).toBe("PIX em 05/09");
+    const onAccumulated = await director.rpc("set_payment_note", {
+      target: accumulatedItem?.id ?? "",
+      note: "PIX",
+    });
+    expect(onAccumulated.error?.details).toBe(
+      "Só a linha paga de um mês fechado recebe a forma de pagamento.",
+    );
+    const byAnalyst = await analyst.rpc("set_payment_note", {
+      target: paidItem?.id ?? "",
+      note: "x",
+    });
+    expect(byAnalyst.error?.code).toBe("42501");
     ok(
       await director.rpc("save_partner_rule", {
         payload: {
           partner_id: natalId,
           value_per_life: "9.00",
-          valid_from: "2026-11-01",
+          valid_from: NEXT_MONTH,
           term_months: "",
         },
       }),

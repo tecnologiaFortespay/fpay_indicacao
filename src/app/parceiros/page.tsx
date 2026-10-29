@@ -7,12 +7,7 @@ import { OrbitaIcon } from "@/components/orbita-icon";
 import { requireRole } from "@/lib/auth/session";
 import { formatDate } from "@/lib/competency";
 import { invitationStatus, listInvitations } from "@/lib/invitations/queries";
-import {
-  invitationStatusLabels,
-  partnerKindLabels,
-  partnerStatusLabels,
-  paymentMethodLabels,
-} from "@/lib/labels";
+import { invitationStatusLabels, partnerKindLabels, partnerStatusLabels } from "@/lib/labels";
 import { listPartners, type Partner } from "@/lib/partners/queries";
 import { createInvitation } from "./actions";
 
@@ -38,9 +33,6 @@ function defaultValidUntil(): string {
 function PartnerRow({ partner }: { partner: Partner }) {
   const kind = partnerKindLabels[partner.kind as keyof typeof partnerKindLabels] ?? partner.kind;
   const place = partner.city ? ` · ${partner.city}${partner.state ? `/${partner.state}` : ""}` : "";
-  const payment = partner.payment_method
-    ? ` · ${paymentMethodLabels[partner.payment_method as keyof typeof paymentMethodLabels]}`
-    : "";
   const status =
     partnerStatusLabels[partner.status as keyof typeof partnerStatusLabels] ?? partner.status;
   return (
@@ -50,7 +42,6 @@ function PartnerRow({ partner }: { partner: Partner }) {
         <small>
           {kind}
           {place}
-          {payment}
           {partner.contact_name ? ` · ${partner.contact_name}` : ""}
         </small>
       </span>
@@ -66,7 +57,8 @@ export default async function PartnersPage() {
   await requireRole("director");
   const [partners, invitations] = await Promise.all([listPartners(), listInvitations()]);
   const pending = partners.filter((partner) => partner.status === "pending");
-  const others = partners.filter((partner) => partner.status !== "pending");
+  const active = partners.filter((partner) => partner.status === "active");
+  const rejected = partners.filter((partner) => partner.status === "rejected");
   return (
     <AppShell title="Parceiros">
       <section className="fp-panel">
@@ -86,16 +78,28 @@ export default async function PartnersPage() {
 
       <section className="fp-panel mt-6">
         <div className="fp-panel-heading">
-          <h2>Parceiros</h2>
-          <span>{others.length} parceiro(s)</span>
+          <h2>Ativos</h2>
+          <span>{active.length} parceiro(s)</span>
         </div>
-        {others.map((partner) => (
+        {active.map((partner) => (
           <PartnerRow key={partner.id} partner={partner} />
         ))}
-        {others.length === 0 && (
+        {active.length === 0 && (
           <p className="fp-panel-footnote">Nenhum parceiro aprovado ainda.</p>
         )}
       </section>
+
+      {rejected.length > 0 && (
+        <section className="fp-panel mt-6">
+          <div className="fp-panel-heading">
+            <h2>Recusados</h2>
+            <span>{rejected.length} cadastro(s)</span>
+          </div>
+          {rejected.map((partner) => (
+            <PartnerRow key={partner.id} partner={partner} />
+          ))}
+        </section>
+      )}
 
       <section className="fp-panel mt-6">
         <div className="fp-panel-heading">
@@ -107,7 +111,7 @@ export default async function PartnersPage() {
           <MutationForm action={createInvitation} label="Gerar convite" pendingLabel="Gerando…">
             <div className="fp-form-grid">
               <Field
-                label="Nome da unidade ou do indicador"
+                label="Nome da unidade ou do parceiro"
                 name="partner_name"
                 required
                 maxLength={160}

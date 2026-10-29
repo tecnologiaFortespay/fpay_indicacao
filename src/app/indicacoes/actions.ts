@@ -5,6 +5,7 @@ import { z } from "zod";
 import { databaseError, formValue } from "@/lib/actions";
 import { actionUser } from "@/lib/auth/session";
 import type { FormState } from "@/lib/auth/validation";
+import { parseMoneyInput } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 
 export async function setReferralStatus(_previous: FormState, form: FormData): Promise<FormState> {
@@ -25,6 +26,39 @@ export async function setReferralStatus(_previous: FormState, form: FormData): P
     return { error: databaseError(result.error) };
   }
   revalidatePath("/indicacoes");
+  revalidatePath(`/indicacoes/${id}`);
   revalidatePath("/inicio");
   return { success: "Situação atualizada." };
+}
+
+// Configuração própria da indicação (valor por vida e prazo). Em branco = regra do parceiro.
+export async function setReferralConfig(_previous: FormState, form: FormData): Promise<FormState> {
+  const user = await actionUser("director");
+  if (!user) {
+    return { error: "Você não tem permissão para esta operação." };
+  }
+  const id = formValue(form, "id");
+  if (!z.uuid().safeParse(id).success) {
+    return { error: "Indicação inválida." };
+  }
+  const rawValue = formValue(form, "value_per_life").trim();
+  const valuePerLife = rawValue === "" ? "" : parseMoneyInput(rawValue);
+  if (valuePerLife === null) {
+    return {
+      error: "Informe o valor por vida como 1,50, ou deixe em branco para usar o do parceiro.",
+    };
+  }
+  const supabase = await createClient();
+  const result = await supabase.rpc("set_referral_config", {
+    target: id,
+    payload: { value_per_life: valuePerLife, term_months: formValue(form, "term_months") },
+  });
+  if (result.error) {
+    return { error: databaseError(result.error) };
+  }
+  revalidatePath("/indicacoes");
+  revalidatePath(`/indicacoes/${id}`);
+  revalidatePath("/parceiros/[id]", "page");
+  revalidatePath("/inicio");
+  return { success: "Configuração da indicação salva." };
 }

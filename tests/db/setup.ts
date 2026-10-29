@@ -1,5 +1,6 @@
 // Carrega as chaves do Supabase LOCAL (.env.test) antes de cada arquivo de teste de banco e remove
-// fechamentos deixados por execuções anteriores (fechamento fechado trava vigências).
+// fechamentos e importações deixados por outros arquivos: fechamento fechado trava vigências e
+// mês importado sem fechamento trava os fechamentos seguintes.
 import { beforeAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { assertLocalSupabase } from "../local-only";
@@ -15,8 +16,11 @@ beforeAll(async () => {
   const admin = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { error } = await admin.from("closings").delete().not("id", "is", null);
-  if (error) {
-    throw new Error(`Não foi possível limpar os fechamentos: ${error.message}`);
+  for (const table of ["closings", "monthly_lives", "import_batches"] as const) {
+    const column = table === "monthly_lives" ? "cnpj" : "id";
+    const { error } = await admin.from(table).delete().not(column, "is", null);
+    if (error) {
+      throw new Error(`Não foi possível limpar ${table}: ${error.message}`);
+    }
   }
 });

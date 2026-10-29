@@ -7,7 +7,9 @@ pagaram no mês (export do BI) e quanto pagar a cada parceiro (vidas × valor po
 - O que ficou para depois: [`docs/depois.md`](docs/depois.md).
 - Formato do export do BI ("Detalhamento Empresas") e o que a importação faz com ele:
   [`docs/arquivo-bi.md`](docs/arquivo-bi.md).
-- Roteiro de teste de cada fatia, para o Denis: [`docs/testes-denis.md`](docs/testes-denis.md).
+- Roteiro de validação, que é a definição do MVP: [`docs/roteiro-validacao.md`](docs/roteiro-validacao.md).
+- Decisões tomadas depois do requisito (configuração da indicação, pagamento, ordem dos
+  fechamentos): [`docs/decisoes.md`](docs/decisoes.md).
 
 ## Stack
 
@@ -31,7 +33,12 @@ npm run dev               # http://localhost:3000
 
 Perfis internos (diretor e analista de dados) são criados pelo script acima. Parceiros entram só por
 convite: o diretor gera o link em **Parceiros → Convites**, a unidade preenche o cadastro, e o diretor
-aprova informando a regra (valor por vida, vigência, prazo) e o meio de pagamento.
+aprova informando a regra do parceiro (valor por vida, vigência, prazo). Cada indicação pode ter valor
+por vida e prazo próprios, definidos pelo diretor em **Indicações**; em branco vale a regra do parceiro.
+
+Para seguir o roteiro de validação à mão contra o Supabase local, mesmo com o `.env.local` apontando
+para o projeto real: `npm run db:clean`, `npm run bootstrap:local` e `npm run dev:local`
+(passo a passo no fim de `docs/roteiro-validacao.md`).
 
 ## Arquivos de ambiente
 
@@ -54,7 +61,7 @@ Passos, nesta ordem:
 
 1. **Migrations**: `npm run db:push -- --dry-run` mostra o que falta; `npm run db:push` aplica
    `supabase/migrations` e registra o histórico em `supabase_migrations.schema_migrations`
-   (não precisa de token da CLI; usa `SUPABASE_DB_URL`). Feito em 28/10/2026 com as 6 migrations.
+   (não precisa de token da CLI; usa `SUPABASE_DB_URL`). Feito em 28/10/2026 com as 7 migrations.
 2. **Auth**, no painel do Supabase (Authentication): "Confirm email" **desligado** (o convite já
    valida a origem; ligado, o cadastro pelo link não entra), senha mínima de 8 caracteres, Site URL
    igual ao endereço da aplicação e `<endereço>/auth/callback` nas Redirect URLs (recuperação de
@@ -82,17 +89,20 @@ Passos, nesta ordem:
 
 ## Scripts
 
-| Comando                                                   | O que faz                                                                                                         |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `npm run dev` / `build` / `start`                         | Next.js                                                                                                           |
-| `npm run lint` / `typecheck` / `format`                   | ESLint, `tsc`, Prettier                                                                                           |
-| `npm test`                                                | testes unitários (leitor do export do BI, CNPJ, competência, moeda)                                               |
-| `npm run test:db`                                         | testes das funções SQL e da RLS contra o Supabase local (`.env.test`)                                             |
-| `npm run test:e2e`                                        | Playwright: **zera os dados do banco local** (TRUNCATE via `docker exec`), faz build e executa o roteiro do Denis |
-| `npm run db:start` / `db:stop` / `db:status` / `db:reset` | Supabase local                                                                                                    |
-| `npm run db:push`                                         | aplica as migrations no banco de `SUPABASE_DB_URL` (projeto real); `-- --dry-run` só lista                        |
-| `npm run db:types`                                        | regenera `src/lib/supabase/types.ts` depois de uma migration                                                      |
-| `npm run bootstrap`                                       | cria diretor ou analista no Supabase de `.env.local`                                                              |
+| Comando                                                   | O que faz                                                                                        |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `npm run dev` / `build` / `start`                         | Next.js                                                                                          |
+| `npm run dev:local`                                       | Next.js contra o Supabase local (`.env.test`), para seguir o roteiro à mão                       |
+| `npm run lint` / `typecheck` / `format`                   | ESLint, `tsc`, Prettier                                                                          |
+| `npm test`                                                | testes unitários (leitor do export do BI, CNPJ, competência, moeda)                              |
+| `npm run test:db`                                         | testes das funções SQL e da RLS contra o Supabase local (`.env.test`)                            |
+| `npm run test:e2e`                                        | Playwright: **zera o banco local**, faz build e executa o roteiro de validação e os casos extras |
+| `npm run db:start` / `db:stop` / `db:status` / `db:reset` | Supabase local                                                                                   |
+| `npm run db:clean`                                        | zera os dados do Supabase local (`tests/reset-data.sql`), sem recriar o schema                   |
+| `npm run db:push`                                         | aplica as migrations no banco de `SUPABASE_DB_URL` (projeto real); `-- --dry-run` só lista       |
+| `npm run db:types`                                        | regenera `src/lib/supabase/types.ts` depois de uma migration                                     |
+| `npm run bootstrap`                                       | cria diretor ou analista no Supabase de `.env.local`                                             |
+| `npm run bootstrap:local`                                 | o mesmo, no Supabase local                                                                       |
 
 ## Estrutura
 
@@ -101,7 +111,8 @@ supabase/migrations/   uma migration por fatia; toda escrita é função SQL que
 src/app/               rotas em português (login, inicio, importacoes, parceiros, ...)
 src/components/        design Órbita (shell, navegação, formulários)
 src/lib/               env, sessão, leitor do export do BI (xlsx + bi), consultas por domínio, rótulos
-tests/db/              testes de banco (Vitest)   ·   e2e/   testes de ponta a ponta (Playwright)
+tests/db/              testes de banco (Vitest)
+e2e/roteiro.spec.ts    o roteiro de validação inteiro   ·   e2e/extras.spec.ts   casos fora do roteiro
 tests/bi-export.ts     gera planilhas no formato do BI para os testes
 ```
 

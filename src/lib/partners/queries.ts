@@ -50,6 +50,32 @@ export async function listPartnerRules(partnerId: string): Promise<PartnerRule[]
   return data;
 }
 
+export type RuleInForce = {
+  value_per_life: number;
+  term_months: number | null;
+  valid_from: string;
+};
+
+// Regra do parceiro vigente no mês (maior vigência que começa até o mês), lida sob a RLS de quem pede.
+export async function ruleInForce(
+  partnerId: string,
+  competency: string,
+): Promise<RuleInForce | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("partner_rules")
+    .select("value_per_life, term_months, valid_from")
+    .eq("partner_id", partnerId)
+    .lte("valid_from", `${competency}-01`)
+    .order("valid_from", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    throw new Error("Não foi possível consultar a regra do parceiro.");
+  }
+  return data;
+}
+
 export async function listPartnerReferrals(partnerId: string): Promise<Referral[]> {
   const supabase = await createClient();
   const { data, error } = await supabase

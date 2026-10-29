@@ -24,8 +24,6 @@ async function savePartner(client: Client, name: string) {
         kind: "unit",
         city: "Natal",
         state: "RN",
-        payment_method: "pix",
-        pix_key: `${name}@pix`,
       },
     }),
     "save_partner",
@@ -225,7 +223,7 @@ describe("fatia 1 — importação e cálculo vidas × valor vigente", () => {
     const rules = ok(await analyst.from("partner_rules").select("id"), "rules as analyst");
     expect(rules).toEqual([]);
     const denied = await analyst.rpc("save_partner", {
-      payload: { name: "X", kind: "unit", payment_method: "card" },
+      payload: { name: "X", kind: "unit" },
     });
     expect(denied.error?.code).toBe("42501");
     ok(

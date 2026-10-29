@@ -674,6 +674,10 @@
   color: var(--fp-amber-text);
   background: var(--fp-amber-soft);
 }
+.fp-status-danger {
+  color: var(--fp-red-text);
+  background: var(--fp-red-soft);
+}
 .fp-portal-lower {
   display: grid;
   grid-template-columns: 1.1fr 1fr;
@@ -1467,6 +1471,10 @@
 .fp-table th.fp-num {
   text-align: right;
   white-space: nowrap;
+}
+.fp-table-compact th,
+.fp-table-compact td {
+  padding: 10px 12px;
 }
 .fp-table tfoot td {
   font-weight: 600;

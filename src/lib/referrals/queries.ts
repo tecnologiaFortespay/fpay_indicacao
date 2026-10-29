@@ -60,21 +60,68 @@ export async function referralStatusCounts(): Promise<StatusCounts> {
   return counts;
 }
 
-// Vidas que contam por indicação no mês (view referral_month_lives, sob RLS do usuário).
-export async function livesByReferral(competency: string): Promise<Map<string, number>> {
+// Vidas, valor por vida efetivo e valor de cada indicação no mês (view referral_month_lives, sob RLS).
+export type ReferralMonth = { lives: number; value_per_life: number | null; amount: number };
+
+export async function referralMonthValues(competency: string): Promise<Map<string, ReferralMonth>> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("referral_month_lives")
-    .select("referral_id, lives")
+    .select("referral_id, lives, value_per_life, amount")
     .eq("competency", competencyToDate(competency));
   if (error) {
     throw new Error("Não foi possível consultar as vidas do mês.");
   }
-  const lives = new Map<string, number>();
+  const values = new Map<string, ReferralMonth>();
   for (const row of data) {
     if (row.referral_id) {
-      lives.set(row.referral_id, row.lives ?? 0);
+      values.set(row.referral_id, {
+        lives: row.lives ?? 0,
+        value_per_life: row.value_per_life,
+        amount: row.amount ?? 0,
+      });
     }
   }
-  return lives;
+  return values;
+}
+
+export type ReferralDetail = ReferralRow;
+
+export async function getReferral(id: string): Promise<ReferralDetail | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("referrals")
+    .select("*, partners(name)")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    throw new Error("Não foi possível consultar a indicação.");
+  }
+  if (!data) {
+    return null;
+  }
+  const { partners, ...referral } = data;
+  return { ...referral, partner_name: partners?.name ?? "—" };
+}
+
+export type ReferralMonthRow = ReferralMonth & { competency: string };
+
+// Meses em que as vidas da indicação contam, do mais recente ao mais antigo.
+export async function referralMonths(id: string): Promise<ReferralMonthRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("referral_month_lives")
+    .select("competency, lives, value_per_life, amount")
+    .eq("referral_id", id)
+    .order("competency", { ascending: false })
+    .limit(24);
+  if (error) {
+    throw new Error("Não foi possível consultar os meses da indicação.");
+  }
+  return data.map((row) => ({
+    competency: row.competency ?? "",
+    lives: row.lives ?? 0,
+    value_per_life: row.value_per_life,
+    amount: row.amount ?? 0,
+  }));
 }

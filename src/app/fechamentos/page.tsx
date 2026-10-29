@@ -4,7 +4,7 @@ import { TextAreaField } from "@/components/fields";
 import { MutationForm } from "@/components/mutation-form";
 import { requireRole } from "@/lib/auth/session";
 import { competencyLabel, formatDate, formatDateTime } from "@/lib/competency";
-import { decisionLabels, partnerResponseLabels } from "@/lib/labels";
+import { partnerDecisionLabels, partnerResponseLabels } from "@/lib/labels";
 import { formatCurrency, formatInteger } from "@/lib/money";
 import { partnerClosingItems, pendingBalanceOf } from "@/lib/partner-panel/queries";
 import { respondClosingItem } from "./actions";
@@ -63,10 +63,16 @@ export default async function PartnerClosingsPage() {
                 <dt>Decisão da Fortes Pay</dt>
                 <dd>
                   {item.decision
-                    ? decisionLabels[item.decision as keyof typeof decisionLabels]
+                    ? partnerDecisionLabels[item.decision as keyof typeof partnerDecisionLabels]
                     : "Sem valor a pagar"}
                 </dd>
               </div>
+              {item.decision === "pay" && (
+                <div>
+                  <dt>Como foi pago</dt>
+                  <dd>{item.payment_note ?? "a Fortes Pay ainda não informou"}</dd>
+                </div>
+              )}
             </dl>
             {item.partner_response ? (
               <p className="fp-panel-footnote">

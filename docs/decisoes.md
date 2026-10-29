@@ -1,0 +1,32 @@
+# Decisões posteriores ao requisitos.md
+
+O `docs/requisitos.md` não é alterado. As decisões tomadas depois dele ficam aqui, com data, e
+valem sobre o que ele diz.
+
+## 28/10/2026 — Diego
+
+1. **O MVP é o roteiro de validação.** O roteiro em `docs/roteiro-validacao.md` define o que o
+   sistema faz nesta fase; o teste de ponta a ponta `e2e/roteiro.spec.ts` executa os mesmos passos.
+2. **Configuração do parceiro e configuração da indicação.** Valor por vida e prazo em meses são
+   cadastrados pelo diretor. O parceiro tem a sua regra, com vigências; cada indicação pode ter
+   valor por vida e prazo próprios. Campo em branco na indicação usa a regra do parceiro vigente
+   no mês. O prazo conta a partir do primeiro mês pago da indicação.
+3. **Meio de pagamento não é exigido.** O cadastro e a aprovação do parceiro não pedem mais meio
+   de pagamento (os campos saíram). No fechamento, cada parceiro marcado para pagar tem um campo
+   livre "Como foi pago", preenchido pelo diretor e visto pelo parceiro em Meus fechamentos.
+4. **Objetivo da plataforma.** Facilitar a vida do diretor e deixar visível para cada parceiro o
+   valor dele, para o diretor não precisar responder a cada pedido. Por isso o painel do parceiro
+   mostra, por indicação, vidas, valor por vida, valor e prazo.
+
+## 28/10/2026 — recomendações aplicadas (aprovadas pelo Diego: "faça sua recomendação")
+
+5. **Fechamentos em ordem.** Um mês só é preparado ou fechado quando todos os meses anteriores com
+   importação já estão fechados.
+6. **Vigências.** Só a vigência mais recente do parceiro pode ser editada ou removida, e só
+   enquanto nenhum mês fechado a usa. As anteriores ficam como histórico. O parceiro ativo nunca
+   fica sem vigência.
+7. **Painel do parceiro.** No mês escolhido aparecem as indicações com vidas contando e as ativas
+   ou inadimplentes que já começaram a pagar (inadimplente com 0 vidas, para ser cobrado).
+   Perdidas, canceladas e as que ainda não pagaram ficam em Minhas indicações.
+8. **Mês fechado não muda.** Mudar a configuração de uma indicação vale para os meses abertos. O
+   valor de um mês fechado é o do fechamento, que o painel indica quando o mês já foi fechado.

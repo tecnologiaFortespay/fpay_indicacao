@@ -88,3 +88,25 @@ export async function closeClosing(_previous: FormState, form: FormData): Promis
   revalidateClosing();
   return { success: "Lote fechado. Nada mais entra neste mês." };
 }
+
+// Texto livre de como a Fortes Pay pagou a linha (ex.: "PIX em 05/11"); o parceiro vê.
+export async function setPaymentNote(_previous: FormState, form: FormData): Promise<FormState> {
+  const user = await actionUser("director");
+  if (!user) {
+    return forbidden;
+  }
+  const id = formValue(form, "id");
+  if (!z.uuid().safeParse(id).success) {
+    return { error: "Item inválido." };
+  }
+  const supabase = await createClient();
+  const result = await supabase.rpc("set_payment_note", {
+    target: id,
+    note: formValue(form, "payment_note"),
+  });
+  if (result.error) {
+    return { error: databaseError(result.error) };
+  }
+  revalidateClosing();
+  return { success: "Forma de pagamento salva." };
+}

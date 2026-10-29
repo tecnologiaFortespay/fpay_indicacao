@@ -1,12 +1,53 @@
-import { expect, type Page } from "@playwright/test";
+import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { biExport, type ExportRow } from "../tests/bi-export";
-import { FIXTURES_PATH, type Fixtures } from "./global-setup";
+import { expect, type APIRequestContext, type Browser, type Page } from "@playwright/test";
+import { adminClient, ensureStaffUser } from "../scripts/bootstrap.mjs";
 
 export const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+export const PASSWORD = "Senha-e2e-12345";
+const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://127.0.0.1:54344";
 
-export function fixtures(): Fixtures {
-  return JSON.parse(readFileSync(FIXTURES_PATH, "utf8")) as Fixtures;
+export type Staff = {
+  director: { id: string; email: string };
+  analyst: { id: string; email: string };
+};
+
+// Banco local zerado (tests/reset-data.sql, TRUNCATE direto no Postgres) e diretor e analista
+// criados como no `npm run bootstrap`.
+export async function resetAndSeedStaff(names: {
+  director: string;
+  analyst: string;
+}): Promise<Staff> {
+  const container = process.env.SUPABASE_DB_CONTAINER ?? "supabase_db_fpay_indicacao";
+  execSync(`docker exec -i ${container} psql -U postgres -d postgres -v ON_ERROR_STOP=1 -q -f -`, {
+    input: readFileSync("tests/reset-data.sql"),
+    stdio: ["pipe", "inherit", "inherit"],
+  });
+  const director = await ensureStaffUser({
+    email: "diretor.e2e@fortespay.local",
+    role: "director",
+    name: names.director,
+    password: PASSWORD,
+  });
+  const analyst = await ensureStaffUser({
+    email: "analista.e2e@fortespay.local",
+    role: "analyst",
+    name: names.analyst,
+    password: PASSWORD,
+  });
+  return { director, analyst };
+}
+
+export { adminClient };
+
+// Uma sessão de navegador por pessoa (diretor, analista, cada parceiro).
+export async function actor(browser: Browser, baseURL: string): Promise<Page> {
+  const context = await browser.newContext({
+    baseURL,
+    locale: "pt-BR",
+    timezoneId: "America/Fortaleza",
+  });
+  return context.newPage();
 }
 
 export async function login(page: Page, email: string, password: string) {
@@ -14,19 +55,41 @@ export async function login(page: Page, email: string, password: string) {
   await page.getByLabel("E-mail", { exact: true }).fill(email);
   await page.getByLabel("Senha", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
-  await expect(page).not.toHaveURL(/\/login$/);
+  await expect(page).not.toHaveURL(/\/login/);
 }
 
-// Envia o export do BI (gerado no formato real, docs/arquivo-bi.md) para o mês informado
-// ("YYYY-MM") e espera cair no detalhe do lote.
-export async function importExport(page: Page, name: string, month: string, rows: ExportRow[]) {
+// Envia o export do BI (gerado no formato real, docs/arquivo-bi.md) para o mês informado ("YYYY-MM").
+export async function upload(page: Page, name: string, month: string, buffer: Uint8Array) {
   await page.goto("/importacoes");
   await page.getByLabel("Mês de referência").fill(month);
-  await page.getByLabel("Planilha do BI").setInputFiles({
-    name,
-    mimeType: XLSX_TYPE,
-    buffer: Buffer.from(biExport(rows, month)),
-  });
+  await page
+    .getByLabel("Planilha do BI")
+    .setInputFiles({ name, mimeType: XLSX_TYPE, buffer: Buffer.from(buffer) });
   await page.getByRole("button", { name: "Importar", exact: true }).click();
-  await expect(page).toHaveURL(/\/importacoes\/[0-9a-f-]{36}$/);
+}
+
+// Link de recuperação de senha que o Supabase local entrega no Mailpit.
+export async function recoveryLink(request: APIRequestContext, email: string): Promise<string> {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const search = await request.get(
+      `${MAILPIT_URL}/api/v1/search?query=to:${encodeURIComponent(email)}`,
+    );
+    const list = (await search.json()) as { messages?: { ID: string }[] };
+    for (const message of list.messages ?? []) {
+      const detail = await request.get(`${MAILPIT_URL}/api/v1/message/${message.ID}`);
+      const body = (await detail.json()) as { Text?: string; HTML?: string };
+      const text = `${body.Text ?? ""}\n${(body.HTML ?? "").replace(/&amp;/g, "&")}`;
+      const match = text.match(/https?:\/\/[^\s"<>]+\/auth\/v1\/verify[^\s"<>]+/);
+      if (match) {
+        await request.delete(`${MAILPIT_URL}/api/v1/messages`, { data: { IDs: [message.ID] } });
+        return match[0];
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error("E-mail de recuperação não chegou ao Mailpit.");
+}
+
+export function clean(text: string): string {
+  return text.replace(/ /g, " ").replace(/\s+/g, " ").trim();
 }
