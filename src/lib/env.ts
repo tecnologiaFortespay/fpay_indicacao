@@ -12,14 +12,43 @@ export type AuthConfig = {
   appUrl: string;
 };
 
-// Null when the environment is not configured; pages then show an "unavailable" message.
+const VARIABLES = {
+  url: "NEXT_PUBLIC_SUPABASE_URL",
+  anonKey: "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  appUrl: "NEXT_PUBLIC_APP_URL",
+} as const;
+
+// Lido no servidor em tempo de execução: a consulta por nome (process.env[name]) não é fixada no
+// build pelo Next, então o valor vem do ambiente em que o servidor sobe (ex.: DigitalOcean), com ou
+// sem a variável disponível durante o build. Aspas coladas junto do valor são descartadas.
+function readVariable(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    return undefined;
+  }
+  return value.replace(/^(["'])(.*)\1$/, "$2");
+}
+
+let reported = false;
+
+// Null when the environment is not configured; pages then show an "unavailable" message and the
+// server log names the variables to fix (never their values).
 export function authConfig(): AuthConfig | null {
   const parsed = schema.safeParse({
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    appUrl: process.env.NEXT_PUBLIC_APP_URL,
+    url: readVariable(VARIABLES.url),
+    anonKey: readVariable(VARIABLES.anonKey),
+    appUrl: readVariable(VARIABLES.appUrl),
   });
   if (!parsed.success) {
+    if (!reported) {
+      reported = true;
+      const names = parsed.error.issues.map(
+        (issue) => VARIABLES[issue.path[0] as keyof typeof VARIABLES],
+      );
+      console.error(
+        `Configuração do Supabase incompleta: confira ${names.join(", ")} no ambiente do servidor.`,
+      );
+    }
     return null;
   }
   const origin = new URL(parsed.data.appUrl);
@@ -30,7 +59,7 @@ export function authConfig(): AuthConfig | null {
 }
 
 export function environmentLabel(): string {
-  return process.env.NEXT_PUBLIC_ENVIRONMENT_LABEL?.trim() ?? "";
+  return readVariable("NEXT_PUBLIC_ENVIRONMENT_LABEL") ?? "";
 }
 
 export const AUTH_COOKIE = "fp-indicacao-auth";

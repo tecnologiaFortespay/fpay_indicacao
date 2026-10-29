@@ -72,18 +72,21 @@ Passos, nesta ordem:
    poucos envios por hora, e a recuperação de senha depende dele.
 4. **Contas internas**: `npm run bootstrap -- --email <diretor> --role director --name "..." --password "..."`
    e o mesmo com `--role analyst`.
-5. **Build com os valores finais**: as variáveis `NEXT_PUBLIC_*` entram no build
-   (`NEXT_PUBLIC_APP_URL` vai nos links de convite e de recuperação de senha).
+5. **Variáveis no servidor do app**: o servidor lê as variáveis ao iniciar, então trocar um valor
+   pede só reiniciar o app, sem novo build (`NEXT_PUBLIC_APP_URL` vai nos links de convite e de
+   recuperação de senha).
 
 ## Deploy (DigitalOcean App Platform)
 
 - Origem: este repositório no GitHub, branch `main`. Node 22 (`engines` no `package.json`).
 - Build: `npm run build`. Execução: `npm start` (o Next lê a porta em `PORT`).
-- Variáveis com escopo **build e execução**, porque as `NEXT_PUBLIC_*` entram no build:
-  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_APP_URL` (endereço
-  público do app, usado nos links de convite e de recuperação de senha) e
-  `NEXT_PUBLIC_ENVIRONMENT_LABEL` (vazio em produção). Não configure `SUPABASE_SERVICE_ROLE_KEY`
-  nem `SUPABASE_DB_URL` no app: só os scripts locais usam.
+- Variáveis do app (escopo de execução basta; o servidor as lê ao iniciar):
+  `NEXT_PUBLIC_SUPABASE_URL` (`https://<ref>.supabase.co`), `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+  `NEXT_PUBLIC_APP_URL` (endereço público do app com `https://`, usado nos links de convite e de
+  recuperação de senha) e `NEXT_PUBLIC_ENVIRONMENT_LABEL` (vazio em produção). Não configure
+  `SUPABASE_SERVICE_ROLE_KEY` nem `SUPABASE_DB_URL` no app: só os scripts locais usam.
+- Se a tela de login mostrar "O ambiente está em configuração", falta ou está inválida uma dessas
+  variáveis: o log de execução do app diz qual ("Configuração do Supabase incompleta: confira …").
 - Depois do primeiro deploy, no Supabase: Site URL = `https://<domínio>` e
   `https://<domínio>/auth/callback` nas Redirect URLs (seção "Projeto real").
 

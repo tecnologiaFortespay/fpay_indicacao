@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { z } from "zod";
 import { authConfig } from "@/lib/env";
 import type { Role } from "@/lib/labels";
@@ -31,7 +32,10 @@ export type SessionUser = {
 export type AuthorizedUser = SessionUser & { profile: Profile };
 
 // Deduplicated per render by React cache; nothing persists between requests.
+// connection() keeps every page that checks the session dynamic: without it, a build made without
+// the Supabase variables would prerender pages as "no session" and redirect forever at runtime.
 export const currentUser = cache(async (): Promise<SessionUser | null> => {
+  await connection();
   if (!authConfig()) {
     return null;
   }
