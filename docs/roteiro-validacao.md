@@ -119,6 +119,16 @@ Regra de 29/10/2026: o diretor envia o export do mês em andamento três ou quat
 10.5. Diretor → Fechamento → agosto → em Teresina, "Como foi pago": "PIX em 05/09/2026" → Teresina → Meus fechamentos → agosto mostra "Como foi pago PIX em 05/09/2026". Linhas acumuladas não têm esse campo.
 10.6. Diretor → Indicações → Registrar indicação em nome de Natal, CNPJ F, valor por vida 3,00 e prazo 6 → a lista mostra "R$ 3,00 por vida · 6 meses" com Unidade Natal.
 
+## Bloco 11 — IA do diretor (decisão de 29/10/2026)
+
+Exige a chave `ANTHROPIC_API_KEY` no servidor. Sem ela, as telas abaixo dizem que a IA não está ligada.
+
+11.1. Diretor → Importações → enviar o export do mês → na página do envio aparece "Análise da IA" com "analisando"; em até um minuto, resumo e alertas.
+11.2. Cadastrar uma indicação com o CNPJ de propósito errado (ex.: um dígito trocado) para uma empresa que está na planilha → novo envio → a análise aponta a empresa do arquivo com nome igual como possível CNPJ errado.
+11.3. Analista → abrir a mesma página do envio → não aparece nada da IA; o envio do analista não dispara análise (o diretor pode pedir depois, sem a checagem de CNPJ).
+11.4. Diretor → Fechamento → mês preparado → "Analisar com IA" → resumo e alertas do cálculo; recalcular depois mostra o aviso de que a revisão é anterior ao cálculo atual.
+11.5. Parceiro → nenhuma tela mostra IA.
+
 ## Como rodar à mão (ambiente local)
 
 ```bash

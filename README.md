@@ -94,6 +94,22 @@ Passos, nesta ordem:
 - Depois do primeiro deploy, no Supabase: Site URL = `https://<domínio>` e
   `https://<domínio>/auth/callback` nas Redirect URLs (seção "Projeto real").
 
+## IA (só o diretor)
+
+- Duas análises, feitas pelo Claude (`claude-opus-5-5`, API da Anthropic) e chamadas só pelo
+  servidor: **análise do envio** (página de cada importação; roda sozinha quando o diretor envia a
+  planilha e pode ser pedida de novo) e **revisão do fechamento** (botão "Analisar com IA" no mês
+  preparado, antes de fechar). A IA só lê os números que o sistema já calculou e devolve resumo e
+  alertas; não grava nada além da própria análise (tabela `ai_reviews`, só o diretor lê).
+- Liga com `ANTHROPIC_API_KEY` no servidor do app (DigitalOcean: escopo de execução, marcada como
+  Encrypt). Sem ela, as telas dizem que a IA não está ligada e o resto funciona igual.
+- O que vai para a IA: nomes de parceiros e empresas, CNPJs, situação, vidas e valores. Nunca
+  e-mail, telefone ou dados de pagamento. A checagem de CNPJ digitado errado usa a planilha inteira
+  só no momento do envio; as empresas não indicadas não são guardadas. A Fortes Pay autorizou o
+  envio (29/10/2026; a API não usa os dados para treino).
+- Testes: `e2e/fake-anthropic.ts` imita a API (nenhuma chamada sai para a Anthropic);
+  `src/lib/ai/claude.test.ts` confere o pedido e os erros.
+
 ## Scripts
 
 | Comando                                                   | O que faz                                                                                        |

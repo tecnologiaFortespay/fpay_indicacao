@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
+import { AiReviewPanel } from "@/components/ai-review-panel";
 import { AppShell } from "@/components/app-shell";
+import { aiConfigured } from "@/lib/ai/claude";
+import { latestReview } from "@/lib/ai/reviews";
 import { requireRole } from "@/lib/auth/session";
 import {
   competencyLabel,
@@ -12,13 +15,14 @@ import {
 } from "@/lib/competency";
 import { getBatch } from "@/lib/imports/queries";
 import { importOutcomeLabels } from "@/lib/labels";
+import { analyzeImport } from "../actions";
 
 export const metadata: Metadata = { title: "Importação" };
 
 type PageProps = { params: Promise<{ id: string }> };
 
 export default async function ImportDetailPage({ params }: PageProps) {
-  await requireRole("director", "analyst");
+  const user = await requireRole("director", "analyst");
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) {
     redirect("/importacoes");
@@ -28,6 +32,8 @@ export default async function ImportDetailPage({ params }: PageProps) {
     notFound();
   }
   const { batch, rows } = result;
+  const director = user.profile.role === "director";
+  const review = director ? await latestReview({ batch_id: batch.id }) : null;
   const months = batch.competencies
     .map((date) => {
       const competency = dateToCompetency(date);
@@ -74,7 +80,17 @@ export default async function ImportDetailPage({ params }: PageProps) {
           <strong className="fp-num">{batch.rows_ignored}</strong>
         </div>
       </div>
-      <section className="fp-panel">
+      {director && (
+        <AiReviewPanel
+          title="Análise da IA"
+          description="A IA compara este envio com o anterior do mesmo mês e com o mês passado, aponta quedas, saltos e indicações que sumiram e, no momento do envio, procura no arquivo empresas que podem ser a indicação com o CNPJ digitado errado. Ela não altera nenhum dado."
+          review={review}
+          configured={aiConfigured()}
+          action={analyzeImport}
+          fields={{ batch_id: batch.id }}
+        />
+      )}
+      <section className="fp-panel mt-6">
         <div className="fp-panel-heading">
           <h2>Linhas ignoradas ou mescladas</h2>
           <span>{rows.length} linha(s)</span>

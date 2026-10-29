@@ -1,8 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { databaseError, formValue } from "@/lib/actions";
+import { aiConfigured } from "@/lib/ai/claude";
+import { runClosingReview, startReview } from "@/lib/ai/reviews";
 import { actionUser } from "@/lib/auth/session";
 import type { FormState } from "@/lib/auth/validation";
 import { competencyToDate, isCompetency } from "@/lib/competency";
@@ -109,4 +113,28 @@ export async function setPaymentNote(_previous: FormState, form: FormData): Prom
   }
   revalidateClosing();
   return { success: "Forma de pagamento salva." };
+}
+
+// Revisão da IA do cálculo preparado, antes de fechar. Roda depois da resposta; a página acompanha.
+export async function reviewClosing(_previous: FormState, form: FormData): Promise<FormState> {
+  const user = await actionUser("director");
+  if (!user) {
+    return forbidden;
+  }
+  if (!aiConfigured()) {
+    return { error: "A IA ainda não está ligada neste servidor." };
+  }
+  const competency = formValue(form, "competency");
+  const closingId = formValue(form, "closing_id");
+  if (!isCompetency(competency)) {
+    return { error: "Informe o mês do fechamento." };
+  }
+  let reviewId: string;
+  try {
+    reviewId = await startReview({ closing_id: closingId });
+  } catch (error) {
+    return { error: databaseError(error as { message: string }) };
+  }
+  after(() => runClosingReview(reviewId, competency));
+  redirect(`/fechamento?competency=${competency}`);
 }

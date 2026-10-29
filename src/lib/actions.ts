@@ -19,6 +19,7 @@ export function databaseError(error: DatabaseError): string {
     case "REGISTRATION_FIELDS":
     case "APPROVAL_FIELDS":
     case "CLOSING_FIELDS":
+    case "AI_FIELDS":
       return detail || "Confira os campos informados.";
     case "RULE_LOCKED":
       return `Mês fechado (${detail}): vigências até esse mês não mudam mais. Crie uma vigência a partir de um mês aberto.`;

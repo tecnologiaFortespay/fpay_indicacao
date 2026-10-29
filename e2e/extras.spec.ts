@@ -1,7 +1,10 @@
 // Casos que o roteiro não percorre: senha errada, convite expirado, planilha errada e CNPJ alfanumérico.
 import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
+import { cnpjWithDigits } from "@/lib/cnpj";
+import { currentCompetency } from "@/lib/competency";
 import { biExport } from "../tests/bi-export";
+import { FAKE_IMPORT_SUMMARY, fakeRequests, resetFakeRequests } from "./fake-anthropic";
 import {
   actor,
   adminClient,
@@ -94,4 +97,81 @@ test("parceiro indica CNPJ alfanumérico", async ({ browser, baseURL }) => {
   await expect(page.getByRole("row", { name: /Empresa Alfanumérica/ })).toContainText(
     "12.ABC.345/01DE-35",
   );
+});
+
+test("IA analisa o envio do diretor e aponta CNPJ possivelmente errado; analista não vê", async ({
+  browser,
+  baseURL,
+}) => {
+  const admin = adminClient();
+  const referredCnpj = cnpjWithDigits("123456780001");
+  const partner = await admin
+    .from("partners")
+    .insert({
+      name: "Unidade IA",
+      kind: "unit",
+      status: "active",
+      approved_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  expect(partner.error).toBeNull();
+  expect(
+    (await admin.from("companies").insert({ cnpj: referredCnpj, name: "Padaria Pão Quente" }))
+      .error,
+  ).toBeNull();
+  const referral = await admin.from("referrals").insert({
+    partner_id: partner.data?.id ?? "",
+    cnpj: referredCnpj,
+    company_name: "Padaria Pão Quente",
+    status: "negotiating",
+    created_by: staff.director.id,
+  });
+  expect(referral.error).toBeNull();
+  const month = currentCompetency();
+  const sheet = biExport(
+    [
+      { cnpj: cnpjWithDigits("987654320001"), company: "PADARIA PAO QUENTE LTDA", lives: 12 },
+      { cnpj: cnpjWithDigits("555666770001"), company: "OUTRA EMPRESA SA", lives: 30 },
+    ],
+    month,
+  );
+  await resetFakeRequests();
+
+  const analyst = await actor(browser, baseURL ?? "http://localhost:3100");
+  await login(analyst, staff.analyst.email, PASSWORD);
+  await upload(analyst, "analista.xlsx", month, sheet);
+  await expect(analyst).toHaveURL(/\/importacoes\/[0-9a-f-]{36}$/);
+  await expect(analyst.getByRole("region", { name: "Análise da IA" })).toHaveCount(0);
+  expect(await fakeRequests()).toHaveLength(0);
+
+  const director = await actor(browser, baseURL ?? "http://localhost:3100");
+  await login(director, staff.director.email, PASSWORD);
+  await upload(director, "diretor.xlsx", month, sheet);
+  await expect(director).toHaveURL(/\/importacoes\/[0-9a-f-]{36}$/);
+  const panel = director.getByRole("region", { name: "Análise da IA" });
+  await expect(panel).toBeVisible();
+  await expect(panel.getByText(FAKE_IMPORT_SUMMARY)).toBeVisible({ timeout: 30000 });
+  await expect(panel.getByText("CNPJ da indicação pode estar errado")).toBeVisible();
+
+  const requests = await fakeRequests();
+  expect(requests).toHaveLength(1);
+  const { headers, body } = requests[0];
+  expect(body.model).toBe("claude-opus-5-5");
+  expect(String(headers["anthropic-beta"])).toContain("server-side-fallback-2026-07-01");
+  expect(body.fallbacks).toBe("default");
+  expect(body.output_config).toMatchObject({ effort: "medium", format: { type: "json_schema" } });
+  const content = String((body.messages as { content: string }[])[0].content);
+  expect(content).not.toContain("@");
+  const material = JSON.parse(content);
+  expect(material.envio).toMatch(/^parcial/);
+  expect(material.possiveis_cnpj_errados).toEqual([
+    expect.objectContaining({
+      empresa: "Padaria Pão Quente",
+      candidatos_no_arquivo: [expect.objectContaining({ empresa: "PADARIA PAO QUENTE LTDA" })],
+    }),
+  ]);
+
+  await analyst.goto(director.url().replace(/^https?:\/\/[^/]+/, ""));
+  await expect(analyst.getByText(FAKE_IMPORT_SUMMARY)).toHaveCount(0);
 });

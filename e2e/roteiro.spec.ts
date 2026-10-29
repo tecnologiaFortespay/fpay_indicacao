@@ -10,6 +10,7 @@ import {
   shortCompetencyLabel,
 } from "@/lib/competency";
 import { biExport, type ExportRow } from "../tests/bi-export";
+import { FAKE_CLOSING_SUMMARY, fakeRequests, resetFakeRequests } from "./fake-anthropic";
 import { actor, clean, login, PASSWORD, recoveryLink, resetAndSeedStaff, upload } from "./helpers";
 
 // O roteiro foi escrito com hoje em outubro de 2026. Aqui os meses são relativos a hoje, para o
@@ -778,6 +779,23 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     );
     expect(await rowText(dir, /^Unidade Teresina/)).toMatch(/R\$ 0,00 R\$ 94,50$/);
     expect(await rowText(dir, /^Unidade Natal/)).toMatch(/R\$ 0,00 R\$ 110,00$/);
+  });
+
+  await test.step("7.1b revisão da IA do cálculo de setembro", async () => {
+    await resetFakeRequests();
+    await dir.getByRole("button", { name: "Analisar com IA" }).click();
+    await expect(dir.getByText(FAKE_CLOSING_SUMMARY)).toBeVisible({ timeout: 30000 });
+    const requests = await fakeRequests();
+    expect(requests).toHaveLength(1);
+    const material = JSON.parse(
+      String((requests[0].body.messages as { content: string }[])[0].content),
+    );
+    expect(material.mes).toBe(SEP_LABEL);
+    expect(material.parceiros.map((partner: { parceiro: string }) => partner.parceiro)).toEqual([
+      "Contador Fulano",
+      "Unidade Natal",
+      "Unidade Teresina",
+    ]);
   });
 
   await test.step("7.2 os três pagos; saldo pendente zera", async () => {

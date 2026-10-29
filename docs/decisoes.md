@@ -44,3 +44,10 @@ valem sobre o que ele diz.
 10. **Cadastro pelo convite.** O convite válido confirma o e-mail da conta recém-criada, então o
     cadastro do parceiro conclui mesmo com "Confirm email" ligado no Supabase. Conta criada antes
     disso, sem cadastro concluído, entra com a própria senha pelo link do convite e conclui.
+11. **IA só para o diretor.** Pedido do Diego, com autorização da Fortes Pay para enviar dados à
+    API (não treina com eles). Duas análises: do envio da planilha (comparação com o envio anterior
+    do mês e com o mês passado, e empresas do arquivo que podem ser uma indicação com CNPJ digitado
+    errado) e do fechamento preparado (o que conferir antes de fechar). A IA aponta e explica; não
+    calcula, não decide pagar ou acumular e não altera dados. As análises ficam na 12ª tabela
+    (`ai_reviews`), lida só pelo diretor. "Pergunte aos dados" e rascunho de resposta a contestação
+    ficam para depois.

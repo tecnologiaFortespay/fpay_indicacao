@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AiReviewPanel } from "@/components/ai-review-panel";
 import { AppShell } from "@/components/app-shell";
 import { Field } from "@/components/fields";
 import { MutationForm } from "@/components/mutation-form";
+import { aiConfigured } from "@/lib/ai/claude";
+import { latestReview } from "@/lib/ai/reviews";
 import { requireRole } from "@/lib/auth/session";
 import { closingChecks, getClosing, listClosings, type ClosingItem } from "@/lib/closings/queries";
 import {
@@ -15,7 +18,13 @@ import {
 } from "@/lib/competency";
 import { closingStatusLabels, decisionLabels, partnerResponseLabels } from "@/lib/labels";
 import { formatCurrency, formatInteger } from "@/lib/money";
-import { closeClosing, prepareClosing, setClosingAdjustment, setPaymentNote } from "./actions";
+import {
+  closeClosing,
+  prepareClosing,
+  reviewClosing,
+  setClosingAdjustment,
+  setPaymentNote,
+} from "./actions";
 
 export const metadata: Metadata = { title: "Fechamento do mês" };
 
@@ -45,6 +54,11 @@ export default async function ClosingPage({ searchParams }: PageProps) {
   const monthLabel = competencyLabel(competency);
   const closed = detail?.closing.status === "closed";
   const blockerLabel = checks.blocker ? competencyLabel(checks.blocker) : null;
+  const review = detail ? await latestReview({ closing_id: detail.closing.id }) : null;
+  const reviewOutdated =
+    review !== null &&
+    detail !== null &&
+    Date.parse(detail.closing.prepared_at) > Date.parse(review.created_at);
   return (
     <AppShell title="Fechamento do mês">
       <div className="fp-management-intro">
@@ -352,6 +366,23 @@ export default async function ClosingPage({ searchParams }: PageProps) {
             </>
           )}
         </section>
+      )}
+
+      {detail && (!closed || review) && (
+        <AiReviewPanel
+          title="Revisão da IA"
+          description="Antes de fechar, a IA confere o cálculo de cada parceiro contra o mês anterior e aponta o que merece atenção: valores que mudaram muito, indicação ativa sem vidas, saldo acumulado há meses, ajuste sem motivo e prazos terminando. Quem decide pagar ou acumular é você."
+          review={review}
+          configured={aiConfigured()}
+          canRequest={!closed}
+          action={reviewClosing}
+          fields={{ competency, closing_id: detail.closing.id }}
+          notice={
+            reviewOutdated
+              ? "O cálculo foi refeito depois desta revisão. Peça de novo para revisar os valores atuais."
+              : null
+          }
+        />
       )}
 
       <section className="fp-panel mt-6">

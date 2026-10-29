@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { FAKE_ANTHROPIC_PORT } from "./e2e/fake-anthropic";
 import { assertLocalSupabase } from "./tests/local-only";
 
 // Os testes de ponta a ponta usam só o Supabase local (.env.test); .env.local nunca é lido aqui.
@@ -33,6 +34,9 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
       NEXT_PUBLIC_ENVIRONMENT_LABEL: process.env.NEXT_PUBLIC_ENVIRONMENT_LABEL ?? "Teste",
+      // A IA aponta para a imitação local; nenhuma chamada sai para a Anthropic.
+      ANTHROPIC_API_KEY: "chave-de-teste",
+      ANTHROPIC_BASE_URL: `http://127.0.0.1:${FAKE_ANTHROPIC_PORT}`,
     },
   },
 });

@@ -23,7 +23,33 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "closing_items": {
+            "ai_reviews": {
+                  Row: {
+                    "alerts": NonNullable<Json>,"batch_id": string | null,"closing_id": string | null,"created_at": string,"created_by": string,"error": string | null,"finished_at": string | null,"id": string,"model": string | null,"status": string,"summary": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "alerts"?: NonNullable<Json>,"batch_id"?: string | null,"closing_id"?: string | null,"created_at"?: string,"created_by": string,"error"?: string | null,"finished_at"?: string | null,"id"?: string,"model"?: string | null,"status"?: string,"summary"?: string | null
+                  }
+                  Update: {
+                    "alerts"?: NonNullable<Json>,"batch_id"?: string | null,"closing_id"?: string | null,"created_at"?: string,"created_by"?: string,"error"?: string | null,"finished_at"?: string | null,"id"?: string,"model"?: string | null,"status"?: string,"summary"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ai_reviews_batch_id_fkey"
+      columns: ["batch_id"]
+isOneToOne: false
+      referencedRelation: "import_batches"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ai_reviews_closing_id_fkey"
+      columns: ["closing_id"]
+isOneToOne: false
+      referencedRelation: "closings"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"closing_items": {
                   Row: {
                     "adjustment": number,"adjustment_note": string | null,"closing_id": string,"decided_at": string | null,"decided_by": string | null,"decision": string | null,"id": string,"lives": number,"month_amount": number,"partner_id": string,"partner_note": string | null,"partner_response": string | null,"partner_response_at": string | null,"payment_note": string | null,"previous_balance": number,"total": number | null,"value_per_life": number | null
                   }
@@ -307,6 +333,9 @@ isOneToOne: false
 "delete_partner_rule":
 { Args: { "target": string }; Returns: undefined
                            },
+"finish_ai_review":
+{ Args: { "payload": Json,"review": string }; Returns: undefined
+                           },
 "import_lives":
 { Args: { "batch": Json,"rows": Json }; Returns: string
                            },
@@ -372,6 +401,9 @@ isOneToOne: false
                            },
 "set_referral_status":
 { Args: { "new_status": string,"target": string }; Returns: undefined
+                           },
+"start_ai_review":
+{ Args: { "subject": Json }; Returns: string
                            },
 "valid_cnpj":
 { Args: { "value": string }; Returns: boolean

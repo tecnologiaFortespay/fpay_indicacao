@@ -1,6 +1,7 @@
 -- Zera os DADOS do Supabase local (o esquema fica). Usado pelos testes de ponta a ponta.
 -- Nunca rodar contra o projeto real.
 truncate table
+  public.ai_reviews,
   public.closing_items,
   public.closings,
   public.monthly_lives,

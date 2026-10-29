@@ -7,7 +7,12 @@ export default defineConfig({
   test: {
     projects: [
       {
-        resolve: { alias },
+        resolve: {
+          alias: {
+            ...alias,
+            "server-only": fileURLToPath(new URL("./tests/server-only-stub.ts", import.meta.url)),
+          },
+        },
         test: { name: "unit", environment: "node", include: ["src/**/*.test.ts"] },
       },
       {
