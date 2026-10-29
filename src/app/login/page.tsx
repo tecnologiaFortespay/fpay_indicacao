@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth-shell";
 import { LoginForm } from "@/components/login-form";
 import { currentUser, landingPath } from "@/lib/auth/session";
-import { authConfig } from "@/lib/env";
+import { formatDateTime } from "@/lib/competency";
+import { builtAt, configurationProblems } from "@/lib/env";
 
 export const metadata: Metadata = { title: "Entrar" };
 
@@ -16,7 +17,9 @@ export default async function LoginPage({ searchParams }: PageProps) {
     redirect(landingPath(user));
   }
   const params = await searchParams;
-  const configured = Boolean(authConfig());
+  const problems = configurationProblems();
+  const configured = problems.length === 0;
+  const built = builtAt();
   return (
     <AuthShell
       title="Bem-vindo ao Fortes Pay"
@@ -29,6 +32,10 @@ export default async function LoginPage({ searchParams }: PageProps) {
         >
           O ambiente está em configuração. O login será liberado assim que a conexão estiver
           disponível.
+          <small className="mt-2 block">
+            Para a equipe técnica: confira no servidor{" "}
+            {problems.map((problem) => `${problem.variable} (${problem.issue})`).join(", ")}.
+          </small>
         </p>
       )}
       {params.senha === "alterada" && (
@@ -48,6 +55,11 @@ export default async function LoginPage({ searchParams }: PageProps) {
       >
         Esqueci minha senha
       </Link>
+      {built && (
+        <p className="text-center text-xs text-muted-foreground">
+          Versão de {formatDateTime(built)}
+        </p>
+      )}
     </AuthShell>
   );
 }

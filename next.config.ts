@@ -19,6 +19,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Carimbo do build, mostrado no login: diz qual versão está publicada.
+  env: { APP_BUILT_AT: new Date().toISOString() },
   turbopack: {
     rules: {
       "*.css": {

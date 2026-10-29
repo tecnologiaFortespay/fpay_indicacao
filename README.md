@@ -85,8 +85,10 @@ Passos, nesta ordem:
   `NEXT_PUBLIC_APP_URL` (endereço público do app com `https://`, usado nos links de convite e de
   recuperação de senha) e `NEXT_PUBLIC_ENVIRONMENT_LABEL` (vazio em produção). Não configure
   `SUPABASE_SERVICE_ROLE_KEY` nem `SUPABASE_DB_URL` no app: só os scripts locais usam.
-- Se a tela de login mostrar "O ambiente está em configuração", falta ou está inválida uma dessas
-  variáveis: o log de execução do app diz qual ("Configuração do Supabase incompleta: confira …").
+- O servidor aceita a variável entregue no build ou na execução. Se a tela de login mostrar "O
+  ambiente está em configuração", a linha "Para a equipe técnica" logo abaixo diz qual variável falta
+  ou está inválida, e o log de execução repete. O rodapé do login mostra "Versão de" com a data do
+  build publicado.
 - Depois do primeiro deploy, no Supabase: Site URL = `https://<domínio>` e
   `https://<domínio>/auth/callback` nas Redirect URLs (seção "Projeto real").
 
