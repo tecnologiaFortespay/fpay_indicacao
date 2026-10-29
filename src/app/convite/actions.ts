@@ -43,19 +43,27 @@ export async function registerPartner(_previous: FormState, form: FormData): Pro
       password: account.data.password,
       options: { data: { display_name: payload.contact_name } },
     });
-    if (signUp.error) {
-      if (/already|registered|exists/i.test(signUp.error.message)) {
+    const existing = signUp.error && /already|registered|exists/i.test(signUp.error.message);
+    if (signUp.error && !existing) {
+      console.error("Falha ao criar a conta do convite:", signUp.error.code, signUp.error.message);
+      return {
+        error: `Não foi possível criar a conta. Confira o e-mail e a senha (${signUp.error.code ?? signUp.error.message}).`,
+      };
+    }
+    if (!signUp.data.session) {
+      // Com "Confirm email" ligado no Supabase a conta nasce sem sessão: o convite válido confirma o
+      // e-mail, porque é ele que comprova a origem. Conta que já existia sem cadastro concluído
+      // (ex.: criada antes desta regra) entra com a própria senha e segue.
+      const created = signUp.data.user;
+      if (created?.identities?.length) {
+        await supabase.rpc("confirm_invited_signup", { secret: token, account: created.id });
+      }
+      const signIn = await supabase.auth.signInWithPassword(account.data);
+      if (signIn.error) {
         return {
           error: "Este e-mail já tem conta. Entre com ela e abra o link do convite de novo.",
         };
       }
-      return { error: "Não foi possível criar a conta. Confira o e-mail e a senha." };
-    }
-    if (!signUp.data.session) {
-      return {
-        success:
-          "Conta criada. Confirme o e-mail que acabamos de enviar e abra o link do convite de novo para concluir o cadastro.",
-      };
     }
   }
   const result = await supabase.rpc("register_partner", { secret: token, payload });

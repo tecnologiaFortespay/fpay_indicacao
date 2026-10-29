@@ -7,6 +7,7 @@ import { OrbitaIcon } from "@/components/orbita-icon";
 import { requireRole } from "@/lib/auth/session";
 import {
   competencyLabel,
+  completesMonth,
   currentCompetency,
   dateToCompetency,
   formatDateTime,
@@ -35,12 +36,18 @@ export default async function ImportsPage({ searchParams }: PageProps) {
           </span>
         </div>
         <div className="fp-form-section">
-          <p className="mb-4 text-sm text-muted-foreground">
+          <p className="mb-2 text-sm text-muted-foreground">
             Envie a planilha <strong>Detalhamento Empresas</strong> exportada do BI com o filtro do
             mês, do jeito que sai de lá (Excel). A coluna <strong>C. Cash-in</strong> é lida como
             vidas pagas do mês. Só as empresas indicadas na plataforma entram; as demais são
-            contadas como “fora da plataforma”. O envio substitui os dados do mês escolhido; subir o
-            mesmo arquivo duas vezes não duplica vidas. Limite: 5 MB.
+            contadas como “fora da plataforma”. Limite: 5 MB.
+          </p>
+          <p className="mb-4 text-sm text-muted-foreground">
+            O mês em andamento pode ser enviado quantas vezes quiser: cada envio substitui as vidas
+            do mês (nunca soma) e atualiza a prévia no painel dos parceiros. Esses envios são{" "}
+            <strong>parciais</strong>: ativam as indicações que aparecem, mas não marcam
+            inadimplência. O envio feito depois que o mês termina <strong>completa o mês</strong>:
+            libera o fechamento e marca como inadimplente a indicação ativa sem vidas.
           </p>
           <MutationForm action={uploadImport} label="Importar" pendingLabel="Importando…">
             <div className="fp-form-grid">
@@ -82,7 +89,13 @@ export default async function ImportsPage({ searchParams }: PageProps) {
               <small>
                 {formatDateTime(batch.created_at)} · {batch.author} ·{" "}
                 {batch.competencies
-                  .map((date) => competencyLabel(dateToCompetency(date)))
+                  .map((date) => {
+                    const competency = dateToCompetency(date);
+                    const kind = completesMonth(batch.created_at, competency)
+                      ? "mês completo"
+                      : "parcial";
+                    return `${competencyLabel(competency)} (${kind})`;
+                  })
                   .join(", ") || "sem mês"}{" "}
                 · {batch.rows_imported} importada(s) · {batch.rows_skipped} fora da plataforma ·{" "}
                 {batch.rows_ignored} ignorada(s)

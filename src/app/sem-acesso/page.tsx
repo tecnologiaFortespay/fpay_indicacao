@@ -21,7 +21,7 @@ export default async function NoAccessPage() {
   return (
     <AuthShell
       title="Conta sem perfil"
-      description="Esta conta existe, mas ainda não tem um perfil nesta plataforma. Fale com a Fortes Pay."
+      description="Esta conta existe, mas o cadastro não foi concluído. Se você recebeu um convite, abra o link dele de novo (com esta conta já conectada) para concluir; se não, fale com a Fortes Pay."
     >
       <SessionGuard />
       <p className="break-all text-sm text-muted-foreground">{user.email}</p>

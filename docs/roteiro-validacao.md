@@ -91,13 +91,17 @@ outubro: setembro e agosto são meses fecháveis; outubro não.
 7.3. Fechamentos (lista) → agosto e setembro com data de preparo, data de fechamento e quem fechou. Abrir agosto → cada linha guarda valor do mês, ajuste, saldo anterior, total, decisão, data, quem decidiu.
 7.4. Teresina → Meu painel → outubro: A conta com 1,80 (nova vigência); setembro continua 1,50 no histórico.
 
-## Bloco 8 — Outubro em andamento (inadimplência)
+## Bloco 8 — Outubro em andamento (envios parciais)
 
-8.1. Analista → mês outubro → enviar export de outubro sem o CNPJ B → lote OK.
-8.2. Diretor → Indicações → B = Inadimplente; A, D, E = Ativa.
-8.3. Teresina → Meu painel → outubro: B destacado como inadimplente, 0 vidas; A com vidas × 1,80.
-8.4. Diretor muda D para Cancelada → Natal → Meu painel → outubro: D não conta vidas; agosto e setembro (fechados) inalterados.
-8.5. Visão geral → "Indicações por situação" mostra 2 Ativas, 1 Inadimplente, 1 Cancelada, 1 Perdida.
+Regra de 29/10/2026: o diretor envia o export do mês em andamento três ou quatro vezes por semana, cada um com as vidas do mês até aquele dia. Cada envio substitui o mês (nunca soma) e atualiza a prévia dos parceiros. Envio do mês em andamento é **parcial**: ativa quem aparece, mas não marca inadimplência, porque o cliente ainda pode pagar até o fim do mês. O envio feito **depois que o mês termina** completa o mês: libera o fechamento e marca como Inadimplente a indicação ativa sem vidas.
+
+8.1. Analista → mês outubro → enviar export de outubro sem o CNPJ B → lote OK, mês "outubro (parcial)".
+8.2. Diretor → Indicações → A, B, D, E = Ativa (o arquivo parcial não marca inadimplência).
+8.3. Teresina → Meu painel → outubro: B com 0 vidas até agora; A com vidas × 1,80.
+8.4. Analista → enviar um novo export parcial de outubro com mais vidas em A → Teresina vê o novo número de A (substitui, não soma) e "Dados atualizados em" com o horário do envio.
+8.5. Diretor muda D para Cancelada → Natal → Meu painel → outubro: D não conta vidas; agosto e setembro (fechados) inalterados.
+8.6. Visão geral → "Indicações por situação" mostra 3 Ativas, 0 Inadimplente, 1 Cancelada, 1 Perdida.
+8.7. (À mão, no mês seguinte) enviar o export final de outubro depois do dia 1º sem B → B = Inadimplente; o lote aparece como "mês completo". O teste automático cobre isso no banco (`tests/db/import.test.ts`).
 
 ## Bloco 9 — Isolamento
 

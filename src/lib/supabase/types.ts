@@ -289,6 +289,9 @@ isOneToOne: false
 "closing_is_closed":
 { Args: { "target": string }; Returns: boolean
                            },
+"confirm_invited_signup":
+{ Args: { "account": string,"secret": string }; Returns: boolean
+                           },
 "create_invitation":
 { Args: { "payload": Json }; Returns: string
                            },
@@ -323,6 +326,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "last_import_at":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"latest_complete_competency":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
 "my_partner_id":

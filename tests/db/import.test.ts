@@ -39,6 +39,17 @@ async function amounts(client: Client, partnerId: string) {
   return ok(result, "partner_month_amounts");
 }
 
+// Simula um envio feito depois do fim do mês: o lote passa a completar o mês.
+async function sentAfterMonthEnd(batchId: string, sentAt: string) {
+  const { error } = await adminClient()
+    .from("import_batches")
+    .update({ created_at: sentAt })
+    .eq("id", batchId);
+  if (error) {
+    throw new Error(`Não foi possível ajustar o envio: ${error.message}`);
+  }
+}
+
 async function referralStatus(client: Client, cnpj: string) {
   const result = await client
     .from("referrals")
@@ -119,13 +130,22 @@ describe("fatia 1 — importação e cálculo vidas × valor vigente", () => {
     expect((await amounts(director, natalId))[0]).toMatchObject({ lives: 50, amount: 75 });
   });
 
-  it("no mês mais recente, CNPJ ausente fica inadimplente e volta a ativo quando reaparece", async () => {
-    ok(
+  it("arquivo parcial sem o CNPJ não deixa inadimplente; o mês completo deixa", async () => {
+    const partial = ok(
       await director.rpc("import_lives", {
-        batch: batch("outubro-sem-a.xlsx", "2099-10-01"),
+        batch: batch("outubro-parcial-sem-a.xlsx", "2099-10-01"),
         rows: rows([[CNPJ_B, "2099-10-01", 10]]),
       }),
-      "import_lives (october without A)",
+      "import_lives (partial october without A)",
+    );
+    expect((await referralStatus(director, CNPJ_A)).status).toBe("active");
+    await sentAfterMonthEnd(partial, "2099-11-02T09:00:00-03:00");
+    ok(
+      await director.rpc("import_lives", {
+        batch: batch("outubro-final-sem-a.xlsx", "2099-10-01"),
+        rows: rows([[CNPJ_B, "2099-10-01", 10]]),
+      }),
+      "import_lives (final october without A)",
     );
     expect((await referralStatus(director, CNPJ_A)).status).toBe("delinquent");
     expect(await amounts(director, natalId)).toHaveLength(1);
@@ -286,7 +306,7 @@ describe("fatia 1 — importação e cálculo vidas × valor vigente", () => {
     ).toEqual([]);
   });
 
-  it("arquivo do mês sem nenhuma empresa indicada ainda cobre o mês: ativos ficam inadimplentes", async () => {
+  it("arquivo do mês sem nenhuma empresa indicada ainda cobre o mês; completo, deixa inadimplente", async () => {
     const id = ok(
       await director.rpc("import_lives", {
         batch: batch("dezembro.xlsx", "2099-12-01"),
@@ -303,6 +323,15 @@ describe("fatia 1 — importação e cálculo vidas × valor vigente", () => {
       "batch (december)",
     );
     expect(saved).toEqual({ rows_imported: 0, rows_skipped: 1, competencies: ["2099-12-01"] });
+    expect((await referralStatus(director, CNPJ_A)).status).toBe("active");
+    await sentAfterMonthEnd(id, "2100-01-05T09:00:00-03:00");
+    ok(
+      await director.rpc("import_lives", {
+        batch: batch("dezembro-final.xlsx", "2099-12-01"),
+        rows: rows([[CNPJ_B, "2099-12-01", 5]]),
+      }),
+      "import_lives (final december)",
+    );
     expect((await referralStatus(director, CNPJ_A)).status).toBe("delinquent");
   });
 });

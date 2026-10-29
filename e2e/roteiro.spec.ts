@@ -68,6 +68,8 @@ const AUGUST = exportFor(AUG, { A: 30, B: 20, D: 50, E: 10 });
 const SEPTEMBER = exportFor(SEP, { A: 33, B: 22, D: 55, E: 12 });
 const SEPTEMBER_A8 = exportFor(SEP, { A: 41, B: 22, D: 55, E: 12 });
 const OCTOBER = exportFor(OCT, { A: 37, D: 58, E: 23 });
+// Envio parcial seguinte do mesmo mês: A fechou mais vidas.
+const OCTOBER_UPDATE = exportFor(OCT, { A: 40, D: 58, E: 23 });
 
 const NEW_PASSWORD = "Nova-senha-e2e-999";
 
@@ -818,30 +820,35 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(ter.locator(".fp-kpi-preview")).toContainText("R$ 1,50 por vida");
   });
 
-  await test.step("8.1 export de outubro sem B", async () => {
+  await test.step("8.1 export parcial de outubro sem B", async () => {
     await upload(ana, "Detalhamento Empresas - outubro.xlsx", OCT, OCTOBER);
     expect(await batchSummary(ana)).toEqual({ read: 13, imported: 3, skipped: 8, ignored: 2 });
+    await expect(ana.locator(".fp-detail-total")).toContainText(`${OCT_LABEL} (parcial)`);
   });
 
-  await test.step("8.2 B Inadimplente; A, D, E Ativa", async () => {
+  await test.step("8.2 arquivo parcial não marca inadimplência: A, B, D, E Ativa", async () => {
     await dir.goto("/indicacoes");
-    expect(await rowText(dir, B.company)).toContain("Inadimplente");
-    for (const entry of [A, D, E]) {
+    for (const entry of [A, B, D, E]) {
       expect(await rowText(dir, entry.company)).toContain("Ativa");
     }
   });
 
-  await test.step("8.3 painel de Teresina: B inadimplente com 0 vidas; A × 1,80", async () => {
+  await test.step("8.3 painel de Teresina: B com 0 vidas até agora; A × 1,80", async () => {
     await ter.goto("/inicio");
-    expect(await rowText(ter, B.company)).toContain("Inadimplente 0 R$ 1,80 R$ 0,00");
-    await expect(
-      ter.getByRole("row", { name: new RegExp(B.company) }).locator(".fp-status-danger"),
-    ).toHaveText("Inadimplente");
+    expect(await rowText(ter, B.company)).toContain("Ativa 0 R$ 1,80 R$ 0,00");
     expect(await rowText(ter, A.company)).toContain("37 R$ 1,80 R$ 66,60");
     await expect(ter.locator(".fp-kpi-preview")).toContainText("R$ 66,60");
   });
 
-  await test.step("8.4 D cancelada: não conta em outubro; agosto e setembro intactos", async () => {
+  await test.step("8.4 novo envio parcial substitui o mês: A passa a 40 vidas", async () => {
+    await upload(ana, "Detalhamento Empresas - outubro (2).xlsx", OCT, OCTOBER_UPDATE);
+    expect(await batchSummary(ana)).toEqual({ read: 13, imported: 3, skipped: 8, ignored: 2 });
+    await ter.goto("/inicio");
+    expect(await rowText(ter, A.company)).toContain("40 R$ 1,80 R$ 72,00");
+    await expect(ter.locator(".fp-kpi-preview")).toContainText("R$ 72,00");
+  });
+
+  await test.step("8.5 D cancelada: não conta em outubro; agosto e setembro intactos", async () => {
     await changeStatus(dir, D, "cancelled", "Cancelada");
     await nat.goto("/inicio");
     await expect(nat.locator(".fp-kpi-heading span").first()).toContainText(
@@ -861,10 +868,10 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     expect(clean(await section(nat, SEP_LABEL).innerText())).toContain("Total R$ 110,00");
   });
 
-  await test.step("8.5 indicações por situação", async () => {
+  await test.step("8.6 indicações por situação", async () => {
     await dir.goto("/inicio");
     const strip = clean(await dir.locator(".fp-status-strip").innerText());
-    for (const expected of ["Ativa 2", "Inadimplente 1", "Cancelada 1", "Perdida 1"]) {
+    for (const expected of ["Ativa 3", "Inadimplente 0", "Cancelada 1", "Perdida 1"]) {
       expect(strip).toContain(expected);
     }
   });
@@ -964,7 +971,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
 
   await test.step("10.2 outubro recalcula A com 2,50; agosto fechado não muda", async () => {
     await dir.goto(`/inicio?competency=${OCT}`);
-    expect(await rowText(dir, "Unidade Teresina")).toContain("37 R$ 1,80 R$ 92,50");
+    expect(await rowText(dir, "Unidade Teresina")).toContain("40 R$ 1,80 R$ 100,00");
     await dir.goto(`/fechamento?competency=${AUG}`);
     await expect(
       dir
@@ -977,7 +984,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   await test.step("10.3 Teresina vê o valor e o prazo próprios de A", async () => {
     await ter.goto("/inicio");
     expect(await rowText(ter, A.company)).toContain(
-      `37 R$ 2,50 R$ 92,50 3 meses: ${shortCompetencyLabel(AUG)} a ${shortCompetencyLabel(addMonths(AUG, 2))}`,
+      `40 R$ 2,50 R$ 100,00 3 meses: ${shortCompetencyLabel(AUG)} a ${shortCompetencyLabel(addMonths(AUG, 2))}`,
     );
   });
 
@@ -993,7 +1000,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
       dir.getByRole("status").filter({ hasText: "Configuração da indicação salva." }),
     ).toBeVisible();
     await ter.goto("/inicio");
-    expect(await rowText(ter, A.company)).toContain("37 R$ 1,80 R$ 66,60 sem prazo");
+    expect(await rowText(ter, A.company)).toContain("40 R$ 1,80 R$ 72,00 sem prazo");
   });
 
   await test.step("10.5 diretor anota como pagou; Teresina vê", async () => {

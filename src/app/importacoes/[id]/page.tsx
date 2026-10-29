@@ -4,7 +4,12 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
 import { requireRole } from "@/lib/auth/session";
-import { competencyLabel, dateToCompetency, formatDateTime } from "@/lib/competency";
+import {
+  competencyLabel,
+  completesMonth,
+  dateToCompetency,
+  formatDateTime,
+} from "@/lib/competency";
 import { getBatch } from "@/lib/imports/queries";
 import { importOutcomeLabels } from "@/lib/labels";
 
@@ -24,7 +29,11 @@ export default async function ImportDetailPage({ params }: PageProps) {
   }
   const { batch, rows } = result;
   const months = batch.competencies
-    .map((date) => competencyLabel(dateToCompetency(date)))
+    .map((date) => {
+      const competency = dateToCompetency(date);
+      const kind = completesMonth(batch.created_at, competency) ? "mês completo" : "parcial";
+      return `${competencyLabel(competency)} (${kind})`;
+    })
     .join(", ");
   return (
     <AppShell title="Importação">

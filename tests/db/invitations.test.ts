@@ -2,7 +2,16 @@ import { randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Database } from "@/lib/supabase/types";
-import { adminClient, createUser, done, ok, userClient, type Client } from "./helpers";
+import {
+  adminClient,
+  createUser,
+  done,
+  ok,
+  PASSWORD,
+  uniqueEmail,
+  userClient,
+  type Client,
+} from "./helpers";
 
 let admin: Client;
 let director: Client;
@@ -103,6 +112,53 @@ describe("fatia 2 — convite, cadastro e aprovação", () => {
       "preview after use",
     );
     expect(preview).toMatchObject({ status: "used" });
+  });
+
+  it("convite válido confirma o e-mail da conta recém-criada (Confirm email ligado)", async () => {
+    const { secret } = await invite("Unidade Mossoró");
+    const email = uniqueEmail("mossoro");
+    const created = await admin.auth.admin.createUser({ email, password: PASSWORD });
+    const account = created.data.user?.id ?? "";
+    expect(created.data.user?.email_confirmed_at ?? null).toBeNull();
+
+    const wrongSecret = await anonClient().rpc("confirm_invited_signup", {
+      secret: "nao-existe",
+      account,
+    });
+    expect(wrongSecret.data).toBe(false);
+    const confirmed = await anonClient().rpc("confirm_invited_signup", { secret, account });
+    expect(confirmed.data).toBe(true);
+    const again = await anonClient().rpc("confirm_invited_signup", { secret, account });
+    expect(again.data).toBe(false);
+
+    const user = await admin.auth.admin.getUserById(account);
+    expect(user.data.user?.email_confirmed_at).toBeTruthy();
+    const client = await userClient(email);
+    const partnerId = ok(
+      await client.rpc("register_partner", {
+        secret,
+        payload: { name: "Unidade Mossoró", city: "Mossoró", state: "RN", contact_name: "Rita" },
+      }),
+      "register_partner",
+    );
+    expect(partnerId).toBeTruthy();
+  });
+
+  it("convite não confirma conta que já tem perfil", async () => {
+    const { secret } = await invite("Unidade Caicó");
+    const created = await admin.auth.admin.createUser({
+      email: uniqueEmail("caico"),
+      password: PASSWORD,
+    });
+    const account = created.data.user?.id ?? "";
+    done(
+      await admin
+        .from("profiles")
+        .insert({ user_id: account, role: "analyst", display_name: "Analista" }),
+      "profile",
+    );
+    const result = await anonClient().rpc("confirm_invited_signup", { secret, account });
+    expect(result.data).toBe(false);
   });
 
   it("convite expirado não cadastra", async () => {

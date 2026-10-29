@@ -26,6 +26,12 @@ export function addMonths(competency: string, months: number): string {
   return `${String(nextYear).padStart(4, "0")}-${String(nextMonth).padStart(2, "0")}`;
 }
 
+// Envio feito depois que o mês terminou (calendário de Fortaleza) completa o mês; antes disso o
+// arquivo é parcial. Mesmo critério do SQL (latest_complete_competency e prepare_closing).
+export function completesMonth(importedAt: string | Date, competency: string): boolean {
+  return currentCompetency(new Date(importedAt)) > competency;
+}
+
 export function previousCompetency(now: Date = new Date()): string {
   return addMonths(currentCompetency(now), -1);
 }

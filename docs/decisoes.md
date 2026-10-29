@@ -30,3 +30,17 @@ valem sobre o que ele diz.
    Perdidas, canceladas e as que ainda não pagaram ficam em Minhas indicações.
 8. **Mês fechado não muda.** Mudar a configuração de uma indicação vale para os meses abertos. O
    valor de um mês fechado é o do fechamento, que o painel indica quando o mês já foi fechado.
+
+## 29/10/2026 — correções pedidas pelo Diego
+
+9. **Envios parciais do BI.** O diretor envia o export do mês em andamento três ou quatro vezes por
+   semana; cada arquivo traz as vidas do mês até aquele dia, para o parceiro acompanhar o valor
+   atualizado. Cada envio substitui o mês (nunca soma). Envio do mês em andamento é parcial: ativa
+   as indicações que aparecem, mas não marca inadimplência, porque o cliente ainda pode pagar até o
+   fim do mês. O envio feito depois que o mês termina completa o mês: libera o fechamento e marca
+   como inadimplente a indicação ativa sem vidas nele. Importações mostram "parcial" ou "mês
+   completo". [CONFIRMAR] cada export parcial traz o acumulado do mês até o dia, não só as vidas
+   novas desde o envio anterior.
+10. **Cadastro pelo convite.** O convite válido confirma o e-mail da conta recém-criada, então o
+    cadastro do parceiro conclui mesmo com "Confirm email" ligado no Supabase. Conta criada antes
+    disso, sem cadastro concluído, entra com a própria senha pelo link do convite e conclui.

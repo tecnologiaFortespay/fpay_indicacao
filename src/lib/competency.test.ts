@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addMonths,
   competencyLabel,
+  completesMonth,
   competencyToDate,
   currentCompetency,
   dateToCompetency,
@@ -20,6 +21,13 @@ describe("competency", () => {
     expect(currentCompetency(new Date("2026-10-01T01:00:00Z"))).toBe("2026-09");
     expect(currentCompetency(new Date("2026-10-01T04:00:00Z"))).toBe("2026-10");
     expect(previousCompetency(new Date("2026-10-15T12:00:00Z"))).toBe("2026-09");
+  });
+
+  it("only an import sent after the month ended completes it", () => {
+    expect(completesMonth("2026-10-31T23:00:00-03:00", "2026-10")).toBe(false);
+    expect(completesMonth("2026-11-01T00:30:00-03:00", "2026-10")).toBe(true);
+    expect(completesMonth("2026-11-01T02:00:00Z", "2026-10")).toBe(false);
+    expect(completesMonth("2026-12-10T12:00:00Z", "2026-10")).toBe(true);
   });
 
   it("converts and labels", () => {
