@@ -6,7 +6,6 @@ import { spawnSync } from "node:child_process";
 process.loadEnvFile(".env.test");
 const env = {
   ...process.env,
-  NEXT_PUBLIC_APP_URL: "http://localhost:3000",
   NEXT_PUBLIC_ENVIRONMENT_LABEL: "Local",
 };
 const [command, ...args] = process.argv.slice(2);

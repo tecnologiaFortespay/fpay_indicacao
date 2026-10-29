@@ -2,11 +2,12 @@
 
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { databaseError, formValue } from "@/lib/actions";
 import { actionUser } from "@/lib/auth/session";
 import { normalizeCnpj } from "@/lib/cnpj";
-import { authConfig } from "@/lib/env";
+import { appOrigin } from "@/lib/env";
 import type { FormState } from "@/lib/auth/validation";
 import { competencyToDate, isCompetency } from "@/lib/competency";
 import { parseMoneyInput } from "@/lib/money";
@@ -144,10 +145,6 @@ export async function createInvitation(_previous: FormState, form: FormData): Pr
   if (!/^\d{4}-\d{2}-\d{2}$/.test(validUntil)) {
     return { error: "Informe a validade do convite." };
   }
-  const config = authConfig();
-  if (!config) {
-    return { error: "Ambiente não configurado." };
-  }
   const secret = randomBytes(32).toString("base64url");
   const payload = {
     partner_name: formValue(form, "partner_name"),
@@ -164,7 +161,7 @@ export async function createInvitation(_previous: FormState, form: FormData): Pr
   revalidatePath("/parceiros");
   return {
     success: "Convite criado. Copie o link abaixo e envie ao parceiro.",
-    link: `${config.appUrl}/convite/${secret}`,
+    link: `${appOrigin(await headers())}/convite/${secret}`,
   };
 }
 

@@ -1,7 +1,7 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import { AUTH_COOKIE, authConfig } from "@/lib/env";
+import { cookies, headers } from "next/headers";
+import { AUTH_COOKIE, appOrigin, authConfig } from "@/lib/env";
 import type { Database } from "./types";
 
 // Cliente com a sessão do usuário (cookie httpOnly). A RLS e as funções SQL decidem o que ele pode.
@@ -11,13 +11,14 @@ export async function createClient() {
     throw new Error("Conexão com o banco não configurada.");
   }
   const store = await cookies();
+  const origin = appOrigin(await headers());
   return createServerClient<Database>(config.url, config.anonKey, {
     cookieOptions: {
       name: AUTH_COOKIE,
       sameSite: "lax",
       path: "/",
       httpOnly: true,
-      secure: config.appUrl.startsWith("https:"),
+      secure: origin.startsWith("https:"),
     },
     cookies: {
       getAll() {

@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { AUTH_COOKIE, authConfig } from "@/lib/env";
+import { AUTH_COOKIE, appOrigin, authConfig } from "@/lib/env";
 
 // Renova a sessão do Supabase a cada requisição e impede cache de páginas autenticadas.
 export async function proxy(request: NextRequest) {
@@ -16,7 +16,7 @@ export async function proxy(request: NextRequest) {
         sameSite: "lax",
         path: "/",
         httpOnly: true,
-        secure: config.appUrl.startsWith("https:"),
+        secure: appOrigin(request.headers).startsWith("https:"),
       },
       cookies: {
         getAll() {

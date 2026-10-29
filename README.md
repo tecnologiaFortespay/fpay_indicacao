@@ -53,9 +53,9 @@ Os testes apagam dados e se recusam a rodar contra qualquer URL que não seja lo
 ## Projeto real (Supabase da Fortes Pay)
 
 Projeto `mltanrtdgyrfhsqmpcum`, região `sa-east-1` (São Paulo). Em `.env.local`:
-`NEXT_PUBLIC_SUPABASE_URL=https://mltanrtdgyrfhsqmpcum.supabase.co`, a anon key,
-`NEXT_PUBLIC_APP_URL`, a service_role key (só para `npm run bootstrap`) e `SUPABASE_DB_URL`
-(pooler em modo sessão, porta 5432, só para `npm run db:push`). Veja `.env.example`.
+`NEXT_PUBLIC_SUPABASE_URL=https://mltanrtdgyrfhsqmpcum.supabase.co`, a anon key, a service_role
+key (só para `npm run bootstrap`) e `SUPABASE_DB_URL` (pooler em modo sessão, porta 5432, só para
+`npm run db:push`). Veja `.env.example`.
 
 Passos, nesta ordem:
 
@@ -72,23 +72,25 @@ Passos, nesta ordem:
    poucos envios por hora, e a recuperação de senha depende dele.
 4. **Contas internas**: `npm run bootstrap -- --email <diretor> --role director --name "..." --password "..."`
    e o mesmo com `--role analyst`.
-5. **Variáveis no servidor do app**: o servidor lê as variáveis ao iniciar, então trocar um valor
-   pede só reiniciar o app, sem novo build (`NEXT_PUBLIC_APP_URL` vai nos links de convite e de
-   recuperação de senha).
+5. **Variáveis no servidor do app**: nenhuma é obrigatória (veja "Deploy").
 
 ## Deploy (DigitalOcean App Platform)
 
 - Origem: este repositório no GitHub, branch `main`. Node 22 (`engines` no `package.json`).
 - Build: `npm run build`. Execução: `npm start` (o Next lê a porta em `PORT`).
-- Variáveis do app (escopo de execução basta; o servidor as lê ao iniciar):
-  `NEXT_PUBLIC_SUPABASE_URL` (`https://<ref>.supabase.co`), `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-  `NEXT_PUBLIC_APP_URL` (endereço público do app com `https://`, usado nos links de convite e de
-  recuperação de senha) e `NEXT_PUBLIC_ENVIRONMENT_LABEL` (vazio em produção). Não configure
-  `SUPABASE_SERVICE_ROLE_KEY` nem `SUPABASE_DB_URL` no app: só os scripts locais usam.
-- O servidor aceita a variável entregue no build ou na execução. Se a tela de login mostrar "O
-  ambiente está em configuração", a linha "Para a equipe técnica" logo abaixo diz qual variável falta
-  ou está inválida, e o log de execução repete. O rodapé do login mostra "Versão de" com a data do
-  build publicado.
+- Variáveis: **nenhuma é obrigatória**. Em produção (`next build`/`next start`), o endereço e a
+  anon key do projeto da Fortes Pay estão em `src/lib/env.ts` (são públicos; a RLS protege os
+  dados) e completam o que o servidor não informar ou informar errado. `NEXT_PUBLIC_SUPABASE_URL` e
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, se existirem e forem válidas (chave anônima do mesmo projeto do
+  endereço), têm preferência, no build ou na execução. `NEXT_PUBLIC_ENVIRONMENT_LABEL` é opcional
+  (vazio em produção). Não configure `SUPABASE_SERVICE_ROLE_KEY` nem `SUPABASE_DB_URL` no app: só
+  os scripts locais usam.
+- O endereço público (links de convite e de recuperação de senha, cookie só https) vem da própria
+  requisição: `Host`/`x-forwarded-host` e `x-forwarded-proto`, que o DigitalOcean repassa.
+- Diagnóstico sem segredos em `/status`: versão publicada, endereço visto pelo servidor, de onde
+  veio a conexão (execução, build ou projeto da Fortes Pay) e a resposta do Supabase à chave (200 =
+  aceita). O rodapé do login mostra "Versão de" com a data do build; falhas de login que não são
+  senha errada aparecem na tela com o código e vão para o log de execução.
 - Depois do primeiro deploy, no Supabase: Site URL = `https://<domínio>` e
   `https://<domínio>/auth/callback` nas Redirect URLs (seção "Projeto real").
 

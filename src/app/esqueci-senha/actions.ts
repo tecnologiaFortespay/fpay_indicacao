@@ -1,7 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { emailSchema, type FormState } from "@/lib/auth/validation";
-import { authConfig } from "@/lib/env";
+import { appOrigin, authConfig } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
 const RECOVERY_MESSAGE =
@@ -12,14 +13,13 @@ export async function requestRecovery(_previous: FormState, form: FormData): Pro
   if (!input.success) {
     return { error: input.error.issues[0].message };
   }
-  const config = authConfig();
-  if (!config) {
+  if (!authConfig()) {
     return { error: "A recuperação de senha está temporariamente indisponível." };
   }
   try {
     const supabase = await createClient();
     await supabase.auth.resetPasswordForEmail(input.data, {
-      redirectTo: `${config.appUrl}/auth/callback?next=/redefinir-senha`,
+      redirectTo: `${appOrigin(await headers())}/auth/callback?next=/redefinir-senha`,
     });
   } catch {
     // Mesma resposta para conta inexistente ou falha do provedor: não revela quem tem conta.
