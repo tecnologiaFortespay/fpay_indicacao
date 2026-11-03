@@ -94,8 +94,8 @@ Passos, nesta ordem:
   export real tem cerca de 150 KB) e tempo de função (`maxDuration = 300` nas páginas de
   Importações e Fechamento, onde a análise da IA roda depois da resposta com `after()`).
 - Diagnóstico sem segredos em `/status`: versão publicada, endereço visto pelo servidor, de onde
-  veio a conexão (execução, build ou projeto da Fortes Pay) e a resposta do Supabase à chave (200 =
-  aceita). O rodapé do login mostra "Versão de" com a data do build; falhas de login que não são
+  veio a conexão (execução, build ou projeto da Fortes Pay) a resposta do Supabase à chave (200 =
+  aceita) e se a IA tem chave. O rodapé do login mostra "Versão de" com a data do build; falhas de login que não são
   senha errada aparecem na tela com o código e vão para o log da função.
 - Depois do primeiro deploy, no Supabase: Site URL = `https://<domínio>` e
   `https://<domínio>/auth/callback` nas Redirect URLs (seção "Projeto real").

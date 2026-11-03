@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { aiConfigured } from "@/lib/ai/claude";
 import { appOrigin, builtAt, resolveConnection, type AuthConfig } from "@/lib/env";
 
 // Diagnóstico público e sem segredos: versão no ar, endereço visto pelo servidor, de onde veio a
-// conexão com o Supabase e se ele aceitou a chave. Serve para conferir um deploy sem acesso ao
-// painel da hospedagem.
+// conexão com o Supabase, se ele aceitou a chave e se a IA tem chave configurada. Serve para
+// conferir um deploy sem acesso ao painel da hospedagem.
 export async function GET(request: NextRequest) {
   const { config, sources, problems } = resolveConnection();
   return NextResponse.json(
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
           }
         : null,
       problemas: problems,
+      ia: aiConfigured() ? "ligada" : "sem ANTHROPIC_API_KEY",
     },
     { headers: { "Cache-Control": "no-store" } },
   );
