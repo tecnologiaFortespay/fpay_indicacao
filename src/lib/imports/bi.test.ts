@@ -139,7 +139,7 @@ describe("helpers", () => {
     expect(() => validateImportFile("dados.csv", "text/csv", 100)).toThrow(/\.xlsx/);
     expect(() => validateImportFile("dados.xlsx", "text/plain", 100)).toThrow(/não suportado/);
     expect(() => validateImportFile("dados.xlsx", "", 0)).toThrow(/vazio/);
-    expect(() => validateImportFile("dados.xlsx", "", 6 * 1024 * 1024)).toThrow(/5 MB/);
+    expect(() => validateImportFile("dados.xlsx", "", 6 * 1024 * 1024)).toThrow(/4 MB/);
   });
 });
 

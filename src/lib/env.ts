@@ -152,9 +152,9 @@ function firstValue(header: string | null): string | undefined {
   return header?.split(",")[0]?.trim() || undefined;
 }
 
-// Endereço público do sistema, visto pela requisição: atrás do DigitalOcean o domínio chega no Host
-// (ou x-forwarded-host) e o protocolo em x-forwarded-proto. Vai nos links de convite e de senha e
-// decide se o cookie de sessão é só https.
+// Endereço público do sistema, visto pela requisição: atrás da Vercel (ou do DigitalOcean) o domínio
+// chega no Host (ou x-forwarded-host) e o protocolo em x-forwarded-proto. Vai nos links de convite e
+// de senha e decide se o cookie de sessão é só https.
 export function appOrigin(headers: Headers): string {
   const host = firstValue(headers.get("x-forwarded-host")) ?? firstValue(headers.get("host"));
   const protocol = firstValue(headers.get("x-forwarded-proto")) === "https" ? "https" : "http";

@@ -1,4 +1,5 @@
-export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
+// A Vercel recusa requisições acima de 4,5 MB; o export real do BI tem cerca de 150 KB.
+export const MAX_IMPORT_BYTES = 4 * 1024 * 1024;
 
 const FILE_NAME_PATTERN = /^[^/\\\x00-\x1f]{1,250}\.xlsx$/i;
 const ACCEPTED_TYPES = [
@@ -21,6 +22,6 @@ export function validateImportFile(name: string, type: string, size: number): vo
     throw new Error("O arquivo está vazio.");
   }
   if (size > MAX_IMPORT_BYTES) {
-    throw new Error("O arquivo passa de 5 MB.");
+    throw new Error("O arquivo passa de 4 MB.");
   }
 }

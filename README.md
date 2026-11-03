@@ -74,25 +74,33 @@ Passos, nesta ordem:
    e o mesmo com `--role analyst`.
 5. **Variáveis no servidor do app**: nenhuma é obrigatória (veja "Deploy").
 
-## Deploy (DigitalOcean App Platform)
+## Deploy (Vercel)
 
-- Origem: este repositório no GitHub, branch `main`. Node 22 (`engines` no `package.json`).
-- Build: `npm run build`. Execução: `npm start` (o Next lê a porta em `PORT`).
+- Origem: o repositório da Fortes Pay no GitHub (`tecnologiaFortespay/fpay_indicacao`), branch
+  `main`. A Vercel detecta Next.js: build `next build`, sem configuração extra. Node 22.
+- `vercel.json` fixa as funções em São Paulo (`gru1`), a mesma região do Supabase (`sa-east-1`):
+  fora dela, cada consulta ao banco cruza o continente e as páginas ficam lentas.
 - Variáveis: **nenhuma é obrigatória**. Em produção (`next build`/`next start`), o endereço e a
   anon key do projeto da Fortes Pay estão em `src/lib/env.ts` (são públicos; a RLS protege os
   dados) e completam o que o servidor não informar ou informar errado. `NEXT_PUBLIC_SUPABASE_URL` e
   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, se existirem e forem válidas (chave anônima do mesmo projeto do
-  endereço), têm preferência, no build ou na execução. `NEXT_PUBLIC_ENVIRONMENT_LABEL` é opcional
-  (vazio em produção). Não configure `SUPABASE_SERVICE_ROLE_KEY` nem `SUPABASE_DB_URL` no app: só
-  os scripts locais usam.
+  endereço), têm preferência. `NEXT_PUBLIC_ENVIRONMENT_LABEL` é opcional (vazio em produção).
+  `ANTHROPIC_API_KEY` liga a IA (marcar como Sensitive). Não configure
+  `SUPABASE_SERVICE_ROLE_KEY` nem `SUPABASE_DB_URL` no app: só os scripts locais usam.
 - O endereço público (links de convite e de recuperação de senha, cookie só https) vem da própria
-  requisição: `Host`/`x-forwarded-host` e `x-forwarded-proto`, que o DigitalOcean repassa.
+  requisição: `Host`/`x-forwarded-host` e `x-forwarded-proto`, que a Vercel repassa. Deploys de
+  preview também apontam para o banco da Fortes Pay.
+- Limites da Vercel considerados: requisição até 4,5 MB (o envio da planilha aceita até 4 MB; o
+  export real tem cerca de 150 KB) e tempo de função (`maxDuration = 300` nas páginas de
+  Importações e Fechamento, onde a análise da IA roda depois da resposta com `after()`).
 - Diagnóstico sem segredos em `/status`: versão publicada, endereço visto pelo servidor, de onde
   veio a conexão (execução, build ou projeto da Fortes Pay) e a resposta do Supabase à chave (200 =
   aceita). O rodapé do login mostra "Versão de" com a data do build; falhas de login que não são
-  senha errada aparecem na tela com o código e vão para o log de execução.
+  senha errada aparecem na tela com o código e vão para o log da função.
 - Depois do primeiro deploy, no Supabase: Site URL = `https://<domínio>` e
   `https://<domínio>/auth/callback` nas Redirect URLs (seção "Projeto real").
+- Antes da Vercel, o app rodou no DigitalOcean App Platform (`npm start`, porta em `PORT`); o mesmo
+  código serve aos dois.
 
 ## IA (só o diretor)
 
@@ -101,8 +109,8 @@ Passos, nesta ordem:
   planilha e pode ser pedida de novo) e **revisão do fechamento** (botão "Analisar com IA" no mês
   preparado, antes de fechar). A IA só lê os números que o sistema já calculou e devolve resumo e
   alertas; não grava nada além da própria análise (tabela `ai_reviews`, só o diretor lê).
-- Liga com `ANTHROPIC_API_KEY` no servidor do app (DigitalOcean: escopo de execução, marcada como
-  Encrypt). Sem ela, as telas dizem que a IA não está ligada e o resto funciona igual.
+- Liga com `ANTHROPIC_API_KEY` no servidor do app (Vercel: Environment Variables, marcada como
+  Sensitive). Sem ela, as telas dizem que a IA não está ligada e o resto funciona igual.
 - O que vai para a IA: nomes de parceiros e empresas, CNPJs, situação, vidas e valores. Nunca
   e-mail, telefone ou dados de pagamento. A checagem de CNPJ digitado errado usa a planilha inteira
   só no momento do envio; as empresas não indicadas não são guardadas. A Fortes Pay autorizou o

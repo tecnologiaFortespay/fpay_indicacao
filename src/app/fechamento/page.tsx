@@ -28,6 +28,9 @@ import {
 
 export const metadata: Metadata = { title: "Fechamento do mês" };
 
+// A análise da IA roda depois da resposta (after()) e pode levar alguns minutos na Vercel.
+export const maxDuration = 300;
+
 type PageProps = { searchParams: Promise<{ competency?: string }> };
 
 function responseText(item: ClosingItem): string {

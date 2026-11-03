@@ -31,8 +31,8 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      // CSV do BI até 5 MB mais a sobrecarga do multipart.
-      bodySizeLimit: "6mb",
+      // Planilha do BI até 4 MB mais a sobrecarga do multipart (a Vercel corta em 4,5 MB).
+      bodySizeLimit: "4.5mb",
     },
   },
   async headers() {

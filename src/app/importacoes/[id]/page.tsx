@@ -19,6 +19,9 @@ import { analyzeImport } from "../actions";
 
 export const metadata: Metadata = { title: "Importação" };
 
+// A análise da IA roda depois da resposta (after()) e pode levar alguns minutos na Vercel.
+export const maxDuration = 300;
+
 type PageProps = { params: Promise<{ id: string }> };
 
 export default async function ImportDetailPage({ params }: PageProps) {

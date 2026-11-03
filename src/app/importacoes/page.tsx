@@ -17,6 +17,9 @@ import { uploadImport } from "./actions";
 
 export const metadata: Metadata = { title: "Importações" };
 
+// A análise da IA roda depois da resposta (after()) e pode levar alguns minutos na Vercel.
+export const maxDuration = 300;
+
 type PageProps = { searchParams: Promise<{ page?: string }> };
 
 export default async function ImportsPage({ searchParams }: PageProps) {
@@ -40,7 +43,7 @@ export default async function ImportsPage({ searchParams }: PageProps) {
             Envie a planilha <strong>Detalhamento Empresas</strong> exportada do BI com o filtro do
             mês, do jeito que sai de lá (Excel). A coluna <strong>C. Cash-in</strong> é lida como
             vidas pagas do mês. Só as empresas indicadas na plataforma entram; as demais são
-            contadas como “fora da plataforma”. Limite: 5 MB.
+            contadas como “fora da plataforma”. Limite: 4 MB.
           </p>
           <p className="mb-4 text-sm text-muted-foreground">
             O mês em andamento pode ser enviado quantas vezes quiser: cada envio substitui as vidas

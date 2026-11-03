@@ -48,7 +48,7 @@ formato está em `tests/bi-export.ts`.
 5. Se o mês informado for o mais recente, as indicações com vidas > 0 passam a **Ativa**
    (gravando o primeiro mês pago) e as ativas ausentes passam a **Inadimplente**.
 6. Linhas de um mês já fechado não entram e aparecem no log ("Mês já fechado").
-7. Limite: 5 MB e 50.000 linhas.
+7. Limite: 4 MB e 50.000 linhas (a Vercel recusa requisições acima de 4,5 MB).
 
 ## Hipóteses em aberto
 
