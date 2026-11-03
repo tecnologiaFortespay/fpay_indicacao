@@ -25,6 +25,7 @@
     "db:types": "supabase gen types typescript --local > src/lib/supabase/types.ts",
     "bootstrap": "node --env-file=.env.local scripts/bootstrap.mjs",
     "bootstrap:local": "node --env-file=.env.test scripts/bootstrap.mjs",
+    "reset-link": "node --env-file=.env.local scripts/reset-link.mjs",
     "db:push": "node --env-file=.env.local scripts/db-push.mjs"
   },
   "dependencies": {

@@ -44,6 +44,12 @@ export async function registerPartner(_previous: FormState, form: FormData): Pro
       options: { data: { display_name: payload.contact_name } },
     });
     const existing = signUp.error && /already|registered|exists/i.test(signUp.error.message);
+    if (signUp.error?.code === "over_email_send_rate_limit") {
+      return {
+        error:
+          "Muitos cadastros em pouco tempo: o Supabase limita os e-mails enviados por hora. Tente de novo daqui a uma hora ou avise a Fortes Pay.",
+      };
+    }
     if (signUp.error && !existing) {
       console.error("Falha ao criar a conta do convite:", signUp.error.code, signUp.error.message);
       return {

@@ -134,6 +134,7 @@ Passos, nesta ordem:
 | `npm run db:types`                                        | regenera `src/lib/supabase/types.ts` depois de uma migration                                     |
 | `npm run bootstrap`                                       | cria diretor ou analista no Supabase de `.env.local`                                             |
 | `npm run bootstrap:local`                                 | o mesmo, no Supabase local                                                                       |
+| `npm run reset-link -- --email <e-mail>`                  | link de nova senha (1 hora, uso único) sem enviar e-mail, para repassar à pessoa                 |
 
 ## Estrutura
 

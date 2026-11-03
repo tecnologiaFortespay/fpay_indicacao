@@ -175,3 +175,25 @@ test("IA analisa o envio do diretor e aponta CNPJ possivelmente errado; analista
   await analyst.goto(director.url().replace(/^https?:\/\/[^/]+/, ""));
   await expect(analyst.getByText(FAKE_IMPORT_SUMMARY)).toHaveCount(0);
 });
+
+test("link de nova senha gerado sem e-mail (npm run reset-link) troca a senha", async ({
+  page,
+}) => {
+  const { data, error } = await adminClient().auth.admin.generateLink({
+    type: "recovery",
+    email: staff.analyst.email,
+  });
+  expect(error).toBeNull();
+  await page.goto(`/auth/confirm?token_hash=${data.properties?.hashed_token}&type=recovery`);
+  await expect(page).toHaveURL(/\/redefinir-senha$/);
+  await page.getByLabel("Nova senha (mínimo de 8 caracteres)").fill("Senha-nova-link-1");
+  await page.getByLabel("Confirme a nova senha").fill("Senha-nova-link-1");
+  await page.getByRole("button", { name: "Salvar nova senha" }).click();
+  await expect(page).toHaveURL(/\/login\?senha=alterada$/);
+  await login(page, staff.analyst.email, "Senha-nova-link-1");
+  await expect(page).toHaveURL(/\/importacoes$/);
+
+  await page.context().clearCookies();
+  await page.goto(`/auth/confirm?token_hash=${data.properties?.hashed_token}&type=recovery`);
+  await expect(page).toHaveURL(/\/login\?erro=link$/);
+});
