@@ -62,14 +62,19 @@ Passos, nesta ordem:
 1. **Migrations**: `npm run db:push -- --dry-run` mostra o que falta; `npm run db:push` aplica
    `supabase/migrations` e registra o histórico em `supabase_migrations.schema_migrations`
    (não precisa de token da CLI; usa `SUPABASE_DB_URL`). Feito em 28/10/2026 com as 7 migrations.
-2. **Auth**, no painel do Supabase (Authentication): "Confirm email" **desligado** (o convite já
-   valida a origem; ligado, o cadastro pelo link não entra), senha mínima de 8 caracteres, Site URL
-   igual ao endereço da aplicação e `<endereço>/auth/callback` nas Redirect URLs (recuperação de
-   senha). Alternativa pela CLI, que lê o `[auth]` de `supabase/config.toml`:
-   `npx supabase login`, `npx supabase link --project-ref mltanrtdgyrfhsqmpcum`,
-   `npx supabase config diff` e `npx supabase config push`.
-3. **SMTP próprio** (Authentication → SMTP Settings): o e-mail padrão do Supabase tem limite de
-   poucos envios por hora, e a recuperação de senha depende dele.
+2. **Auth** (feito em 03/11/2026 pela CLI): "Confirm email" **desligado** (o convite é que valida
+   a origem; ligado, cada cadastro pelo link dispara um e-mail e esbarra no limite por hora do
+   Supabase), Site URL `https://fpay-indicacao.vercel.app` e, nas Redirect URLs,
+   `https://fpay-indicacao.vercel.app/auth/callback` e `https://fpay-indicacao.vercel.app/**`. Para
+   refazer: `npx supabase login` e um `config.toml` só com esses campos numa pasta à parte
+   (`<pasta>/supabase/config.toml`), aplicado com
+   `npx supabase --workdir <pasta> config diff --project-ref mltanrtdgyrfhsqmpcum` e depois
+   `config push`. Campos não declarados no arquivo ficam como estão no projeto. Não use o
+   `supabase/config.toml` do repositório: ele é o do ambiente local (localhost).
+3. **E-mail**: o projeto usa o e-mail padrão do Supabase, que envia poucos e-mails por hora e não é
+   confiável. Nenhum fluxo do sistema depende dele: o cadastro pelo convite não manda e-mail, e a
+   nova senha sai por `npm run reset-link -- --email <e-mail>`. Com um SMTP próprio (Authentication →
+   SMTP Settings), o "Esqueci minha senha" da tela passa a funcionar sozinho.
 4. **Contas internas**: `npm run bootstrap -- --email <diretor> --role director --name "..." --password "..."`
    e o mesmo com `--role analyst`.
 5. **Variáveis no servidor do app**: nenhuma é obrigatória (veja "Deploy").
