@@ -1,17 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { databaseError, formValue } from "@/lib/actions";
-import { actionUser } from "@/lib/auth/session";
+import { actionUser, deniedState } from "@/lib/auth/session";
 import type { FormState } from "@/lib/auth/validation";
+import { withFlash } from "@/lib/flash";
 import { parseMoneyInput } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 
 export async function setReferralStatus(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return { error: "Você não tem permissão para esta operação." };
+    return deniedState();
   }
   const id = formValue(form, "id");
   if (!z.uuid().safeParse(id).success) {
@@ -28,14 +30,19 @@ export async function setReferralStatus(_previous: FormState, form: FormData): P
   revalidatePath("/indicacoes");
   revalidatePath(`/indicacoes/${id}`);
   revalidatePath("/inicio");
-  return { success: "Situação atualizada." };
+  // Volta para onde a mudança foi feita (lista com filtros ou detalhe), com o aviso.
+  const back = formValue(form, "return_to");
+  const destination = /^\/indicacoes(\/[0-9a-f-]{36})?(\?[^#]*)?$/.test(back)
+    ? back
+    : "/indicacoes";
+  redirect(withFlash(destination, "situacao_atualizada"));
 }
 
 // Configuração própria da indicação (valor por vida e prazo). Em branco = regra do parceiro.
 export async function setReferralConfig(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return { error: "Você não tem permissão para esta operação." };
+    return deniedState();
   }
   const id = formValue(form, "id");
   if (!z.uuid().safeParse(id).success) {
@@ -60,5 +67,5 @@ export async function setReferralConfig(_previous: FormState, form: FormData): P
   revalidatePath(`/indicacoes/${id}`);
   revalidatePath("/parceiros/[id]", "page");
   revalidatePath("/inicio");
-  return { success: "Configuração da indicação salva." };
+  return { success: "Valor e prazo da indicação salvos." };
 }

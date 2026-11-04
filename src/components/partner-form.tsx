@@ -8,7 +8,11 @@ const kindOptions = Object.entries(partnerKindLabels) as [string, string][];
 
 export function PartnerForm({ partner }: { partner?: Partner }) {
   return (
-    <MutationForm action={savePartner} label={partner ? "Salvar dados" : "Cadastrar parceiro"}>
+    <MutationForm
+      action={savePartner}
+      label={partner ? "Salvar dados" : "Cadastrar parceiro"}
+      resetOnSuccess={!partner}
+    >
       <input type="hidden" name="id" value={partner?.id ?? ""} />
       <div className="fp-form-grid">
         <Field

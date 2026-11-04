@@ -1,6 +1,12 @@
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { expect, type APIRequestContext, type Browser, type Page } from "@playwright/test";
+import {
+  expect,
+  type APIRequestContext,
+  type Browser,
+  type Locator,
+  type Page,
+} from "@playwright/test";
 import { adminClient, ensureStaffUser } from "../scripts/bootstrap.mjs";
 
 export const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -61,9 +67,9 @@ export async function login(page: Page, email: string, password: string) {
 // Envia o export do BI (gerado no formato real, docs/arquivo-bi.md) para o mês informado ("YYYY-MM").
 export async function upload(page: Page, name: string, month: string, buffer: Uint8Array) {
   await page.goto("/importacoes");
-  await page.getByLabel("Mês de referência").fill(month);
+  await page.getByLabel("Mês de referência", { exact: true }).fill(month);
   await page
-    .getByLabel("Planilha do BI")
+    .getByLabel("Planilha do BI", { exact: true })
     .setInputFiles({ name, mimeType: XLSX_TYPE, buffer: Buffer.from(buffer) });
   await page.getByRole("button", { name: "Importar", exact: true }).click();
 }
@@ -92,4 +98,23 @@ export async function recoveryLink(request: APIRequestContext, email: string): P
 
 export function clean(text: string): string {
   return text.replace(/ /g, " ").replace(/\s+/g, " ").trim();
+}
+
+// Abre um bloco recolhível ("Nova vigência", "Gerar convite"...) se ainda estiver fechado e devolve o
+// bloco, para os campos serem procurados só dentro dele.
+export async function openDisclosure(page: Page, label: string | RegExp) {
+  const details = page
+    .locator("details.fp-disclosure")
+    .filter({ has: page.locator("summary", { hasText: label }) })
+    .first();
+  const isOpen = await details.evaluate((element) => (element as HTMLDetailsElement).open);
+  if (!isOpen) {
+    await details.locator("summary").first().click();
+  }
+  return details;
+}
+
+// Botão de envio de um formulário dentro do bloco (o resumo do bloco tem o mesmo texto às vezes).
+export function submitIn(container: Locator, name: string | RegExp) {
+  return container.locator('button[type="submit"]', { hasText: name });
 }

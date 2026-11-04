@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { login } from "@/app/auth/actions";
 import type { FormState } from "@/lib/auth/validation";
+import { Notice } from "./notice";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -44,9 +45,9 @@ export function LoginForm({ disabled = false }: { disabled?: boolean }) {
         />
       </div>
       {state.error && (
-        <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+        <Notice tone="danger" role="alert" compact>
           {state.error}
-        </p>
+        </Notice>
       )}
       <Button className="w-full" size="lg" type="submit" disabled={blocked}>
         {pending ? "Aguarde…" : "Entrar"}

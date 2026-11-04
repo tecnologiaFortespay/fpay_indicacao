@@ -57,3 +57,15 @@ valem sobre o que ele diz.
     invalida o anterior. Só o hash fica guardado (colunas em `profiles`, sem tabela nova). Para
     diretor e analista, `npm run reset-link`. Com um SMTP próprio, o "Esqueci minha senha" volta
     a ser o caminho normal.
+
+## 04/11/2026 — reforma de UX (aprovada pelo Diego: "reforma guiada")
+
+13. **Etapas da indicação e glossário.** O parceiro não vê as sete situações, e sim três etapas
+    que respondem "isso já rende?": **Ainda não rende** (Indicada, Em negociação, Contrato
+    fechado), **Rendendo comissão** (Ativa e Inadimplente, que aparece como "Sem pagamento") e
+    **Encerrada** (Perdida, Cancelada). Cada indicação traz uma frase do que está acontecendo e do
+    que falta. O diretor continua vendo as sete situações, com a cor da etapa. "Fechada" (contrato
+    assinado) não rende: rende a partir do primeiro mês em que o cliente paga. Os rótulos seguem um
+    glossário único (`src/lib/glossary.ts`): Valor por vida (R$), Vale a partir de, Prazo (meses),
+    Vidas pagas, Prévia (mês em andamento) e Valor oficial (mês fechado). As regras de negócio não
+    mudaram.

@@ -7,7 +7,7 @@ import { after } from "next/server";
 import { databaseError, formValue } from "@/lib/actions";
 import { aiConfigured } from "@/lib/ai/claude";
 import { livesByCnpj, runImportReview, startReview } from "@/lib/ai/reviews";
-import { actionUser } from "@/lib/auth/session";
+import { actionUser, deniedState } from "@/lib/auth/session";
 import type { FormState } from "@/lib/auth/validation";
 import {
   competencyLabel,
@@ -24,7 +24,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function uploadImport(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director", "analyst");
   if (!user) {
-    return { error: "Você não tem permissão para importar." };
+    return deniedState("Você não tem permissão para importar.");
   }
   const competency = formValue(form, "competency");
   if (!isCompetency(competency)) {
@@ -105,7 +105,7 @@ export async function uploadImport(_previous: FormState, form: FormData): Promis
 export async function analyzeImport(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return { error: "Só o diretor pede análises da IA." };
+    return deniedState("Só o diretor pede análises da IA.");
   }
   if (!aiConfigured()) {
     return { error: "A IA ainda não está ligada neste servidor." };

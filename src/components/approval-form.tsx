@@ -2,36 +2,39 @@ import { Field, TextAreaField } from "@/components/fields";
 import { MutationForm } from "@/components/mutation-form";
 import { approvePartner, rejectPartner } from "@/app/parceiros/actions";
 import { currentCompetency } from "@/lib/competency";
+import { glossary } from "@/lib/glossary";
 import type { Partner } from "@/lib/partners/queries";
 
-// Aprovação exige a regra do parceiro (valor por vida e vigência; prazo opcional). Não há parceiro
+// Aprovação exige a regra do parceiro (valor por vida e início; prazo opcional). Não há parceiro
 // ativo sem regra. Cada indicação pode ter depois valor e prazo próprios.
-export function ApprovalForm({ partner }: { partner: Partner }) {
+export function ApprovalForm({ partner, label }: { partner: Partner; label: string }) {
   return (
-    <MutationForm action={approvePartner} label="Aprovar cadastro" pendingLabel="Aprovando…">
+    <MutationForm action={approvePartner} label={label} pendingLabel="Aprovando…">
       <input type="hidden" name="partner_id" value={partner.id} />
-      <div className="fp-form-grid">
+      <div className="fp-form-grid fp-form-grid-3">
         <Field
-          label="Valor por vida (R$)"
+          label={glossary.valuePerLife.label}
           name="value_per_life"
           required
           placeholder="1,50"
           inputMode="decimal"
+          hint={glossary.valuePerLife.hint}
         />
         <Field
-          label="Vigência a partir de"
+          label={glossary.validFrom.label}
           name="valid_from"
           type="month"
           required
           defaultValue={currentCompetency()}
+          hint="Mês em que a regra começa. Para contar vidas de meses já enviados do BI, escolha o primeiro desses meses."
         />
         <Field
-          label="Prazo em meses"
+          label={glossary.termMonths.label}
           name="term_months"
           type="number"
           min={1}
           max={120}
-          hint="Em branco = sem prazo. Com prazo, cada indicação conta só os primeiros N meses após o primeiro pagamento (ex.: contador, 12 meses)."
+          hint={glossary.termMonths.hint}
         />
       </div>
     </MutationForm>
@@ -48,10 +51,11 @@ export function RejectionForm({ partner }: { partner: Partner }) {
     >
       <input type="hidden" name="partner_id" value={partner.id} />
       <TextAreaField
-        label="Motivo da recusa (o parceiro vê este texto)"
+        label="Motivo da recusa"
         name="reason"
         required
         maxLength={1000}
+        hint="O parceiro vê este texto quando entrar."
       />
     </MutationForm>
   );

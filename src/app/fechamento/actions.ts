@@ -7,13 +7,12 @@ import { z } from "zod";
 import { databaseError, formValue } from "@/lib/actions";
 import { aiConfigured } from "@/lib/ai/claude";
 import { runClosingReview, startReview } from "@/lib/ai/reviews";
-import { actionUser } from "@/lib/auth/session";
+import { actionUser, deniedState } from "@/lib/auth/session";
 import type { FormState } from "@/lib/auth/validation";
 import { competencyToDate, isCompetency } from "@/lib/competency";
+import { withFlash } from "@/lib/flash";
 import { parseMoneyInput } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
-
-const forbidden: FormState = { error: "Você não tem permissão para esta operação." };
 
 function revalidateClosing() {
   revalidatePath("/fechamento");
@@ -24,7 +23,7 @@ function revalidateClosing() {
 export async function prepareClosing(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return forbidden;
+    return deniedState();
   }
   const competency = formValue(form, "competency");
   if (!isCompetency(competency)) {
@@ -45,11 +44,11 @@ export async function setClosingAdjustment(
 ): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return forbidden;
+    return deniedState();
   }
   const id = formValue(form, "id");
   if (!z.uuid().safeParse(id).success) {
-    return { error: "Item inválido." };
+    return { error: "Escolha o parceiro do ajuste." };
   }
   const amount = parseMoneyInput(formValue(form, "amount") || "0");
   if (amount === null) {
@@ -71,7 +70,7 @@ export async function setClosingAdjustment(
 export async function closeClosing(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return forbidden;
+    return deniedState();
   }
   const id = formValue(form, "closing_id");
   if (!z.uuid().safeParse(id).success) {
@@ -90,14 +89,20 @@ export async function closeClosing(_previous: FormState, form: FormData): Promis
     return { error: databaseError(result.error) };
   }
   revalidateClosing();
-  return { success: "Lote fechado. Nada mais entra neste mês." };
+  const competency = formValue(form, "competency");
+  redirect(
+    withFlash(
+      isCompetency(competency) ? `/fechamento?competency=${competency}` : "/fechamento",
+      "lote_fechado",
+    ),
+  );
 }
 
 // Texto livre de como a Fortes Pay pagou a linha (ex.: "PIX em 05/11"); o parceiro vê.
 export async function setPaymentNote(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return forbidden;
+    return deniedState();
   }
   const id = formValue(form, "id");
   if (!z.uuid().safeParse(id).success) {
@@ -119,7 +124,7 @@ export async function setPaymentNote(_previous: FormState, form: FormData): Prom
 export async function reviewClosing(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return forbidden;
+    return deniedState();
   }
   if (!aiConfigured()) {
     return { error: "A IA ainda não está ligada neste servidor." };

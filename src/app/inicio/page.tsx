@@ -2,14 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { EmptyState } from "@/components/empty-state";
+import { Notice } from "@/components/notice";
+import { PageIntro } from "@/components/page-intro";
 import { PartnerPanel } from "@/components/partner-panel";
-import { pendingBalances } from "@/lib/closings/queries";
-import { Field } from "@/components/fields";
+import { SectionCard } from "@/components/section-card";
+import { getClosing, pendingBalances } from "@/lib/closings/queries";
 import { requireUser } from "@/lib/auth/session";
 import {
   competencyLabel,
   currentCompetency,
   dateToCompetency,
+  formatDate,
   formatDateTime,
   isCompetency,
 } from "@/lib/competency";
@@ -17,7 +21,12 @@ import { directorOverview, latestCompetency } from "@/lib/dashboard/queries";
 import { latestImport } from "@/lib/imports/queries";
 import { partnerKindLabels, referralStatusLabels, type ReferralStatus } from "@/lib/labels";
 import { referralStatusCounts } from "@/lib/referrals/queries";
-import { referralStatusClass } from "@/lib/referrals/transitions";
+import {
+  referralStage,
+  stageGroupTitles,
+  stageOrder,
+  statusChipClass,
+} from "@/lib/referrals/stages";
 import { formatCurrency, formatInteger } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Visão geral" };
@@ -37,32 +46,44 @@ export default async function HomePage({ searchParams }: PageProps) {
   const competency = isCompetency(params.competency)
     ? params.competency
     : (latest ?? currentCompetency());
-  const [overview, last, counts, pending] = await Promise.all([
+  const [overview, last, counts, pending, closing] = await Promise.all([
     directorOverview(competency),
     latestImport(),
     referralStatusCounts(),
     pendingBalances(),
+    getClosing(competency),
   ]);
   const statusEntries = Object.entries(referralStatusLabels) as [ReferralStatus, string][];
   const monthLabel = competencyLabel(competency);
+  const closed = closing?.closing.status === "closed";
   return (
     <AppShell title="Visão geral">
-      <div className="fp-management-intro">
-        <p>Vidas pagas e valor a pagar por parceiro, calculados pela base importada do BI.</p>
-        <form className="fp-month-picker">
-          <Field name="competency" label="Mês" type="month" defaultValue={competency} required />
-          <button className="fp-button-secondary">Consultar</button>
-        </form>
-      </div>
-      <div className="fp-kpi-grid fp-management-kpis">
+      <PageIntro month={{ value: competency }}>
+        Quanto cada parceiro rende no mês, pela planilha do BI. Mês em andamento é prévia; o valor
+        oficial sai em Fechamento do mês, depois que o mês termina.
+      </PageIntro>
+
+      {closed && closing && (
+        <Notice tone="warning" title={`${monthLabel} já foi fechado`}>
+          Fechado em {formatDate(closing.closing.closed_at ?? closing.closing.prepared_at)}: o valor
+          oficial é o do fechamento, {formatCurrency(closing.totals.to_pay)} pagos. Os números
+          abaixo são recalculados com as regras de hoje e podem diferir.{" "}
+          <Link href={`/fechamento?competency=${competency}`} className="underline">
+            Ver o fechamento
+          </Link>
+          .
+        </Notice>
+      )}
+
+      <div className="fp-kpi-grid">
         <article className="fp-kpi fp-kpi-hero">
           <div className="fp-kpi-heading">
-            <h2>Valor a pagar</h2>
+            <h2>Valor do mês</h2>
             <span>{monthLabel}</span>
           </div>
           <p className="fp-kpi-value fp-num">{formatCurrency(overview.total_amount)}</p>
           <p className="fp-kpi-description">
-            Soma de vidas pagas × valor por vida vigente de cada parceiro.
+            Soma, por parceiro, das vidas pagas × valor por vida de cada indicação.
           </p>
         </article>
         <article className="fp-kpi">
@@ -75,17 +96,17 @@ export default async function HomePage({ searchParams }: PageProps) {
         </article>
         <article className="fp-kpi">
           <div className="fp-kpi-heading">
-            <h2>Saldo pendente</h2>
+            <h2>Saldo acumulado a pagar</h2>
             <span>
               {pending.competency
-                ? `desde ${competencyLabel(dateToCompetency(pending.competency))}`
+                ? `depois de ${competencyLabel(dateToCompetency(pending.competency))}`
                 : "nenhum fechamento"}
             </span>
           </div>
           <p className="fp-kpi-value fp-num">{formatCurrency(pending.total)}</p>
           <p className="fp-kpi-description">
-            Acumulado de quem não foi marcado no último lote fechado; entra como saldo anterior no
-            próximo.
+            De quem não foi marcado para receber no último mês fechado; entra como saldo anterior no
+            próximo fechamento.
           </p>
         </article>
         <article className="fp-kpi">
@@ -96,20 +117,23 @@ export default async function HomePage({ searchParams }: PageProps) {
           <p className="fp-kpi-value fp-num">{formatInteger(overview.partners_with_lives)}</p>
           <p className="fp-kpi-description">
             {last
-              ? `Dados atualizados em ${formatDateTime(last.created_at)} por ${last.author}.`
-              : "Nenhuma importação do BI ainda."}
+              ? `Planilha do BI enviada em ${formatDateTime(last.created_at)} por ${last.author}.`
+              : "Nenhuma planilha do BI enviada ainda."}
           </p>
         </article>
       </div>
-      <section className="fp-panel mt-6">
-        <div className="fp-panel-heading">
-          <h2>Parceiros · {monthLabel}</h2>
-          <Link href="/parceiros">Cadastro de parceiros →</Link>
-        </div>
+
+      <SectionCard
+        title={`Parceiros · ${monthLabel}`}
+        subtitle="Clique num parceiro para ver a regra, as indicações e os meses."
+        action={<Link href="/parceiros">Todos os parceiros →</Link>}
+        footnote="Conta só as indicações que rendem (Ativas) e respeita o prazo de cada uma. Valor por vida é a regra do parceiro no mês; indicações com valor próprio entram no valor do mês com o delas."
+      >
         {overview.rows.length === 0 ? (
-          <p className="fp-panel-footnote">
-            Nenhum parceiro ativo. Cadastre o primeiro em Parceiros.
-          </p>
+          <EmptyState title="Nenhum parceiro ativo ainda">
+            Gere um convite em Parceiros; o parceiro aparece aqui depois que você aprovar o
+            cadastro.
+          </EmptyState>
         ) : (
           <div className="fp-table-wrap">
             <table className="fp-table">
@@ -120,7 +144,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                   <th className="fp-num">Vidas pagas</th>
                   <th className="fp-num">Valor por vida</th>
                   <th className="fp-num">Valor do mês</th>
-                  <th className="fp-num">Saldo pendente</th>
+                  <th className="fp-num">Saldo acumulado</th>
                 </tr>
               </thead>
               <tbody>
@@ -137,7 +161,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                       {row.value_per_life !== null
                         ? formatCurrency(row.value_per_life)
                         : row.lives > 0
-                          ? "sem regra vigente"
+                          ? "sem regra"
                           : "—"}
                     </td>
                     <td className="fp-num">{formatCurrency(row.amount)}</td>
@@ -159,26 +183,33 @@ export default async function HomePage({ searchParams }: PageProps) {
             </table>
           </div>
         )}
-        <p className="fp-panel-footnote">
-          Conta só a indicação ativa de cada CNPJ (perdidas e canceladas ficam de fora) e respeita o
-          prazo em meses. Valor por vida é a regra do parceiro no mês; indicações com valor próprio
-          entram no valor do mês com o delas.
-        </p>
-      </section>
-      <section className="fp-panel mt-6">
-        <div className="fp-panel-heading">
-          <h2>Indicações por situação</h2>
-          <Link href="/indicacoes">Ver indicações →</Link>
-        </div>
-        <div className="fp-form-section fp-status-strip">
-          {statusEntries.map(([value, label]) => (
-            <Link key={value} href={`/indicacoes?status=${value}`}>
-              <span className={referralStatusClass(value)}>{label}</span>
-              <strong className="fp-num">{formatInteger(counts[value])}</strong>
-            </Link>
+      </SectionCard>
+
+      <SectionCard
+        title="Indicações por etapa"
+        subtitle="Só a etapa Rendendo comissão gera valor. Clique numa situação para ver a lista."
+        action={<Link href="/indicacoes">Ver indicações →</Link>}
+      >
+        <div className="fp-stage-groups">
+          {stageOrder.map((stage) => (
+            <section key={stage}>
+              <h3>{stageGroupTitles[stage]}</h3>
+              <ul>
+                {statusEntries
+                  .filter(([value]) => referralStage(value) === stage)
+                  .map(([value, label]) => (
+                    <li key={value}>
+                      <Link href={`/indicacoes?status=${value}`}>
+                        <span className={statusChipClass(value)}>{label}</span>
+                        <strong className="fp-num">{formatInteger(counts[value])}</strong>
+                      </Link>
+                    </li>
+                  ))}
+              </ul>
+            </section>
           ))}
         </div>
-      </section>
+      </SectionCard>
     </AppShell>
   );
 }

@@ -2,87 +2,73 @@
 :root {
   /* Neutros */
   --fp-ink-900: #1c1d20; /* sidebar, texto principal, saldo */
-  --fp-ink-800: #2a2b2f;
-  --fp-ink-700: #34363b;
-  --fp-ink-600: #3f4247;
-  --fp-text-2: #54575d; /* texto de apoio */
-  --fp-text-3: #6d7076; /* rótulos, metadados */
-  --fp-text-4: #a3a5a9; /* separadores de texto */
-  --fp-bg: #f4f4f3; /* área de trabalho */
+  --fp-text-2: #4f5258; /* texto de apoio */
+  --fp-text-3: #6a6d73; /* rótulos, metadados */
+  --fp-bg: #f2f2f0; /* área de trabalho */
   --fp-surface: #ffffff;
-  --fp-surface-2: #f8f8f7;
-  --fp-border: #e4e4e2;
-  --fp-border-input: #dadad7;
-  --fp-line: #ededeb;
-  --fp-line-soft: #f3f3f1;
+  --fp-surface-2: #f4f4f2; /* cabeçalho de tabela, áreas de formulário */
+  --fp-row-alt: #fafaf9; /* linha alternada de tabela */
+  /* Linhas visíveis: divisórias ≥ 1,5:1, bordas de painel ≈ 1,7:1, campos ≥ 3:1 sobre o branco. */
+  --fp-line: #d1d1cc;
+  --fp-border: #c4c4bf;
+  --fp-border-input: #8c8c87;
 
   /* Marca */
-  --fp-red-600: #cc0000; /* ação primária, ativo, liquidação */
+  --fp-red-600: #cc0000; /* ação primária */
   --fp-red-700: #a80000; /* hover */
-  --fp-red-text: #b00000; /* links e valores negativos sobre claro */
-  --fp-red-bright: #e01919; /* acento sobre escuro */
+  --fp-red-text: #b00000; /* links e alertas sobre claro */
   --fp-red-soft: #fce8e8;
-  --fp-red-tint: #fbf3f3; /* linha selecionada */
+  --fp-red-border: #eeb3b3;
+  --fp-red-tint: #fbf3f3;
 
   /* Prévia / estimativa */
   --fp-wine-700: #7a0a0a;
-  --fp-wine-600: #8e0b0b;
-  --fp-wine-soft: #f6e6e6;
   --fp-wine-border: #d9a3a3;
 
   /* Semânticos */
-  --fp-amber-600: #b66a10;
-  --fp-amber-text: #8a4f0a;
+  --fp-amber-text: #7a4508;
   --fp-amber-soft: #fff1dc;
-  --fp-amber-tint: #fff8ee;
-  --fp-green-600: #118a62;
+  --fp-amber-border: #edc88f;
   --fp-green-text: #0b6b4b;
   --fp-green-soft: #e6f4ee;
-
-  /* Tipografia */
-  --fp-font-sans: "Geist", system-ui, sans-serif;
-  --fp-font-mono: "Geist Mono", ui-monospace, monospace;
-  --fp-fs-display: 40px;
-  --fp-fs-h1: 28px;
-  --fp-fs-h2: 16px;
-  --fp-fs-body: 13.5px;
-  --fp-fs-small: 12.5px;
-  --fp-fs-label: 11.5px;
+  --fp-green-border: #a9d8c3;
+  --fp-blue-text: #1d4a86;
+  --fp-blue-soft: #eaf1fb;
+  --fp-blue-border: #b7cbe9;
 
   /* Forma */
-  --fp-radius-sm: 6px;
-  --fp-radius-md: 9px;
-  --fp-radius-lg: 14px;
-  --fp-radius-xl: 16px;
-  --fp-shadow-card: 0 1px 2px rgba(28, 29, 32, 0.04);
+  --fp-shadow-card: 0 1px 2px rgba(28, 29, 32, 0.05);
   --fp-shadow-hero: 0 14px 34px rgba(28, 29, 32, 0.22);
-  --fp-shadow-cta: 0 8px 20px rgba(204, 0, 0, 0.28);
-  --fp-focus: 0 0 0 3px rgba(204, 0, 0, 0.3);
-
-  /* Layout */
-  --fp-sidebar-w: 252px;
-  --fp-sidebar-rail: 72px;
-  --fp-gap: 14px;
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
   --fp-bg: #111214;
   --fp-surface: #1c1d20;
-  --fp-surface-2: #232428;
-  --fp-border: rgba(255, 255, 255, 0.08);
-  --fp-line: rgba(255, 255, 255, 0.06);
+  --fp-surface-2: #24262a;
+  --fp-row-alt: #202125;
+  --fp-line: rgba(255, 255, 255, 0.14);
+  --fp-border: rgba(255, 255, 255, 0.18);
+  --fp-border-input: rgba(255, 255, 255, 0.4);
   --fp-ink-900: #f4f4f3;
-  --fp-text-2: #b3b5b9;
-  --fp-text-3: #9a9ca1;
+  --fp-text-2: #c0c2c6;
+  --fp-text-3: #a2a4a9;
   --fp-red-600: #e01919;
   --fp-red-text: #ff9c9c;
+  --fp-red-soft: #3b2022;
+  --fp-red-border: #7a3a40;
+  --fp-red-tint: #2c1f22;
   --fp-wine-700: #ffb3b3;
-}
-
-/* Números financeiros: sempre tabulares */
-.fp-num {
-  font-family: var(--fp-font-mono);
-  font-variant-numeric: tabular-nums;
+  --fp-wine-border: #a97878;
+  --fp-amber-text: #f3c987;
+  --fp-amber-soft: #352a1a;
+  --fp-amber-border: #705b3a;
+  --fp-green-text: #88d6b8;
+  --fp-green-soft: #19382e;
+  --fp-green-border: #2f6a55;
+  --fp-blue-text: #a9c7f2;
+  --fp-blue-soft: #1b2738;
+  --fp-blue-border: #36507a;
 }
 
 @media (prefers-reduced-motion: reduce) {

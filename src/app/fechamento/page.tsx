@@ -2,14 +2,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AiReviewPanel } from "@/components/ai-review-panel";
 import { AppShell } from "@/components/app-shell";
-import { Field } from "@/components/fields";
+import { EmptyState } from "@/components/empty-state";
+import { Field, SelectField } from "@/components/fields";
+import { FormDisclosure } from "@/components/form-disclosure";
+import { LinkButton } from "@/components/link-button";
 import { MutationForm } from "@/components/mutation-form";
+import { Notice } from "@/components/notice";
+import { PageIntro } from "@/components/page-intro";
+import { PanelBody, SectionCard } from "@/components/section-card";
+import { Stepper, type Step } from "@/components/stepper";
 import { aiConfigured } from "@/lib/ai/claude";
 import { latestReview } from "@/lib/ai/reviews";
 import { requireRole } from "@/lib/auth/session";
 import { closingChecks, getClosing, listClosings, type ClosingItem } from "@/lib/closings/queries";
 import {
   competencyLabel,
+  currentCompetency,
   dateToCompetency,
   formatDate,
   formatDateTime,
@@ -31,11 +39,11 @@ export const metadata: Metadata = { title: "Fechamento do mês" };
 // A análise da IA roda depois da resposta (after()) e pode levar alguns minutos na Vercel.
 export const maxDuration = 300;
 
-type PageProps = { searchParams: Promise<{ competency?: string }> };
+type PageProps = { searchParams: Promise<{ competency?: string; msg?: string }> };
 
 function responseText(item: ClosingItem): string {
   if (!item.partner_response) {
-    return "—";
+    return "aguardando";
   }
   const label =
     partnerResponseLabels[item.partner_response as keyof typeof partnerResponseLabels] ??
@@ -55,320 +63,281 @@ export default async function ClosingPage({ searchParams }: PageProps) {
     listClosings(),
   ]);
   const monthLabel = competencyLabel(competency);
+  const today = currentCompetency();
   const closed = detail?.closing.status === "closed";
   const blockerLabel = checks.blocker ? competencyLabel(checks.blocker) : null;
+  const baseReady = checks.import_after_month_end !== null;
+  const canPrepare = !closed && !checks.not_ended && !blockerLabel && baseReady;
   const review = detail ? await latestReview({ closing_id: detail.closing.id }) : null;
   const reviewOutdated =
     review !== null &&
     detail !== null &&
     Date.parse(detail.closing.prepared_at) > Date.parse(review.created_at);
-  return (
-    <AppShell title="Fechamento do mês">
-      <div className="fp-management-intro">
-        <p>
-          Da base importada à decisão de quem recebe, uma etapa por vez. Os meses fecham em ordem:
-          em outubro fecha-se setembro, depois de agosto.
-        </p>
-        <form className="fp-month-picker">
-          <Field
-            name="competency"
-            label="Mês do fechamento"
-            type="month"
-            required
-            defaultValue={competency}
-          />
-          <button className="fp-button-secondary">Consultar</button>
-        </form>
-      </div>
 
-      <ol className="fp-closing-steps" aria-label="Etapas do fechamento">
-        <li>
-          <span className="fp-step-number">01</span>
-          <h2>Conferir a base</h2>
-          <p>
-            {checks.import_after_month_end
-              ? `Há importação de ${monthLabel} feita em ${formatDateTime(checks.import_after_month_end.created_at)}, depois do fim do mês.`
-              : `Ainda não há importação de ${monthLabel} feita depois do fim do mês. Sem ela o fechamento não é liberado.`}
-            {blockerLabel && !closed ? ` Antes, feche ${blockerLabel}.` : ""}
-          </p>
-          <Link className="fp-button-secondary" href="/importacoes">
-            Ver importações
-          </Link>
-        </li>
-        <li>
-          <span className="fp-step-number">02</span>
-          <h2>Revisar o cálculo</h2>
-          {closed ? (
-            <>
-              <p>Cálculo conferido e lote fechado.</p>
-              <span className="fp-step-access">Mês fechado</span>
-            </>
-          ) : checks.not_ended ? (
-            <>
-              <p>Mês ainda não encerrado. O fechamento abre no primeiro dia do mês seguinte.</p>
-              <span className="fp-step-access">Preparar cálculo bloqueado</span>
-            </>
-          ) : blockerLabel ? (
-            <>
-              <p>Feche {blockerLabel} primeiro: os meses fecham em ordem.</p>
-              <Link
-                className="fp-button-secondary"
-                href={`/fechamento?competency=${checks.blocker}`}
-              >
-                Ir para {blockerLabel}
-              </Link>
-            </>
-          ) : (
-            <>
-              <p>
-                {detail
-                  ? `Cálculo preparado em ${formatDateTime(detail.closing.prepared_at)}. Recalcule depois de uma nova importação; os ajustes são preservados.`
-                  : "Prepare o cálculo: vidas pagas × valor por vida de cada indicação, por parceiro ativo, mais o saldo acumulado do mês anterior."}
-              </p>
-              <MutationForm
-                action={prepareClosing}
-                label={detail ? "Recalcular" : "Preparar cálculo"}
-                pendingLabel="Calculando…"
-              >
-                <input type="hidden" name="competency" value={competency} />
-              </MutationForm>
-            </>
-          )}
-        </li>
-        <li>
-          <span className="fp-step-number">03</span>
-          <h2>Fechar o lote</h2>
-          <p>
-            {closed
-              ? `Fechado em ${formatDateTime(detail?.closing.closed_at ?? "")}${detail?.closing.closed_by_name ? ` por ${detail.closing.closed_by_name}` : ""}. Nada mais entra neste mês.`
-              : "Marque quem vai ser pago. Quem não for marcado acumula e aparece no próximo mês com o saldo somado."}
-          </p>
-          {!closed && <span className="fp-step-access">Abaixo, na tabela</span>}
-        </li>
-      </ol>
+  const steps: Step[] = [
+    {
+      title: "Conferir a planilha do mês",
+      state:
+        closed || baseReady ? "done" : checks.not_ended || blockerLabel ? "blocked" : "current",
+      text: checks.not_ended
+        ? `${monthLabel} ainda não terminou. Depois do último dia, envie a planilha do BI do mês inteiro.`
+        : baseReady
+          ? `Planilha de ${monthLabel} enviada em ${formatDateTime(checks.import_after_month_end?.created_at ?? "")}, depois do fim do mês.`
+          : `Falta enviar a planilha do BI de ${monthLabel} feita depois do fim do mês. Sem ela o mês não fecha.`,
+      action: !closed && !baseReady && !checks.not_ended && (
+        <LinkButton href="/importacoes">Ir para Importações</LinkButton>
+      ),
+    },
+    {
+      title: "Preparar e revisar o cálculo",
+      state: closed ? "done" : canPrepare ? (detail ? "done" : "current") : "blocked",
+      text: closed
+        ? "Cálculo conferido."
+        : blockerLabel
+          ? `Feche ${blockerLabel} primeiro: os meses fecham em ordem.`
+          : checks.not_ended
+            ? "Abre no primeiro dia do mês seguinte."
+            : !baseReady
+              ? "Abre depois do envio da planilha do mês inteiro."
+              : detail
+                ? `Preparado em ${formatDateTime(detail.closing.prepared_at)}. Se enviar uma planilha nova do mês, recalcule; os ajustes são mantidos.`
+                : "Calcula, por parceiro ativo: vidas pagas × valor por vida, mais o saldo acumulado do mês anterior.",
+      action: blockerLabel ? (
+        <LinkButton href={`/fechamento?competency=${checks.blocker}`}>
+          Ir para {blockerLabel}
+        </LinkButton>
+      ) : canPrepare ? (
+        <MutationForm
+          action={prepareClosing}
+          label={detail ? "Recalcular" : "Preparar cálculo"}
+          pendingLabel="Calculando…"
+          variant={detail ? "outline" : "default"}
+        >
+          <input type="hidden" name="competency" value={competency} />
+        </MutationForm>
+      ) : null,
+    },
+    {
+      title: "Fechar o lote",
+      state: closed ? "done" : detail ? "current" : "upcoming",
+      text: closed
+        ? `Fechado em ${formatDateTime(detail?.closing.closed_at ?? "")}${detail?.closing.closed_by_name ? ` por ${detail.closing.closed_by_name}` : ""}. Nada mais entra neste mês.`
+        : detail
+          ? "Marque abaixo quem recebe agora. Quem não for marcado acumula para o mês seguinte."
+          : "Depois de preparar o cálculo.",
+      action: detail && !closed && (
+        <a href="#fechar-lote" className="text-sm font-medium text-primary underline">
+          Ir para o fechamento do lote ↓
+        </a>
+      ),
+    },
+  ];
+
+  return (
+    <AppShell title="Fechamento do mês" flash={params.msg}>
+      <PageIntro month={{ value: competency, label: "Mês do fechamento" }}>
+        Hoje é {competencyLabel(today)}: meses que já terminaram podem ser fechados, um de cada vez
+        e em ordem. Fechar é decidir quem recebe o valor do mês e quem acumula para o seguinte.
+      </PageIntro>
+
+      <Stepper steps={steps} label={`Etapas do fechamento de ${monthLabel}`} />
 
       {detail && (
-        <section className="fp-panel">
-          <div className="fp-panel-heading">
-            <h2>
-              {monthLabel} ·{" "}
-              {closingStatusLabels[detail.closing.status as keyof typeof closingStatusLabels]}
-            </h2>
-            <span>
-              {closed
-                ? `Total a pagar: ${formatCurrency(detail.totals.to_pay)}`
-                : `${detail.items.length} parceiro(s) ativo(s)`}
-            </span>
+        <SectionCard
+          title={`${monthLabel} · ${closingStatusLabels[detail.closing.status as keyof typeof closingStatusLabels]}`}
+          subtitle={
+            closed
+              ? `Pago: ${formatCurrency(detail.totals.to_pay)} · acumulado para o mês seguinte: ${formatCurrency(detail.totals.total - detail.totals.to_pay)}`
+              : `${detail.items.length} parceiro(s) ativo(s). Confira os valores antes de fechar.`
+          }
+          footnote={
+            closed
+              ? undefined
+              : "Valor por vida é a regra do parceiro no mês; indicações com valor próprio entram no valor do mês com o delas. Saldo anterior é o que ficou acumulado no mês passado."
+          }
+        >
+          <div className="fp-table-wrap">
+            <table className="fp-table">
+              <thead>
+                <tr>
+                  <th>Parceiro</th>
+                  <th className="fp-num">Vidas</th>
+                  {!closed && <th className="fp-num">Valor por vida</th>}
+                  <th className="fp-num">Valor do mês</th>
+                  <th className="fp-num">Ajuste</th>
+                  <th className="fp-num">Saldo anterior</th>
+                  <th className="fp-num">Total</th>
+                  {closed && <th>Decisão</th>}
+                  {closed && <th>Resposta do parceiro</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {detail.items.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <strong>{item.partner_name}</strong>
+                    </td>
+                    <td className="fp-num">{formatInteger(item.lives)}</td>
+                    {!closed && (
+                      <td className="fp-num">
+                        {item.value_per_life === null
+                          ? item.lives > 0
+                            ? "sem regra"
+                            : "—"
+                          : formatCurrency(item.value_per_life)}
+                      </td>
+                    )}
+                    <td className="fp-num">{formatCurrency(item.month_amount)}</td>
+                    <td className="fp-num">
+                      {formatCurrency(item.adjustment)}
+                      {item.adjustment_note && <small>{item.adjustment_note}</small>}
+                    </td>
+                    <td className="fp-num">{formatCurrency(item.previous_balance)}</td>
+                    <td className="fp-num">
+                      <strong>{formatCurrency(item.total)}</strong>
+                    </td>
+                    {closed && (
+                      <td>
+                        {item.decision
+                          ? decisionLabels[item.decision as keyof typeof decisionLabels]
+                          : "Sem valor"}
+                        {item.decided_at && <small>{formatDateTime(item.decided_at)}</small>}
+                        {item.decided_by_name && <small>{item.decided_by_name}</small>}
+                      </td>
+                    )}
+                    {closed && <td>{responseText(item)}</td>}
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>Total</td>
+                  <td />
+                  {!closed && <td />}
+                  <td className="fp-num">{formatCurrency(detail.totals.month_amount)}</td>
+                  <td className="fp-num">{formatCurrency(detail.totals.adjustment)}</td>
+                  <td className="fp-num">{formatCurrency(detail.totals.previous_balance)}</td>
+                  <td className="fp-num">{formatCurrency(detail.totals.total)}</td>
+                  {closed && <td colSpan={2}>Pago: {formatCurrency(detail.totals.to_pay)}</td>}
+                </tr>
+              </tfoot>
+            </table>
           </div>
-          {closed ? (
-            <>
-              <div className="fp-table-wrap">
-                <table className="fp-table fp-table-compact">
-                  <thead>
-                    <tr>
-                      <th>Parceiro</th>
-                      <th className="fp-num">Vidas</th>
-                      <th className="fp-num">Valor do mês</th>
-                      <th className="fp-num">Ajuste</th>
-                      <th className="fp-num">Saldo anterior</th>
-                      <th className="fp-num">Total</th>
-                      <th>Decisão</th>
-                      <th>Resposta do parceiro</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detail.items.map((item) => (
-                      <tr key={item.id}>
-                        <td className="whitespace-nowrap">
-                          <strong>{item.partner_name}</strong>
-                        </td>
-                        <td className="fp-num">{formatInteger(item.lives)}</td>
-                        <td className="fp-num">{formatCurrency(item.month_amount)}</td>
-                        <td className="fp-num">
-                          {formatCurrency(item.adjustment)}
-                          {item.adjustment_note ? (
-                            <small className="block max-w-48 whitespace-normal text-muted-foreground">
-                              {item.adjustment_note}
-                            </small>
-                          ) : null}
-                        </td>
-                        <td className="fp-num">{formatCurrency(item.previous_balance)}</td>
-                        <td className="fp-num">{formatCurrency(item.total)}</td>
-                        <td className="whitespace-nowrap">
-                          {item.decision
-                            ? decisionLabels[item.decision as keyof typeof decisionLabels]
-                            : "—"}
-                          {item.decided_at ? (
-                            <small className="block text-muted-foreground">
-                              {formatDateTime(item.decided_at)}
-                            </small>
-                          ) : null}
-                          {item.decided_by_name ? (
-                            <small className="block text-muted-foreground">
-                              {item.decided_by_name}
-                            </small>
-                          ) : null}
-                        </td>
-                        <td className="min-w-40">{responseText(item)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td>Total</td>
-                      <td />
-                      <td className="fp-num">{formatCurrency(detail.totals.month_amount)}</td>
-                      <td className="fp-num">{formatCurrency(detail.totals.adjustment)}</td>
-                      <td className="fp-num">{formatCurrency(detail.totals.previous_balance)}</td>
-                      <td className="fp-num">{formatCurrency(detail.totals.total)}</td>
-                      <td colSpan={2}>Pago: {formatCurrency(detail.totals.to_pay)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-              {detail.items.some((item) => item.decision === "pay") && (
-                <div className="fp-form-section">
-                  <h3>Como foi pago</h3>
-                  <p className="mb-4 text-sm text-muted-foreground">
-                    Anote como a Fortes Pay pagou cada parceiro (ex.: PIX em 05/11). O parceiro vê
-                    em Meus fechamentos.
-                  </p>
-                  <div className="space-y-4">
-                    {detail.items
-                      .filter((item) => item.decision === "pay")
-                      .map((item) => (
-                        <MutationForm
-                          key={item.id}
-                          action={setPaymentNote}
-                          label="Salvar"
-                          pendingLabel="Salvando…"
-                          variant="outline"
-                        >
-                          <input type="hidden" name="id" value={item.id} />
-                          <Field
-                            label={`Como foi pago a ${item.partner_name} (${formatCurrency(item.total)})`}
-                            name="payment_note"
-                            maxLength={200}
-                            placeholder="PIX em 05/11"
-                            defaultValue={item.payment_note ?? ""}
-                          />
-                        </MutationForm>
-                      ))}
-                  </div>
+
+          {!closed && detail.items.length > 0 && (
+            <FormDisclosure
+              label="Ajustar o valor de um parceiro"
+              description="Use para descontos ou acréscimos combinados. O ajuste soma (ou subtrai, com sinal de menos) no total e fica registrado com o motivo. Para tirar um ajuste, salve 0."
+            >
+              <MutationForm action={setClosingAdjustment} label="Salvar ajuste">
+                <div className="fp-form-grid fp-form-grid-3">
+                  <SelectField
+                    label="Parceiro"
+                    name="id"
+                    required
+                    options={[
+                      ["", "Selecione"],
+                      ...detail.items.map(
+                        (item) =>
+                          [
+                            item.id,
+                            `${item.partner_name} · total ${formatCurrency(item.total)}`,
+                          ] as [string, string],
+                      ),
+                    ]}
+                  />
+                  <Field
+                    label="Ajuste (R$)"
+                    name="amount"
+                    required
+                    placeholder="-10,00"
+                    inputMode="decimal"
+                    hint="Negativo para desconto, positivo para acréscimo."
+                  />
+                  <Field
+                    label="Motivo do ajuste"
+                    name="note"
+                    maxLength={400}
+                    hint="O parceiro vê este motivo no fechamento."
+                  />
                 </div>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="fp-table-wrap">
-                <table className="fp-table fp-table-compact">
-                  <thead>
-                    <tr>
-                      <th>Parceiro</th>
-                      <th className="fp-num">Vidas</th>
-                      <th className="fp-num">Valor por vida</th>
-                      <th className="fp-num">Valor do mês</th>
-                      <th>Ajuste</th>
-                      <th className="fp-num">Saldo anterior</th>
-                      <th className="fp-num">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detail.items.map((item) => (
-                      <tr key={item.id}>
-                        <td className="whitespace-nowrap">
-                          <strong>{item.partner_name}</strong>
-                        </td>
-                        <td className="fp-num">{formatInteger(item.lives)}</td>
-                        <td className="fp-num">
-                          {item.value_per_life === null
-                            ? item.lives > 0
-                              ? "sem regra vigente"
-                              : "—"
-                            : formatCurrency(item.value_per_life)}
-                        </td>
-                        <td className="fp-num">{formatCurrency(item.month_amount)}</td>
-                        <td>
-                          <MutationForm
-                            action={setClosingAdjustment}
-                            label="Salvar ajuste"
-                            pendingLabel="Salvando…"
-                            variant="outline"
-                          >
-                            <input type="hidden" name="id" value={item.id} />
-                            <div className="fp-inline-form">
-                              <Field
-                                label={`Ajuste de ${item.partner_name} (R$)`}
-                                name="amount"
-                                defaultValue={
-                                  Number(item.adjustment) === 0
-                                    ? ""
-                                    : Number(item.adjustment).toFixed(2).replace(".", ",")
-                                }
-                                placeholder="-10,00"
-                                inputMode="decimal"
-                              />
-                              <Field
-                                label={`Motivo do ajuste de ${item.partner_name}`}
-                                name="note"
-                                defaultValue={item.adjustment_note ?? ""}
-                                maxLength={400}
-                              />
-                            </div>
-                          </MutationForm>
-                        </td>
-                        <td className="fp-num">{formatCurrency(item.previous_balance)}</td>
-                        <td className="fp-num">{formatCurrency(item.total)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td>Total</td>
-                      <td />
-                      <td />
-                      <td className="fp-num">{formatCurrency(detail.totals.month_amount)}</td>
-                      <td className="fp-num">{formatCurrency(detail.totals.adjustment)}</td>
-                      <td className="fp-num">{formatCurrency(detail.totals.previous_balance)}</td>
-                      <td className="fp-num">{formatCurrency(detail.totals.total)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-              <p className="fp-panel-footnote">
-                Valor por vida é a regra do parceiro no mês; indicações com valor próprio entram no
-                valor do mês com o delas.
-              </p>
-              <div className="fp-form-section">
-                <h3>Fechar o lote de {monthLabel}</h3>
-                <MutationForm action={closeClosing} label="Fechar lote" pendingLabel="Fechando…">
-                  <input type="hidden" name="closing_id" value={detail.closing.id} />
-                  <fieldset className="space-y-2">
-                    <legend className="text-sm font-medium">Marque quem vai ser pago agora</legend>
-                    {detail.items.map((item) => (
-                      <label key={item.id} className="flex items-center gap-3 text-sm">
-                        <input
-                          type="checkbox"
-                          name="pay"
-                          value={item.partner_id}
-                          disabled={Number(item.total) <= 0}
-                        />
-                        <span>
-                          {item.partner_name} · {formatCurrency(item.total)}
-                          {Number(item.total) <= 0 ? " (nada a pagar)" : ""}
-                        </span>
-                      </label>
-                    ))}
-                  </fieldset>
-                  <label className="flex items-center gap-3 text-sm font-medium">
-                    <input type="checkbox" name="confirmation" />
-                    Conferi a base e o cálculo. Depois de fechar, nada mais entra neste mês.
-                  </label>
-                </MutationForm>
-              </div>
-            </>
+              </MutationForm>
+            </FormDisclosure>
           )}
-        </section>
+
+          {closed && detail.items.some((item) => item.decision === "pay") && (
+            <div className="fp-form-section">
+              <h3>Como foi pago</h3>
+              <p className="fp-help">
+                Anote como a Fortes Pay pagou cada parceiro (ex.: PIX em 05/11). O parceiro vê em
+                Meus fechamentos.
+              </p>
+              <div className="space-y-4">
+                {detail.items
+                  .filter((item) => item.decision === "pay")
+                  .map((item) => (
+                    <MutationForm
+                      key={item.id}
+                      action={setPaymentNote}
+                      label="Salvar"
+                      pendingLabel="Salvando…"
+                      variant="outline"
+                      resetOnSuccess={false}
+                    >
+                      <input type="hidden" name="id" value={item.id} />
+                      <Field
+                        label={`Como foi pago a ${item.partner_name} (${formatCurrency(item.total)})`}
+                        name="payment_note"
+                        maxLength={200}
+                        placeholder="PIX em 05/11"
+                        defaultValue={item.payment_note ?? ""}
+                      />
+                    </MutationForm>
+                  ))}
+              </div>
+            </div>
+          )}
+        </SectionCard>
+      )}
+
+      {detail && !closed && (
+        <SectionCard
+          id="fechar-lote"
+          title={`Fechar o lote de ${monthLabel}`}
+          subtitle="Marque quem recebe agora. Quem não for marcado acumula: o total entra como saldo anterior no mês seguinte."
+        >
+          <PanelBody>
+            <MutationForm action={closeClosing} label="Fechar lote" pendingLabel="Fechando…">
+              <input type="hidden" name="closing_id" value={detail.closing.id} />
+              <input type="hidden" name="competency" value={competency} />
+              <fieldset className="space-y-2">
+                <legend className="mb-2 text-sm font-semibold">Quem recebe agora</legend>
+                {detail.items.map((item) => (
+                  <label key={item.id} className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      name="pay"
+                      value={item.partner_id}
+                      disabled={Number(item.total) <= 0}
+                    />
+                    <span>
+                      {item.partner_name} · {formatCurrency(item.total)}
+                      {Number(item.total) <= 0 ? " (nada a pagar)" : ""}
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+              <Notice tone="warning" compact>
+                Depois de fechar, nada mais entra neste mês: planilhas novas de {monthLabel} são
+                ignoradas e os valores ficam como estão.
+              </Notice>
+              <label className="flex items-center gap-3 text-sm font-medium">
+                <input type="checkbox" name="confirmation" />
+                Conferi a base e o cálculo. Depois de fechar, nada mais entra neste mês.
+              </label>
+            </MutationForm>
+          </PanelBody>
+        </SectionCard>
       )}
 
       {detail && (!closed || review) && (
@@ -388,16 +357,15 @@ export default async function ClosingPage({ searchParams }: PageProps) {
         />
       )}
 
-      <section className="fp-panel mt-6">
-        <div className="fp-panel-heading">
-          <h2>Fechamentos registrados</h2>
-          <span>{history.length} mês(es)</span>
-        </div>
+      <SectionCard
+        title="Fechamentos registrados"
+        subtitle="Cada fechamento guarda, por parceiro, o valor do mês, o ajuste, o saldo anterior, o total, a decisão, quem decidiu e como foi pago."
+      >
         {history.length === 0 ? (
-          <p className="fp-panel-footnote">Nenhum fechamento preparado ainda.</p>
+          <EmptyState title="Nenhum fechamento preparado ainda" />
         ) : (
           <div className="fp-table-wrap">
-            <table className="fp-table fp-table-compact">
+            <table className="fp-table">
               <thead>
                 <tr>
                   <th>Mês</th>
@@ -435,11 +403,7 @@ export default async function ClosingPage({ searchParams }: PageProps) {
             </table>
           </div>
         )}
-        <p className="fp-panel-footnote">
-          Cada fechamento guarda, por parceiro: valor do mês, ajuste, saldo anterior, total, pago ou
-          acumulado, quando e quem decidiu, e como foi pago.
-        </p>
-      </section>
+      </SectionCard>
     </AppShell>
   );
 }

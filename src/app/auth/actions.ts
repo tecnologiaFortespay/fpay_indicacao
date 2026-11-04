@@ -3,6 +3,7 @@
 import type { AuthError } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { AUTH_COOKIE, authConfig } from "@/lib/env";
+import { authErrorMessage } from "@/lib/auth/errors";
 import { loginSchema, type FormState } from "@/lib/auth/validation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,17 +32,13 @@ export async function login(_previous: FormState, form: FormData): Promise<FormS
   }
 }
 
-// Senha errada é a resposta comum. O resto é falha de conexão ou de configuração: vai para o log do
-// servidor e aparece resumido na tela, para a equipe técnica saber o que olhar.
+// Senha errada é a resposta comum; os outros códigos conhecidos têm texto próprio. O resto (falha de
+// conexão ou de configuração) vai para o log do servidor.
 function loginError(error: AuthError): string {
-  if (error.code === "invalid_credentials") {
-    return "E-mail ou senha incorretos.";
-  }
-  if (error.code === "email_not_confirmed") {
-    return "Este e-mail ainda não foi confirmado. Peça à Fortes Pay para liberar o acesso.";
-  }
-  console.error("Falha no login:", error.status, error.code, error.message);
-  return `Não foi possível entrar agora. Para a equipe técnica: ${error.code ?? error.message}.`;
+  return authErrorMessage(
+    error,
+    "Não foi possível entrar agora. Tente de novo em instantes; se continuar, avise a Fortes Pay.",
+  );
 }
 
 export async function logout(): Promise<FormState> {

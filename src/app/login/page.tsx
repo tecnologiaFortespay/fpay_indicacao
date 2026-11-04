@@ -3,13 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth-shell";
 import { LoginForm } from "@/components/login-form";
+import { Notice } from "@/components/notice";
 import { currentUser, landingPath } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/competency";
 import { builtAt, configurationProblems } from "@/lib/env";
 
 export const metadata: Metadata = { title: "Entrar" };
 
-type PageProps = { searchParams: Promise<{ senha?: string; erro?: string }> };
+type PageProps = { searchParams: Promise<{ senha?: string; erro?: string; motivo?: string }> };
 
 export default async function LoginPage({ searchParams }: PageProps) {
   const user = await currentUser();
@@ -26,27 +27,29 @@ export default async function LoginPage({ searchParams }: PageProps) {
       description="Entre para acessar seu espaço no programa de indicação."
     >
       {!configured && (
-        <p
-          role="status"
-          className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
-        >
+        <Notice tone="warning" role="status">
           O ambiente está em configuração. O login será liberado assim que a conexão estiver
           disponível.
-          <small className="mt-2 block">
+          <small>
             Para a equipe técnica: confira no servidor{" "}
             {problems.map((problem) => `${problem.variable} (${problem.issue})`).join(", ")}.
           </small>
-        </p>
+        </Notice>
       )}
       {params.senha === "alterada" && (
-        <p role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-800">
+        <Notice tone="success" role="status" compact>
           Senha alterada. Entre com a nova senha.
-        </p>
+        </Notice>
       )}
       {params.erro === "link" && (
-        <p role="status" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
-          Este link é inválido ou expirou. Solicite uma nova recuperação de senha.
-        </p>
+        <Notice tone="danger" role="status" compact>
+          Este link é inválido ou expirou. Peça um novo link à Fortes Pay.
+        </Notice>
+      )}
+      {params.motivo === "sessao" && (
+        <Notice tone="warning" role="status" compact>
+          Sua sessão expirou. Entre de novo para continuar.
+        </Notice>
       )}
       <LoginForm disabled={!configured} />
       <Link

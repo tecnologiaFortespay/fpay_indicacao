@@ -44,8 +44,17 @@ export async function latestReview(subject: AiSubject): Promise<StoredReview | n
       ? query.eq("batch_id", subject.batch_id)
       : query.eq("closing_id", subject.closing_id)
   ).maybeSingle();
+  // Falha ao consultar não derruba a página: o painel mostra o aviso e deixa pedir de novo.
   if (error) {
-    throw new Error("Não foi possível consultar a análise da IA.");
+    console.error("Não foi possível consultar a análise da IA:", error.message);
+    return {
+      id: "",
+      status: "failed",
+      summary: null,
+      alerts: [],
+      error: "Não foi possível consultar a análise da IA agora. Recarregue a página em instantes.",
+      created_at: new Date().toISOString(),
+    };
   }
   if (!data) {
     return null;

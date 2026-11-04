@@ -1,9 +1,11 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { databaseError, formValue } from "@/lib/actions";
 import { passwordSchema, type FormState } from "@/lib/auth/validation";
+import { AUTH_COOKIE } from "@/lib/env";
 import { INVITATION_TOKEN_PATTERN } from "@/lib/invitations/queries";
 import { createClient } from "@/lib/supabase/server";
 
@@ -33,6 +35,15 @@ export async function resetWithLink(_previous: FormState, form: FormData): Promi
   });
   if (result.error) {
     return { error: databaseError(result.error) };
+  }
+  // Quem abriu o link num navegador já conectado (ex.: o diretor testando) sai da sessão atual:
+  // sem isso, o login mandaria direto para o painel e a mensagem "Senha alterada" não apareceria.
+  await supabase.auth.signOut({ scope: "local" });
+  const store = await cookies();
+  for (const cookie of store.getAll()) {
+    if (cookie.name.startsWith(AUTH_COOKIE)) {
+      store.delete(cookie.name);
+    }
   }
   redirect("/login?senha=alterada");
 }

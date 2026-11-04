@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+
 import { AuthShell } from "@/components/auth-shell";
 import { Field } from "@/components/fields";
 import { MutationForm } from "@/components/mutation-form";
+import { Notice } from "@/components/notice";
+import { LogoutButton } from "@/components/session-controls";
 import { currentUser, landingPath } from "@/lib/auth/session";
 import { formatDate } from "@/lib/competency";
 import { invitationPreview } from "@/lib/invitations/queries";
@@ -54,7 +56,23 @@ export default async function InvitationPage({ params }: PageProps) {
   }
   const user = await currentUser();
   if (user?.profile) {
-    redirect(landingPath(user));
+    // Conectado com outra conta (ex.: um parceiro abrindo o convite de outro): explica em vez de
+    // redirecionar em silêncio.
+    return (
+      <AuthShell
+        title="Você já está conectado"
+        description={`Este convite é para ${preview.partner_name}, mas este navegador está conectado como ${user.email}.`}
+      >
+        <Notice tone="warning" compact>
+          Para usar este convite, saia e abra o link de novo. Se o convite for para você mesmo,
+          entre com a sua conta.
+        </Notice>
+        <LogoutButton />
+        <Link href={landingPath(user)} className="text-primary underline">
+          Voltar para o meu painel
+        </Link>
+      </AuthShell>
+    );
   }
   const kind = partnerKindLabels[preview.kind];
   return (

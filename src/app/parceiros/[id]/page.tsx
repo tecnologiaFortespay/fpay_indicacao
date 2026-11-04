@@ -4,13 +4,25 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
 import { ApprovalForm, RejectionForm } from "@/components/approval-form";
+import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/fields";
+import { FormDisclosure } from "@/components/form-disclosure";
+import { KeyValueStrip } from "@/components/key-value-strip";
 import { MutationForm } from "@/components/mutation-form";
+import { Notice } from "@/components/notice";
 import { PartnerForm } from "@/components/partner-form";
+import { PanelBody, SectionCard } from "@/components/section-card";
 import { requireRole } from "@/lib/auth/session";
 import { lastClosedCompetency } from "@/lib/closings/queries";
 import { formatCnpj } from "@/lib/cnpj";
-import { competencyLabel, currentCompetency, dateToCompetency, formatDate } from "@/lib/competency";
+import {
+  competencyLabel,
+  currentCompetency,
+  dateToCompetency,
+  formatDate,
+  shortCompetencyLabel,
+} from "@/lib/competency";
+import { glossary } from "@/lib/glossary";
 import { partnerKindLabels, partnerStatusLabels, referralStatusLabels } from "@/lib/labels";
 import { formatCurrency, formatInteger } from "@/lib/money";
 import {
@@ -22,7 +34,8 @@ import {
   type Partner,
   type PartnerRule,
 } from "@/lib/partners/queries";
-import { referralConfigLabel } from "@/lib/referrals/config";
+import { currentRule, referralConfigLabel, ruleSentence } from "@/lib/referrals/config";
+import { statusChipClass } from "@/lib/referrals/stages";
 import {
   createPasswordReset,
   createReferral,
@@ -32,7 +45,7 @@ import {
 
 export const metadata: Metadata = { title: "Parceiro" };
 
-type PageProps = { params: Promise<{ id: string }> };
+type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ msg?: string }> };
 
 function placeOf(partner: Partner): string {
   if (!partner.city) {
@@ -41,123 +54,124 @@ function placeOf(partner: Partner): string {
   return partner.state ? `${partner.city}/${partner.state}` : partner.city;
 }
 
-function PendingPartner({
-  partner,
-  kind,
-  status,
-}: {
-  partner: Partner;
-  kind: string;
-  status: string;
-}) {
+// Mesma faixa de dados para parceiro aguardando, recusado ou ativo.
+function PartnerFacts({ partner }: { partner: Partner }) {
+  const kind = partnerKindLabels[partner.kind as keyof typeof partnerKindLabels] ?? partner.kind;
+  const status =
+    partnerStatusLabels[partner.status as keyof typeof partnerStatusLabels] ?? partner.status;
   const contact = [partner.contact_email, partner.contact_phone].filter(Boolean).join(" · ") || "—";
   return (
-    <AppShell title={partner.name}>
-      <Link href="/parceiros" className="fp-detail-back">
-        ← Parceiros
-      </Link>
-      <div className="fp-detail-total">
-        <div>
-          <span>Situação</span>
-          <strong className="text-base">{status}</strong>
-        </div>
-        <div>
-          <span>Tipo</span>
-          <strong className="text-base">{kind}</strong>
-        </div>
-        <div>
-          <span>Local</span>
-          <strong className="text-base">{placeOf(partner)}</strong>
-        </div>
-        <div>
-          <span>Responsável</span>
-          <strong className="text-base">{partner.contact_name ?? "—"}</strong>
-        </div>
-        <div>
-          <span>Contato</span>
-          <strong className="text-base">{contact}</strong>
-        </div>
-        <div>
-          <span>Cadastrado em</span>
-          <strong className="text-base">{formatDate(partner.created_at)}</strong>
-        </div>
-      </div>
-      {partner.status === "rejected" && partner.rejection_reason && (
-        <p className="orbita-alert mb-6">Recusado: {partner.rejection_reason}</p>
+    <KeyValueStrip
+      facts={[
+        ["Situação", status],
+        ["Tipo", kind],
+        ["Local", placeOf(partner)],
+        ["Responsável", partner.contact_name ?? "—"],
+        ["Contato", contact],
+        ["Cadastrado em", formatDate(partner.created_at)],
+        ["Aprovado em", partner.approved_at ? formatDate(partner.approved_at) : "—"],
+      ]}
+    />
+  );
+}
+
+function BackLink() {
+  return (
+    <Link href="/parceiros" className="fp-detail-back">
+      ← Parceiros
+    </Link>
+  );
+}
+
+function PendingPartner({ partner, flash }: { partner: Partner; flash?: string }) {
+  const rejected = partner.status === "rejected";
+  return (
+    <AppShell title={partner.name} flash={flash}>
+      <BackLink />
+      <PartnerFacts partner={partner} />
+      {rejected && (
+        <Notice tone="danger" title="Cadastro recusado">
+          Motivo: {partner.rejection_reason ?? "não informado"}. O parceiro vê este motivo ao entrar
+          e continua sem acesso.
+        </Notice>
       )}
-      <section className="fp-panel">
-        <div className="fp-panel-heading">
-          <h2>Aprovar cadastro</h2>
-          <span>a regra do parceiro é obrigatória para liberar o acesso</span>
-        </div>
-        <div className="fp-form-section">
-          <ApprovalForm partner={partner} />
-        </div>
-      </section>
-      {partner.status === "pending" && (
-        <section className="fp-panel mt-6">
-          <div className="fp-panel-heading">
-            <h2>Recusar cadastro</h2>
-            <span>o parceiro continua sem acesso e vê o motivo</span>
-          </div>
-          <div className="fp-form-section">
+      <SectionCard
+        title={rejected ? "Reconsiderar: aprovar o cadastro" : "Aprovar o cadastro"}
+        subtitle="Para liberar o acesso, defina quanto este parceiro recebe por vida paga. Depois dá para criar novas vigências e dar valor próprio a uma indicação."
+      >
+        <PanelBody>
+          <ApprovalForm partner={partner} label="Aprovar e liberar acesso" />
+        </PanelBody>
+      </SectionCard>
+      {!rejected && (
+        <SectionCard
+          title="Ou recusar o cadastro"
+          subtitle="O parceiro continua sem acesso e vê o motivo que você escrever."
+        >
+          <PanelBody>
             <RejectionForm partner={partner} />
-          </div>
-        </section>
+          </PanelBody>
+        </SectionCard>
       )}
     </AppShell>
   );
 }
 
 // Só a vigência mais recente muda, e só enquanto nenhum mês fechado a usa; as anteriores são histórico.
-function RuleActions({ rule, partnerId }: { rule: PartnerRule; partnerId: string }) {
+function EditLatestRule({ rule, partnerId }: { rule: PartnerRule; partnerId: string }) {
   return (
-    <details className="fp-disclosure">
-      <summary>Editar</summary>
-      <MutationForm action={savePartnerRule} label="Salvar alteração">
+    <FormDisclosure
+      label={`Editar a vigência de ${shortCompetencyLabel(dateToCompetency(rule.valid_from))}`}
+      description="Corrige a vigência mais recente. Para mudar o valor a partir de um mês, prefira criar uma nova vigência."
+    >
+      <MutationForm action={savePartnerRule} label="Salvar alteração" resetOnSuccess={false}>
         <input type="hidden" name="id" value={rule.id} />
         <input type="hidden" name="partner_id" value={partnerId} />
-        <div className="fp-form-grid">
+        <div className="fp-form-grid fp-form-grid-3">
           <Field
-            label="Valor por vida da vigência (R$)"
+            label={glossary.valuePerLife.label}
             name="value_per_life"
             required
             inputMode="decimal"
             defaultValue={String(rule.value_per_life).replace(".", ",")}
           />
           <Field
-            label="Início da vigência"
+            label={glossary.validFrom.label}
             name="valid_from"
             type="month"
             required
             defaultValue={dateToCompetency(rule.valid_from)}
           />
           <Field
-            label="Prazo da vigência em meses"
+            label={glossary.termMonths.label}
             name="term_months"
             type="number"
             min={1}
             max={120}
             defaultValue={rule.term_months === null ? "" : String(rule.term_months)}
+            hint={glossary.termMonths.hint}
           />
         </div>
       </MutationForm>
-      <MutationForm
-        action={deletePartnerRule}
-        label="Remover vigência"
-        pendingLabel="Removendo…"
-        variant="outline"
-      >
-        <input type="hidden" name="id" value={rule.id} />
-        <input type="hidden" name="partner_id" value={partnerId} />
-      </MutationForm>
-    </details>
+      <div className="mt-4">
+        <MutationForm
+          action={deletePartnerRule}
+          label="Remover esta vigência"
+          pendingLabel="Removendo…"
+          variant="outline"
+        >
+          <input type="hidden" name="id" value={rule.id} />
+          <input type="hidden" name="partner_id" value={partnerId} />
+        </MutationForm>
+      </div>
+    </FormDisclosure>
   );
 }
 
-export default async function PartnerDetailPage({ params }: PageProps) {
+export default async function PartnerDetailPage({ params, searchParams }: PageProps) {
   await requireRole("director");
   const { id } = await params;
+  const { msg } = await searchParams;
   if (!z.uuid().safeParse(id).success) {
     redirect("/parceiros");
   }
@@ -165,11 +179,8 @@ export default async function PartnerDetailPage({ params }: PageProps) {
   if (!partner) {
     notFound();
   }
-  const kind = partnerKindLabels[partner.kind as keyof typeof partnerKindLabels] ?? partner.kind;
-  const status =
-    partnerStatusLabels[partner.status as keyof typeof partnerStatusLabels] ?? partner.status;
   if (partner.status !== "active") {
-    return <PendingPartner partner={partner} kind={kind} status={status} />;
+    return <PendingPartner partner={partner} flash={msg} />;
   }
   const [rules, referrals, amounts, lockedThrough, login] = await Promise.all([
     listPartnerRules(id),
@@ -178,71 +189,54 @@ export default async function PartnerDetailPage({ params }: PageProps) {
     lastClosedCompetency(),
     partnerLogin(id),
   ]);
+  const today = currentCompetency();
   const latest = rules[0];
   const latestEditable =
     latest !== undefined &&
     (lockedThrough === null || dateToCompetency(latest.valid_from) > lockedThrough);
+  const rule = currentRule(rules, today);
   return (
-    <AppShell title={partner.name}>
-      <Link href="/parceiros" className="fp-detail-back">
-        ← Parceiros
-      </Link>
-      <div className="fp-detail-total">
-        <div>
-          <span>Tipo</span>
-          <strong className="text-base">{kind}</strong>
-        </div>
-        <div>
-          <span>Situação</span>
-          <strong className="text-base">{status}</strong>
-        </div>
-        <div>
-          <span>Local</span>
-          <strong className="text-base">{placeOf(partner)}</strong>
-        </div>
-        <div>
-          <span>Aprovado em</span>
-          <strong className="text-base">
-            {partner.approved_at ? formatDate(partner.approved_at) : "—"}
-          </strong>
-        </div>
-      </div>
+    <AppShell title={partner.name} flash={msg}>
+      <BackLink />
+      <PartnerFacts partner={partner} />
 
-      <section className="fp-panel">
-        <div className="fp-panel-heading">
-          <h2>Regras de remuneração</h2>
-          <span>configuração do parceiro: vale para as indicações sem configuração própria</span>
-        </div>
-        {rules.length === 0 ? (
-          <p className="fp-panel-footnote">
-            Sem regra cadastrada: as vidas deste parceiro aparecem com valor zero até existir uma
-            vigência.
+      <SectionCard
+        title="Regra de remuneração"
+        subtitle="Quanto este parceiro recebe por vida paga. Vale para as indicações sem valor próprio."
+        footnote="Uma vigência nova vale do mês dela em diante; as anteriores ficam como histórico. Só a mais recente pode ser editada, e só enquanto nenhum mês fechado a usa."
+      >
+        <PanelBody>
+          <p className="fp-sentence">
+            {rule ? (
+              <>
+                Hoje: <strong>{ruleSentence(rule, today)}</strong>
+              </>
+            ) : (
+              "Sem regra cadastrada: as vidas deste parceiro contam com valor zero até existir uma vigência."
+            )}
           </p>
-        ) : (
+        </PanelBody>
+        {rules.length > 0 && (
           <div className="fp-table-wrap">
             <table className="fp-table">
               <thead>
                 <tr>
-                  <th>Vigência a partir de</th>
+                  <th>Vale a partir de</th>
                   <th className="fp-num">Valor por vida</th>
-                  <th className="fp-num">Prazo</th>
-                  <th />
+                  <th>Prazo</th>
+                  <th>Pode mudar?</th>
                 </tr>
               </thead>
               <tbody>
-                {rules.map((rule) => (
-                  <tr key={rule.id}>
-                    <td>{competencyLabel(dateToCompetency(rule.valid_from))}</td>
-                    <td className="fp-num">{formatCurrency(rule.value_per_life)}</td>
-                    <td className="fp-num">
-                      {rule.term_months === null ? "sem prazo" : `${rule.term_months} meses`}
-                    </td>
+                {rules.map((item) => (
+                  <tr key={item.id}>
+                    <td>{competencyLabel(dateToCompetency(item.valid_from))}</td>
+                    <td className="fp-num">{formatCurrency(item.value_per_life)}</td>
+                    <td>{item.term_months === null ? "sem prazo" : `${item.term_months} meses`}</td>
                     <td>
-                      {rule.id === latest?.id && latestEditable ? (
-                        <RuleActions rule={rule} partnerId={partner.id} />
-                      ) : (
-                        <small className="text-muted-foreground">histórico</small>
-                      )}
+                      {item.id === latest?.id && latestEditable
+                        ? "sim, é a mais recente"
+                        : "não, histórico"}
                     </td>
                   </tr>
                 ))}
@@ -250,58 +244,59 @@ export default async function PartnerDetailPage({ params }: PageProps) {
             </table>
           </div>
         )}
-        <p className="fp-panel-footnote">
-          Uma vigência nova vale do mês dela em diante. Só a mais recente pode ser editada, e só
-          enquanto nenhum mês fechado a usa.
-        </p>
-        <div className="fp-form-section">
-          <h3>Nova vigência</h3>
-          <MutationForm action={savePartnerRule} label="Salvar regra">
+        {latest && latestEditable && <EditLatestRule rule={latest} partnerId={partner.id} />}
+        <FormDisclosure
+          label="Nova vigência"
+          description="Use quando o valor ou o prazo mudar a partir de um mês. Os meses anteriores continuam com a regra antiga."
+        >
+          <MutationForm action={savePartnerRule} label="Salvar nova vigência">
             <input type="hidden" name="partner_id" value={partner.id} />
-            <div className="fp-form-grid">
+            <div className="fp-form-grid fp-form-grid-3">
               <Field
-                label="Valor por vida (R$)"
+                label={glossary.valuePerLife.label}
                 name="value_per_life"
                 required
                 placeholder="1,50"
                 inputMode="decimal"
+                hint={glossary.valuePerLife.hint}
               />
               <Field
-                label="Vigência a partir de"
+                label={glossary.validFrom.label}
                 name="valid_from"
                 type="month"
                 required
-                defaultValue={currentCompetency()}
+                defaultValue={today}
+                hint={glossary.validFrom.hint}
               />
               <Field
-                label="Prazo em meses"
+                label={glossary.termMonths.label}
                 name="term_months"
                 type="number"
                 min={1}
                 max={120}
-                hint="Em branco = sem prazo. Com prazo, cada indicação conta só os primeiros N meses após o primeiro pagamento."
+                hint={glossary.termMonths.hint}
               />
             </div>
           </MutationForm>
-        </div>
-      </section>
+        </FormDisclosure>
+      </SectionCard>
 
-      <section className="fp-panel mt-6">
-        <div className="fp-panel-heading">
-          <h2>Indicações</h2>
-          <span>{referrals.length} indicação(ões)</span>
-        </div>
+      <SectionCard
+        title={`Indicações deste parceiro (${referrals.length})`}
+        subtitle="Só a indicação Ativa rende comissão. Abra uma indicação para dar a ela valor ou prazo próprios."
+      >
         {referrals.length === 0 ? (
-          <p className="fp-panel-footnote">Nenhuma indicação registrada para este parceiro.</p>
+          <EmptyState title="Nenhuma indicação registrada">
+            O parceiro registra as indicações pelo portal dele; você também pode registrar abaixo.
+          </EmptyState>
         ) : (
           <div className="fp-table-wrap">
             <table className="fp-table">
               <thead>
                 <tr>
                   <th>Empresa</th>
-                  <th>CNPJ</th>
                   <th>Situação</th>
-                  <th>1º mês pago</th>
+                  <th>Rende desde</th>
                   <th>Valor e prazo</th>
                   <th className="fp-num">Vidas estimadas</th>
                   <th>Indicada em</th>
@@ -312,15 +307,18 @@ export default async function PartnerDetailPage({ params }: PageProps) {
                   <tr key={referral.id}>
                     <td>
                       <Link href={`/indicacoes/${referral.id}`}>{referral.company_name}</Link>
+                      <small className="fp-num">{formatCnpj(referral.cnpj)}</small>
                     </td>
-                    <td className="fp-num">{formatCnpj(referral.cnpj)}</td>
                     <td>
-                      {referralStatusLabels[referral.status as keyof typeof referralStatusLabels] ??
-                        referral.status}
+                      <span className={statusChipClass(referral.status)}>
+                        {referralStatusLabels[
+                          referral.status as keyof typeof referralStatusLabels
+                        ] ?? referral.status}
+                      </span>
                     </td>
                     <td>
                       {referral.activated_competency
-                        ? competencyLabel(dateToCompetency(referral.activated_competency))
+                        ? shortCompetencyLabel(dateToCompetency(referral.activated_competency))
                         : "—"}
                     </td>
                     <td>{referralConfigLabel(referral.value_per_life, referral.term_months)}</td>
@@ -336,8 +334,10 @@ export default async function PartnerDetailPage({ params }: PageProps) {
             </table>
           </div>
         )}
-        <div className="fp-form-section">
-          <h3>Registrar indicação em nome do parceiro</h3>
+        <FormDisclosure
+          label="Registrar indicação em nome do parceiro"
+          description="Na prática o parceiro registra pelo portal; use aqui quando ele pedir."
+        >
           <MutationForm action={createReferral} label="Registrar indicação">
             <input type="hidden" name="partner_id" value={partner.id} />
             <div className="fp-form-grid">
@@ -351,33 +351,35 @@ export default async function PartnerDetailPage({ params }: PageProps) {
               <Field label="Empresa" name="company_name" required maxLength={240} />
               <Field label="Vidas estimadas" name="estimated_lives" type="number" min={0} />
               <Field
-                label="Valor por vida da indicação (R$)"
+                label={glossary.referralValue.label}
                 name="value_per_life"
                 inputMode="decimal"
-                hint="Em branco = regra do parceiro."
+                placeholder="regra do parceiro"
+                hint={glossary.referralValue.hint}
               />
               <Field
-                label="Prazo da indicação em meses"
+                label={glossary.referralTerm.label}
                 name="term_months"
                 type="number"
                 min={1}
                 max={120}
-                hint="Em branco = regra do parceiro."
+                placeholder="regra do parceiro"
+                hint={glossary.referralTerm.hint}
               />
             </div>
           </MutationForm>
-        </div>
-      </section>
+        </FormDisclosure>
+      </SectionCard>
 
-      <section className="fp-panel mt-6">
-        <div className="fp-panel-heading">
-          <h2>Vidas e valores por mês</h2>
-          <span>últimos 12 meses com dados</span>
-        </div>
+      <SectionCard
+        title="Vidas e valores por mês"
+        subtitle="Últimos 12 meses com vidas nas planilhas do BI."
+        footnote="O valor soma cada indicação com o valor por vida dela: o próprio, quando configurado, ou o da regra do parceiro no mês. Meses fechados: o valor oficial está em Fechamento do mês."
+      >
         {amounts.length === 0 ? (
-          <p className="fp-panel-footnote">
-            Nenhuma vida paga encontrada nas importações para as indicações deste parceiro.
-          </p>
+          <EmptyState title="Nenhuma vida paga ainda">
+            Aparece aqui quando alguma indicação deste parceiro tiver vidas numa planilha do BI.
+          </EmptyState>
         ) : (
           <div className="fp-table-wrap">
             <table className="fp-table">
@@ -385,7 +387,7 @@ export default async function PartnerDetailPage({ params }: PageProps) {
                 <tr>
                   <th>Mês</th>
                   <th className="fp-num">Vidas pagas</th>
-                  <th className="fp-num">Valor por vida da regra</th>
+                  <th className="fp-num">Valor por vida (regra)</th>
                   <th className="fp-num">Valor</th>
                 </tr>
               </thead>
@@ -396,7 +398,7 @@ export default async function PartnerDetailPage({ params }: PageProps) {
                     <td className="fp-num">{formatInteger(row.lives)}</td>
                     <td className="fp-num">
                       {row.value_per_life === null
-                        ? "sem regra vigente"
+                        ? "sem regra"
                         : formatCurrency(row.value_per_life)}
                     </td>
                     <td className="fp-num">{formatCurrency(row.amount)}</td>
@@ -406,18 +408,17 @@ export default async function PartnerDetailPage({ params }: PageProps) {
             </table>
           </div>
         )}
-        <p className="fp-panel-footnote">
-          O valor soma cada indicação com o valor por vida dela: o próprio, quando configurado, ou o
-          da regra do parceiro no mês.
-        </p>
-      </section>
+      </SectionCard>
 
-      <section className="fp-panel mt-6">
-        <div className="fp-panel-heading">
-          <h2>Acesso do parceiro</h2>
-          <span>{login ? (partner.contact_email ?? "login ativo") : "sem login"}</span>
-        </div>
-        <div className="fp-form-section">
+      <SectionCard
+        title="Acesso ao sistema"
+        subtitle={
+          login
+            ? `Login do parceiro: ${partner.contact_email ?? "e-mail do cadastro"}.`
+            : "Este parceiro ainda não tem login."
+        }
+      >
+        <PanelBody>
           {login ? (
             <MutationForm
               action={createPasswordReset}
@@ -426,7 +427,7 @@ export default async function PartnerDetailPage({ params }: PageProps) {
               variant="outline"
               linkLabel="Link de nova senha"
             >
-              <p className="text-sm text-muted-foreground">
+              <p className="fp-help">
                 Se o parceiro esqueceu a senha, gere o link e envie a ele (WhatsApp, e-mail). Ele
                 abre o link, define a senha nova e entra. O link vale por 24 horas e uma única vez;
                 gerar outro invalida o anterior.
@@ -434,22 +435,21 @@ export default async function PartnerDetailPage({ params }: PageProps) {
               <input type="hidden" name="partner_id" value={partner.id} />
             </MutationForm>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              Este parceiro foi cadastrado pelo diretor e ainda não tem login.
+            <p className="fp-help">
+              O login nasce quando o parceiro faz o cadastro pelo link do convite.
             </p>
           )}
-        </div>
-      </section>
+        </PanelBody>
+      </SectionCard>
 
-      <section className="fp-panel mt-6">
-        <div className="fp-panel-heading">
-          <h2>Dados do cadastro</h2>
-          <span>editados só pelo diretor</span>
-        </div>
-        <div className="fp-form-section">
+      <SectionCard
+        title="Dados do cadastro"
+        subtitle="Preenchidos pelo parceiro; só o diretor altera."
+      >
+        <FormDisclosure label="Editar dados do cadastro">
           <PartnerForm partner={partner} />
-        </div>
-      </section>
+        </FormDisclosure>
+      </SectionCard>
     </AppShell>
   );
 }

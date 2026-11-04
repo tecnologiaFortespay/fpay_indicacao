@@ -3,18 +3,18 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { databaseError, formValue } from "@/lib/actions";
-import { actionUser } from "@/lib/auth/session";
+import { actionUser, deniedState } from "@/lib/auth/session";
 import { normalizeCnpj } from "@/lib/cnpj";
 import { appOrigin } from "@/lib/env";
+import { withFlash } from "@/lib/flash";
 import { partnerLogin } from "@/lib/partners/queries";
 import type { FormState } from "@/lib/auth/validation";
 import { competencyToDate, isCompetency } from "@/lib/competency";
 import { parseMoneyInput } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
-
-const forbidden: FormState = { error: "Você não tem permissão para esta operação." };
 
 function revalidatePartner(partnerId: string) {
   revalidatePath("/parceiros");
@@ -25,7 +25,7 @@ function revalidatePartner(partnerId: string) {
 export async function savePartner(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return forbidden;
+    return deniedState();
   }
   const id = formValue(form, "id");
   const payload = {
@@ -53,7 +53,7 @@ export async function savePartner(_previous: FormState, form: FormData): Promise
 export async function savePartnerRule(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return forbidden;
+    return deniedState();
   }
   const partnerId = formValue(form, "partner_id");
   if (!z.uuid().safeParse(partnerId).success) {
@@ -86,7 +86,7 @@ export async function savePartnerRule(_previous: FormState, form: FormData): Pro
 export async function deletePartnerRule(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return forbidden;
+    return deniedState();
   }
   const id = formValue(form, "id");
   const partnerId = formValue(form, "partner_id");
@@ -99,13 +99,13 @@ export async function deletePartnerRule(_previous: FormState, form: FormData): P
     return { error: databaseError(result.error) };
   }
   revalidatePartner(partnerId);
-  return { success: "Vigência removida." };
+  redirect(withFlash(`/parceiros/${partnerId}`, "vigencia_removida"));
 }
 
 export async function createReferral(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director", "partner");
   if (!user) {
-    return forbidden;
+    return deniedState();
   }
   // Valor e prazo da indicação: só o formulário do diretor tem esses campos; em branco = regra do parceiro.
   const rawValue = formValue(form, "value_per_life").trim();
@@ -140,7 +140,7 @@ export async function createReferral(_previous: FormState, form: FormData): Prom
 export async function createInvitation(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return forbidden;
+    return deniedState();
   }
   const validUntil = formValue(form, "valid_until");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(validUntil)) {
@@ -173,7 +173,7 @@ export async function createPasswordReset(
 ): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return forbidden;
+    return deniedState();
   }
   const login = await partnerLogin(formValue(form, "partner_id"));
   if (!login) {
@@ -194,7 +194,7 @@ export async function createPasswordReset(
 export async function approvePartner(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return forbidden;
+    return deniedState();
   }
   const partnerId = formValue(form, "partner_id");
   if (!z.uuid().safeParse(partnerId).success) {
@@ -220,13 +220,13 @@ export async function approvePartner(_previous: FormState, form: FormData): Prom
     return { error: databaseError(result.error) };
   }
   revalidatePartner(partnerId);
-  return { success: "Parceiro aprovado. O acesso dele está liberado." };
+  redirect(withFlash(`/parceiros/${partnerId}`, "parceiro_aprovado"));
 }
 
 export async function rejectPartner(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");
   if (!user) {
-    return forbidden;
+    return deniedState();
   }
   const partnerId = formValue(form, "partner_id");
   if (!z.uuid().safeParse(partnerId).success) {
@@ -241,7 +241,7 @@ export async function rejectPartner(_previous: FormState, form: FormData): Promi
     return { error: databaseError(result.error) };
   }
   revalidatePartner(partnerId);
-  return { success: "Cadastro recusado." };
+  redirect(withFlash(`/parceiros/${partnerId}`, "cadastro_recusado"));
 }
 
 // Só o diretor vê quem indicou primeiro (o parceiro recebe apenas a data).

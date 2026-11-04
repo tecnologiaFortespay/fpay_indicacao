@@ -1,4 +1,6 @@
-// Casos que o roteiro não percorre: senha errada, convite expirado, planilha errada e CNPJ alfanumérico.
+// Casos que o roteiro não percorre: senha errada, convite expirado, planilha errada, CNPJ
+// alfanumérico, IA, links de nova senha e o comportamento das telas (formulário limpo, sessão
+// expirada, convite aberto já conectado, página inexistente).
 import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { cnpjWithDigits } from "@/lib/cnpj";
@@ -97,6 +99,60 @@ test("parceiro indica CNPJ alfanumérico", async ({ browser, baseURL }) => {
   await expect(page.getByRole("row", { name: /Empresa Alfanumérica/ })).toContainText(
     "12.ABC.345/01DE-35",
   );
+  // Os campos ficam limpos: um segundo clique não repete a indicação (o navegador pede o CNPJ).
+  await expect(page.getByLabel("CNPJ do cliente")).toHaveValue("");
+  await expect(page.getByLabel("Empresa", { exact: true })).toHaveValue("");
+  await page.getByRole("button", { name: "Registrar indicação" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "CNPJ já indicado" })).toHaveCount(0);
+  await expect(page.getByRole("row", { name: /Empresa Alfanumérica/ })).toHaveCount(1);
+
+  // Sessão que acaba com a tela aberta: salvar leva ao login com o aviso, em vez de "sem permissão".
+  await page.context().clearCookies();
+  await page.getByLabel("CNPJ do cliente").fill(cnpjWithDigits("246813570001"));
+  await page.getByLabel("Empresa", { exact: true }).fill("Empresa Sem Sessão");
+  await page.getByRole("button", { name: "Registrar indicação" }).click();
+  await expect(page).toHaveURL(/\/login\?motivo=sessao$/);
+  await expect(page.getByText("Sua sessão expirou. Entre de novo para continuar.")).toBeVisible();
+});
+
+test("convite aberto num navegador já conectado explica e oferece sair", async ({ page }) => {
+  const secret = "conectado-".padEnd(48, "y");
+  const inserted = await adminClient()
+    .from("invitations")
+    .insert({
+      token_hash: createHash("sha256").update(secret).digest("hex"),
+      partner_name: "Unidade Conectada",
+      kind: "unit",
+      expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+      created_by: staff.director.id,
+    });
+  expect(inserted.error).toBeNull();
+  await login(page, staff.director.email, PASSWORD);
+  await page.goto(`/convite/${secret}`);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Você já está conectado" }),
+  ).toBeVisible();
+  await expect(page.getByText(/Este convite é para Unidade Conectada/)).toBeVisible();
+  await page.getByRole("button", { name: "Sair" }).click();
+  await expect(page).toHaveURL(/\/login/);
+  await page.goto(`/convite/${secret}`);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Cadastro · Unidade Conectada" }),
+  ).toBeVisible();
+});
+
+test("endereço inexistente mostra a página em português", async ({ page }) => {
+  await login(page, staff.director.email, PASSWORD);
+  for (const path of [
+    "/pagina-que-nao-existe",
+    "/parceiros/00000000-0000-4000-8000-000000000000",
+  ]) {
+    await page.goto(path);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Página não encontrada" }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Ir para o início" })).toBeVisible();
+  }
 });
 
 test("IA analisa o envio do diretor e aponta CNPJ possivelmente errado; analista não vê", async ({
@@ -227,4 +283,18 @@ test("diretor gera link de nova senha e o parceiro troca a senha por ele", async
 
   await alfa.goto(link);
   await expect(alfa.getByRole("heading", { name: "Link inválido ou expirado" })).toBeVisible();
+
+  // Aberto no navegador do próprio diretor (testando o link): a sessão dele termina e o login
+  // mostra "Senha alterada", em vez de levar direto à Visão geral.
+  await page.goto(`/parceiros/${partner.data?.id}`);
+  await page.getByRole("button", { name: "Gerar link de nova senha" }).click();
+  const second = await page.getByLabel("Link de nova senha").inputValue();
+  await page.goto(second);
+  await page.getByLabel("Nova senha (mínimo de 8 caracteres)").fill("Senha-alfa-nova-2");
+  await page.getByLabel("Confirme a nova senha").fill("Senha-alfa-nova-2");
+  await page.getByRole("button", { name: "Salvar nova senha" }).click();
+  await expect(page).toHaveURL(/\/login\?senha=alterada$/);
+  await expect(page.getByText("Senha alterada", { exact: false }).first()).toBeVisible();
+  await login(page, "alfa.e2e@fortespay.local", "Senha-alfa-nova-2");
+  await expect(page).toHaveURL(/\/inicio$/);
 });

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth-shell";
+import { Notice } from "@/components/notice";
 import { LogoutButton, SessionGuard } from "@/components/session-controls";
 import { currentUser, hasAccess, landingPath } from "@/lib/auth/session";
 
@@ -28,9 +29,15 @@ export default async function PendingRegistrationPage() {
       </p>
       <p className="break-all text-sm text-muted-foreground">{user.email}</p>
       {rejected && partner?.rejection_reason && (
-        <p className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+        <Notice tone="danger" compact>
           Motivo: {partner.rejection_reason}
-        </p>
+        </Notice>
+      )}
+      {!rejected && (
+        <Notice tone="info" compact>
+          Quando a Fortes Pay aprovar, basta entrar de novo com o seu e-mail e senha para ver o seu
+          painel.
+        </Notice>
       )}
       <LogoutButton />
     </AuthShell>

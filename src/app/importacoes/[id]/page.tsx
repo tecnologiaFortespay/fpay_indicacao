@@ -4,6 +4,9 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { AiReviewPanel } from "@/components/ai-review-panel";
 import { AppShell } from "@/components/app-shell";
+import { EmptyState } from "@/components/empty-state";
+import { KeyValueStrip } from "@/components/key-value-strip";
+import { SectionCard } from "@/components/section-card";
 import { aiConfigured } from "@/lib/ai/claude";
 import { latestReview } from "@/lib/ai/reviews";
 import { requireRole } from "@/lib/auth/session";
@@ -49,40 +52,38 @@ export default async function ImportDetailPage({ params }: PageProps) {
       <Link href="/importacoes" className="fp-detail-back">
         ← Importações
       </Link>
-      <div className="fp-detail-total">
-        <div>
-          <span>Arquivo</span>
-          <strong className="text-base">{batch.file_name}</strong>
-        </div>
-        <div>
-          <span>Enviado em</span>
-          <strong className="text-base">{formatDateTime(batch.created_at)}</strong>
-        </div>
-        <div>
-          <span>Por</span>
-          <strong className="text-base">{batch.author}</strong>
-        </div>
-        <div>
-          <span>Mês</span>
-          <strong className="text-base">{months || "—"}</strong>
-        </div>
-        <div>
-          <span>Linhas lidas</span>
-          <strong className="fp-num">{batch.rows_read}</strong>
-        </div>
-        <div>
-          <span>Importadas</span>
-          <strong className="fp-num">{batch.rows_imported}</strong>
-        </div>
-        <div>
-          <span>Fora da plataforma</span>
-          <strong className="fp-num">{batch.rows_skipped}</strong>
-        </div>
-        <div>
-          <span>Ignoradas</span>
-          <strong className="fp-num">{batch.rows_ignored}</strong>
-        </div>
-      </div>
+      <KeyValueStrip
+        facts={[
+          ["Arquivo", batch.file_name],
+          ["Enviado em", formatDateTime(batch.created_at)],
+          ["Por", batch.author],
+          ["Mês", months || "—"],
+          [
+            "Linhas lidas",
+            <span key="read" className="fp-num">
+              {batch.rows_read}
+            </span>,
+          ],
+          [
+            "Importadas",
+            <span key="imported" className="fp-num">
+              {batch.rows_imported}
+            </span>,
+          ],
+          [
+            "Fora da plataforma",
+            <span key="skipped" className="fp-num">
+              {batch.rows_skipped}
+            </span>,
+          ],
+          [
+            "Ignoradas",
+            <span key="ignored" className="fp-num">
+              {batch.rows_ignored}
+            </span>,
+          ],
+        ]}
+      />
       {director && (
         <AiReviewPanel
           title="Análise da IA"
@@ -93,16 +94,12 @@ export default async function ImportDetailPage({ params }: PageProps) {
           fields={{ batch_id: batch.id }}
         />
       )}
-      <section className="fp-panel mt-6">
-        <div className="fp-panel-heading">
-          <h2>Linhas ignoradas ou mescladas</h2>
-          <span>{rows.length} linha(s)</span>
-        </div>
+      <SectionCard
+        title={`Linhas ignoradas ou mescladas (${rows.length})`}
+        subtitle="Linhas que não entraram como vieram, com o motivo. Empresas sem indicação na plataforma só são contadas."
+      >
         {rows.length === 0 ? (
-          <p className="fp-panel-footnote">
-            Nenhuma linha ignorada ou mesclada. Empresas sem indicação na plataforma só são
-            contadas.
-          </p>
+          <EmptyState title="Nenhuma linha ignorada ou mesclada" />
         ) : (
           <div className="fp-table-wrap">
             <table className="fp-table">
@@ -123,14 +120,14 @@ export default async function ImportDetailPage({ params }: PageProps) {
                         row.outcome}
                     </td>
                     <td>{row.reason}</td>
-                    <td className="font-mono text-xs break-all">{row.raw_line}</td>
+                    <td className="fp-num break-all">{row.raw_line}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </section>
+      </SectionCard>
     </AppShell>
   );
 }

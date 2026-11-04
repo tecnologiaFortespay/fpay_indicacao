@@ -2,15 +2,18 @@ import { landingPath, requireUser } from "@/lib/auth/session";
 import { environmentLabel } from "@/lib/env";
 import { roleLabels } from "@/lib/labels";
 import { navigationFor } from "@/lib/navigation";
+import { FlashMessage } from "./flash-message";
 import { OrbitaNavigation, ThemeButton } from "./orbita-navigation";
 import { SessionGuard } from "./session-controls";
 
 type AppShellProps = {
   title: string;
   children: React.ReactNode;
+  // Chave de ?msg= vinda de uma ação que redirecionou para esta página (src/lib/flash.ts).
+  flash?: string | null;
 };
 
-export async function AppShell({ title, children }: AppShellProps) {
+export async function AppShell({ title, children, flash }: AppShellProps) {
   const user = await requireUser();
   const role = user.profile.role;
   const areas = navigationFor(role);
@@ -44,7 +47,10 @@ export async function AppShell({ title, children }: AppShellProps) {
         <div className="orbita-page-heading">
           <h1>{title}</h1>
         </div>
-        <div className="orbita-content">{children}</div>
+        <div className="orbita-content">
+          <FlashMessage code={flash} />
+          {children}
+        </div>
       </main>
     </div>
   );

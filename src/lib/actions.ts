@@ -43,16 +43,25 @@ export function databaseError(error: DatabaseError): string {
     case "42501":
       return "Você não tem permissão para esta operação.";
     case "P0002":
-      return "Registro não encontrado ou indisponível para este acesso.";
+      return "Este registro não existe mais ou não está disponível para o seu acesso. Recarregue a página.";
     case "23505":
-      return "Já existe um registro com esta identificação.";
+      return "Já existe um registro com estes dados. Recarregue a página para ver.";
     case "23514":
     case "22023":
     case "22P02":
     case "22003":
-      return "Confira os campos e o formato das informações.";
+    case "22001":
+      return "Confira os campos: algum valor está fora do formato ou do tamanho aceito.";
+    case "57014":
+      return "O banco demorou para responder. Tente de novo em instantes.";
+    case "40001":
+    case "40P01":
+      return "Outra pessoa alterou estes dados ao mesmo tempo. Recarregue a página e tente de novo.";
+    case "PGRST202":
+      return "Esta função ainda não está disponível no banco (atualização pendente). Avise a equipe técnica.";
     default:
-      return "Não foi possível salvar. Confira os dados e tente novamente.";
+      console.error("Erro do banco sem tradução:", error.code, error.message, error.details);
+      return "Não foi possível concluir agora. Tente de novo em instantes; se continuar, avise a Fortes Pay.";
   }
 }
 

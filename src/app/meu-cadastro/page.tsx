@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { EmptyState } from "@/components/empty-state";
+import { KeyValueStrip } from "@/components/key-value-strip";
+import { PanelBody, SectionCard } from "@/components/section-card";
 import { requireRole } from "@/lib/auth/session";
-import { competencyLabel, dateToCompetency, formatDate } from "@/lib/competency";
+import { competencyLabel, currentCompetency, dateToCompetency, formatDate } from "@/lib/competency";
 import { partnerKindLabels } from "@/lib/labels";
 import { formatCurrency } from "@/lib/money";
 import { getPartner, listPartnerRules } from "@/lib/partners/queries";
+import { currentRule, ruleSentence } from "@/lib/referrals/config";
 
 export const metadata: Metadata = { title: "Meu cadastro" };
 
-// Ficha do próprio parceiro, só leitura: dados do cadastro e regras definidas pela Fortes Pay.
+// Ficha do próprio parceiro, só leitura: dados do cadastro e regra definida pela Fortes Pay.
 export default async function MyRegistrationPage() {
   const user = await requireRole("partner");
   const partnerId = user.profile.partner?.id ?? "";
@@ -19,66 +23,54 @@ export default async function MyRegistrationPage() {
   }
   const kind = partnerKindLabels[partner.kind as keyof typeof partnerKindLabels] ?? partner.kind;
   const place = partner.city ? `${partner.city}${partner.state ? `/${partner.state}` : ""}` : "—";
+  const today = currentCompetency();
+  const rule = currentRule(rules, today);
   return (
     <AppShell title="Meu cadastro">
-      <div className="fp-detail-total">
-        <div>
-          <span>Nome</span>
-          <strong className="text-base">{partner.name}</strong>
-        </div>
-        <div>
-          <span>Tipo</span>
-          <strong className="text-base">{kind}</strong>
-        </div>
-        <div>
-          <span>Local</span>
-          <strong className="text-base">{place}</strong>
-        </div>
-        <div>
-          <span>Responsável</span>
-          <strong className="text-base">{partner.contact_name ?? "—"}</strong>
-        </div>
-        <div>
-          <span>E-mail</span>
-          <strong className="text-base break-all">{partner.contact_email ?? "—"}</strong>
-        </div>
-        <div>
-          <span>Telefone</span>
-          <strong className="text-base">{partner.contact_phone ?? "—"}</strong>
-        </div>
-        <div>
-          <span>Aprovado em</span>
-          <strong className="text-base">
-            {partner.approved_at ? formatDate(partner.approved_at) : "—"}
-          </strong>
-        </div>
-      </div>
-      <section className="fp-panel">
-        <div className="fp-panel-heading">
-          <h2>Minha regra de remuneração</h2>
-          <span>definida pela Fortes Pay</span>
-        </div>
+      <KeyValueStrip
+        facts={[
+          ["Nome", partner.name],
+          ["Tipo", kind],
+          ["Local", place],
+          ["Responsável", partner.contact_name ?? "—"],
+          ["E-mail", partner.contact_email ?? "—"],
+          ["Telefone", partner.contact_phone ?? "—"],
+          ["Aprovado em", partner.approved_at ? formatDate(partner.approved_at) : "—"],
+        ]}
+      />
+      <SectionCard
+        title="Minha regra de remuneração"
+        subtitle="Definida pela Fortes Pay. Vale para as indicações sem valor próprio."
+        footnote="Uma regra nova vale do mês dela em diante; meses já fechados não mudam. Uma indicação pode ter valor e prazo próprios, combinados com a Fortes Pay: eles aparecem em Meu painel. Para corrigir algum dado, fale com a Fortes Pay."
+      >
+        {rule && (
+          <PanelBody>
+            <p className="fp-sentence">
+              Hoje: <strong>{ruleSentence(rule, today)}</strong>
+            </p>
+          </PanelBody>
+        )}
         {rules.length === 0 ? (
-          <p className="fp-panel-footnote">Nenhuma regra cadastrada.</p>
+          <EmptyState title="Nenhuma regra cadastrada" />
         ) : (
           <div className="fp-table-wrap">
             <table className="fp-table">
               <thead>
                 <tr>
-                  <th>Vigência a partir de</th>
+                  <th>Vale a partir de</th>
                   <th className="fp-num">Valor por vida</th>
                   <th>Prazo</th>
                 </tr>
               </thead>
               <tbody>
-                {rules.map((rule) => (
-                  <tr key={rule.id}>
-                    <td>{competencyLabel(dateToCompetency(rule.valid_from))}</td>
-                    <td className="fp-num">{formatCurrency(rule.value_per_life)}</td>
+                {rules.map((item) => (
+                  <tr key={item.id}>
+                    <td>{competencyLabel(dateToCompetency(item.valid_from))}</td>
+                    <td className="fp-num">{formatCurrency(item.value_per_life)}</td>
                     <td>
-                      {rule.term_months === null
+                      {item.term_months === null
                         ? "sem prazo"
-                        : `${rule.term_months} meses por cliente, a partir do 1º pagamento`}
+                        : `${item.term_months} meses por cliente, a partir do 1º pagamento`}
                     </td>
                   </tr>
                 ))}
@@ -86,12 +78,7 @@ export default async function MyRegistrationPage() {
             </table>
           </div>
         )}
-        <p className="fp-panel-footnote">
-          Cada vigência vale do mês dela em diante. Uma indicação pode ter valor e prazo próprios,
-          combinados com a Fortes Pay; eles aparecem em Meu painel. Para corrigir algum dado, fale
-          com a Fortes Pay.
-        </p>
-      </section>
+      </SectionCard>
     </AppShell>
   );
 }

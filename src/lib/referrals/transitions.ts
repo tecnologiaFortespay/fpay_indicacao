@@ -14,16 +14,3 @@ const manualTransitions: Record<ReferralStatus, ReferralStatus[]> = {
 export function allowedTransitions(status: string): ReferralStatus[] {
   return manualTransitions[status as ReferralStatus] ?? [];
 }
-
-export function referralStatusClass(status: string): string {
-  if (status === "active") {
-    return "fp-status fp-status-success";
-  }
-  if (status === "delinquent") {
-    return "fp-status fp-status-danger";
-  }
-  if (status === "negotiating" || status === "signed") {
-    return "fp-status fp-status-pending";
-  }
-  return "fp-status";
-}

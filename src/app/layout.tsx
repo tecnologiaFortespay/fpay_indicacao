@@ -9,9 +9,20 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+const THEME_SCRIPT =
+  'try{if(localStorage.getItem("fortes-pay-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html
+      lang="pt-BR"
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Aplica o tema salvo antes da primeira pintura, sem piscar o claro. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );

@@ -3,6 +3,7 @@ import type { StoredReview } from "@/lib/ai/reviews";
 import type { FormState } from "@/lib/auth/validation";
 import { formatDateTime } from "@/lib/competency";
 import { MutationForm } from "./mutation-form";
+import { Notice } from "./notice";
 import { RefreshWhileRunning } from "./refresh-while-running";
 
 const severity: Record<AiAlert["gravidade"], { label: string; className: string }> = {
@@ -37,50 +38,58 @@ export function AiReviewPanel({
 }: AiReviewPanelProps) {
   const running = review?.status === "running";
   return (
-    <section className="fp-panel mt-6" aria-label={title}>
-      <div className="fp-panel-heading">
-        <h2>{title}</h2>
-        <span>
-          {running
-            ? "analisando…"
-            : review
-              ? `${review.status === "failed" ? "falhou" : "feita"} em ${formatDateTime(review.created_at)}`
-              : "ainda não pedida"}
-        </span>
-      </div>
-      <div className="fp-form-section space-y-4">
-        <p className="text-sm text-muted-foreground">{description}</p>
-        {!configured && (
-          <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950">
-            A IA ainda não está ligada neste servidor: falta configurar a chave ANTHROPIC_API_KEY.
+    <section className="fp-panel" aria-label={title}>
+      <header className="fp-panel-heading">
+        <div>
+          <h2>{title}</h2>
+          <p>
+            {running
+              ? "analisando…"
+              : review
+                ? `${review.status === "failed" ? "falhou" : "feita"} em ${formatDateTime(review.created_at)}`
+                : "ainda não pedida"}
           </p>
+        </div>
+      </header>
+      <div className="fp-panel-body">
+        <p className="fp-help">{description}</p>
+        {!configured && (
+          <Notice tone="warning" compact>
+            A IA ainda não está ligada neste servidor: falta configurar a chave ANTHROPIC_API_KEY.
+          </Notice>
         )}
         {running && (
-          <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950">
-            A IA está analisando. Esta página se atualiza sozinha em alguns segundos.
+          <Notice tone="info" compact role="status">
+            A IA está analisando. Esta página se atualiza sozinha; costuma levar menos de um minuto.
             <RefreshWhileRunning />
-          </p>
+          </Notice>
         )}
         {review?.status === "failed" && (
-          <p className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{review.error}</p>
+          <Notice tone="danger" compact>
+            {review.error}
+          </Notice>
         )}
         {review?.status === "done" && (
           <>
             {notice && (
-              <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950">{notice}</p>
+              <Notice tone="warning" compact>
+                {notice}
+              </Notice>
             )}
-            <p className="text-sm">{review.summary}</p>
+            <p>{review.summary}</p>
             {review.alerts.length > 0 && (
               <ul className="space-y-3">
                 {review.alerts.map((alert, index) => (
-                  <li key={index} className="rounded-lg border p-3 text-sm">
-                    <span className={severity[alert.gravidade].className}>
-                      {severity[alert.gravidade].label}
-                    </span>{" "}
-                    <strong>{alert.titulo}</strong>
-                    <p className="mt-1">{alert.detalhe}</p>
+                  <li key={index} className="fp-notice fp-notice-compact">
+                    <span>
+                      <span className={severity[alert.gravidade].className}>
+                        {severity[alert.gravidade].label}
+                      </span>{" "}
+                      <strong>{alert.titulo}</strong>
+                    </span>
+                    <span>{alert.detalhe}</span>
                     {(alert.parceiro || alert.empresa) && (
-                      <small className="text-muted-foreground">
+                      <small className="fp-help">
                         {[alert.parceiro, alert.empresa].filter(Boolean).join(" · ")}
                       </small>
                     )}

@@ -51,6 +51,16 @@ export async function partnerLogin(partnerId: string): Promise<{ user_id: string
   return data;
 }
 
+// Todas as vigências de todos os parceiros (diretor), para mostrar a regra de hoje na lista.
+export async function listAllRules(): Promise<PartnerRule[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("partner_rules").select("*");
+  if (error) {
+    throw new Error("Não foi possível consultar as regras dos parceiros.");
+  }
+  return data;
+}
+
 export async function listPartnerRules(partnerId: string): Promise<PartnerRule[]> {
   const supabase = await createClient();
   const { data, error } = await supabase

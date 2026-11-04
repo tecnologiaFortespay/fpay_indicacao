@@ -147,13 +147,33 @@ Passos, nesta ordem:
 ```
 supabase/migrations/   uma migration por fatia; toda escrita é função SQL que confere o perfil
 src/app/               rotas em português (login, inicio, importacoes, parceiros, ...)
-src/components/        design Órbita (shell, navegação, formulários)
+src/components/        design Órbita (shell, navegação, formulários) e o kit de tela (abaixo)
 src/lib/               env, sessão, leitor do export do BI (xlsx + bi), consultas por domínio, rótulos
 tests/db/              testes de banco (Vitest)
 e2e/roteiro.spec.ts    o roteiro de validação inteiro   ·   e2e/extras.spec.ts   casos fora do roteiro
 tests/bi-export.ts     gera planilhas no formato do BI para os testes
 ```
 
-Limite do projeto: no máximo 12 tabelas. Hoje: 11 (`profiles`, `partners`, `partner_rules`,
+Limite do projeto: no máximo 12 tabelas. Hoje: 12 (`profiles`, `partners`, `partner_rules`,
 `companies`, `referrals`, `import_batches`, `import_rows`, `monthly_lives`, `invitations`,
-`closings`, `closing_items`).
+`closings`, `closing_items`, `ai_reviews`). Tabela nova só com aprovação.
+
+### Kit de tela
+
+Toda página monta com os mesmos blocos, para as telas lerem igual nos três perfis:
+
+- `PageIntro` (frase de propósito + seletor de mês), `SectionCard` (cartão com título, ação e
+  rodapé), `KeyValueStrip` (fatos em linha), `Notice` (aviso info/sucesso/atenção/erro),
+  `EmptyState`, `Stepper` (etapas do fechamento).
+- `FormDisclosure`: formulário de adicionar/editar recolhido atrás de um botão; abre sozinho só
+  quando a lista está vazia.
+- `MutationForm` limpa os campos depois de salvar (`resetOnSuccess`, padrão ligado; formulário de
+  edição passa `false`). Ação que muda a estrutura da página faz `redirect(withFlash(...))` e
+  `FlashMessage` mostra o aviso verde uma vez (`src/lib/flash.ts`).
+- Rótulos e ajudas dos campos de regra em `src/lib/glossary.ts`; etapas e frases da indicação em
+  `src/lib/referrals/stages.ts`.
+
+CSS: as classes `fp-*` e `orbita-*` ficam em `@layer components` (`src/app/globals.css`), então um
+utilitário do Tailwind no `className` sempre vence. Cores só pelos tokens de
+`src/app/orbita-tokens.css`, que têm a versão escura; `dark:` segue o botão de tema
+(`data-theme`).

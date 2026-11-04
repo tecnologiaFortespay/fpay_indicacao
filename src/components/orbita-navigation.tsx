@@ -42,10 +42,7 @@ export function OrbitaNavigation({ areas, email, roleLabel, homeHref }: Navigati
 
   function renderAreas(mobile: boolean) {
     return (
-      <nav
-        aria-label={mobile ? "Menu completo" : "Navegação principal"}
-        className="orbita-nav fp-simple-nav"
-      >
+      <nav aria-label={mobile ? "Menu completo" : "Navegação principal"} className="orbita-nav">
         {areas.map((area) => (
           <Link
             prefetch={false}

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { z } from "zod";
 import { authConfig } from "@/lib/env";
+import type { FormState } from "@/lib/auth/validation";
 import type { Role } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
 
@@ -106,4 +107,18 @@ export async function actionUser(...roles: Role[]): Promise<AuthorizedUser | nul
     return null;
   }
   return user;
+}
+
+// Resposta de uma ação recusada: sessão expirada (manda entrar de novo) ou perfil sem permissão.
+export async function deniedState(
+  message = "Você não tem permissão para esta operação.",
+): Promise<FormState> {
+  const user = await currentUser();
+  if (!user) {
+    return {
+      error: "Sua sessão expirou. Entre de novo para continuar.",
+      destination: "/login?motivo=sessao",
+    };
+  }
+  return { error: message };
 }
