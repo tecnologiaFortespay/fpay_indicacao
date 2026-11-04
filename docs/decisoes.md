@@ -51,3 +51,9 @@ valem sobre o que ele diz.
     calcula, não decide pagar ou acumular e não altera dados. As análises ficam na 12ª tabela
     (`ai_reviews`), lida só pelo diretor. "Pergunte aos dados" e rascunho de resposta a contestação
     ficam para depois.
+12. **Nova senha pelo diretor.** O e-mail padrão do Supabase não é confiável, então, por enquanto,
+    a nova senha do parceiro sai por um link que o diretor gera na ficha do parceiro ("Acesso do
+    parceiro") e envia por conta própria. O link vale 24 horas e uma única vez; gerar outro
+    invalida o anterior. Só o hash fica guardado (colunas em `profiles`, sem tabela nova). Para
+    diretor e analista, `npm run reset-link`. Com um SMTP próprio, o "Esqueci minha senha" volta
+    a ser o caminho normal.

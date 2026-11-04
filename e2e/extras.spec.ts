@@ -197,3 +197,34 @@ test("link de nova senha gerado sem e-mail (npm run reset-link) troca a senha", 
   await page.goto(`/auth/confirm?token_hash=${data.properties?.hashed_token}&type=recovery`);
   await expect(page).toHaveURL(/\/login\?erro=link$/);
 });
+
+test("diretor gera link de nova senha e o parceiro troca a senha por ele", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  const partner = await adminClient()
+    .from("partners")
+    .select("id")
+    .eq("name", "Unidade Alfa")
+    .single();
+  expect(partner.error).toBeNull();
+  await login(page, staff.director.email, PASSWORD);
+  await page.goto(`/parceiros/${partner.data?.id}`);
+  await page.getByRole("button", { name: "Gerar link de nova senha" }).click();
+  const link = await page.getByLabel("Link de nova senha").inputValue();
+  expect(link).toMatch(/\/nova-senha\/[A-Za-z0-9_-]{43}$/);
+
+  const alfa = await actor(browser, baseURL ?? "http://localhost:3100");
+  await alfa.goto(link);
+  await expect(alfa.getByText(/alfa\.e2e@fortespay\.local/)).toBeVisible();
+  await alfa.getByLabel("Nova senha (mínimo de 8 caracteres)").fill("Senha-alfa-nova-1");
+  await alfa.getByLabel("Confirme a nova senha").fill("Senha-alfa-nova-1");
+  await alfa.getByRole("button", { name: "Salvar nova senha" }).click();
+  await expect(alfa).toHaveURL(/\/login\?senha=alterada$/);
+  await login(alfa, "alfa.e2e@fortespay.local", "Senha-alfa-nova-1");
+  await expect(alfa).toHaveURL(/\/inicio$/);
+
+  await alfa.goto(link);
+  await expect(alfa.getByRole("heading", { name: "Link inválido ou expirado" })).toBeVisible();
+});

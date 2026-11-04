@@ -18,11 +18,17 @@ import {
   listPartnerMonthAmounts,
   listPartnerReferrals,
   listPartnerRules,
+  partnerLogin,
   type Partner,
   type PartnerRule,
 } from "@/lib/partners/queries";
 import { referralConfigLabel } from "@/lib/referrals/config";
-import { createReferral, deletePartnerRule, savePartnerRule } from "../actions";
+import {
+  createPasswordReset,
+  createReferral,
+  deletePartnerRule,
+  savePartnerRule,
+} from "../actions";
 
 export const metadata: Metadata = { title: "Parceiro" };
 
@@ -165,11 +171,12 @@ export default async function PartnerDetailPage({ params }: PageProps) {
   if (partner.status !== "active") {
     return <PendingPartner partner={partner} kind={kind} status={status} />;
   }
-  const [rules, referrals, amounts, lockedThrough] = await Promise.all([
+  const [rules, referrals, amounts, lockedThrough, login] = await Promise.all([
     listPartnerRules(id),
     listPartnerReferrals(id),
     listPartnerMonthAmounts(id),
     lastClosedCompetency(),
+    partnerLogin(id),
   ]);
   const latest = rules[0];
   const latestEditable =
@@ -403,6 +410,35 @@ export default async function PartnerDetailPage({ params }: PageProps) {
           O valor soma cada indicação com o valor por vida dela: o próprio, quando configurado, ou o
           da regra do parceiro no mês.
         </p>
+      </section>
+
+      <section className="fp-panel mt-6">
+        <div className="fp-panel-heading">
+          <h2>Acesso do parceiro</h2>
+          <span>{login ? (partner.contact_email ?? "login ativo") : "sem login"}</span>
+        </div>
+        <div className="fp-form-section">
+          {login ? (
+            <MutationForm
+              action={createPasswordReset}
+              label="Gerar link de nova senha"
+              pendingLabel="Gerando…"
+              variant="outline"
+              linkLabel="Link de nova senha"
+            >
+              <p className="text-sm text-muted-foreground">
+                Se o parceiro esqueceu a senha, gere o link e envie a ele (WhatsApp, e-mail). Ele
+                abre o link, define a senha nova e entra. O link vale por 24 horas e uma única vez;
+                gerar outro invalida o anterior.
+              </p>
+              <input type="hidden" name="partner_id" value={partner.id} />
+            </MutationForm>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Este parceiro foi cadastrado pelo diretor e ainda não tem login.
+            </p>
+          )}
+        </div>
       </section>
 
       <section className="fp-panel mt-6">

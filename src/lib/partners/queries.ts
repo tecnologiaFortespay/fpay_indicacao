@@ -37,6 +37,20 @@ export async function getPartner(id: string): Promise<Partner | null> {
   return data;
 }
 
+// Conta de acesso do parceiro (um login por parceiro), para o diretor gerar o link de nova senha.
+export async function partnerLogin(partnerId: string): Promise<{ user_id: string } | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("user_id")
+    .eq("partner_id", partnerId)
+    .maybeSingle();
+  if (error) {
+    throw new Error("Não foi possível consultar o acesso do parceiro.");
+  }
+  return data;
+}
+
 export async function listPartnerRules(partnerId: string): Promise<PartnerRule[]> {
   const supabase = await createClient();
   const { data, error } = await supabase

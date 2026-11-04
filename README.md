@@ -73,7 +73,8 @@ Passos, nesta ordem:
    `supabase/config.toml` do repositório: ele é o do ambiente local (localhost).
 3. **E-mail**: o projeto usa o e-mail padrão do Supabase, que envia poucos e-mails por hora e não é
    confiável. Nenhum fluxo do sistema depende dele: o cadastro pelo convite não manda e-mail, e a
-   nova senha sai por `npm run reset-link -- --email <e-mail>`. Com um SMTP próprio (Authentication →
+   nova senha do parceiro sai por um link que o diretor gera na ficha do parceiro (para diretor e
+   analista, `npm run reset-link -- --email <e-mail>`). Com um SMTP próprio (Authentication →
    SMTP Settings), o "Esqueci minha senha" da tela passa a funcionar sozinho.
 4. **Contas internas**: `npm run bootstrap -- --email <diretor> --role director --name "..." --password "..."`
    e o mesmo com `--role analyst`.
@@ -125,21 +126,21 @@ Passos, nesta ordem:
 
 ## Scripts
 
-| Comando                                                   | O que faz                                                                                        |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `npm run dev` / `build` / `start`                         | Next.js                                                                                          |
-| `npm run dev:local`                                       | Next.js contra o Supabase local (`.env.test`), para seguir o roteiro à mão                       |
-| `npm run lint` / `typecheck` / `format`                   | ESLint, `tsc`, Prettier                                                                          |
-| `npm test`                                                | testes unitários (leitor do export do BI, CNPJ, competência, moeda)                              |
-| `npm run test:db`                                         | testes das funções SQL e da RLS contra o Supabase local (`.env.test`)                            |
-| `npm run test:e2e`                                        | Playwright: **zera o banco local**, faz build e executa o roteiro de validação e os casos extras |
-| `npm run db:start` / `db:stop` / `db:status` / `db:reset` | Supabase local                                                                                   |
-| `npm run db:clean`                                        | zera os dados do Supabase local (`tests/reset-data.sql`), sem recriar o schema                   |
-| `npm run db:push`                                         | aplica as migrations no banco de `SUPABASE_DB_URL` (projeto real); `-- --dry-run` só lista       |
-| `npm run db:types`                                        | regenera `src/lib/supabase/types.ts` depois de uma migration                                     |
-| `npm run bootstrap`                                       | cria diretor ou analista no Supabase de `.env.local`                                             |
-| `npm run bootstrap:local`                                 | o mesmo, no Supabase local                                                                       |
-| `npm run reset-link -- --email <e-mail>`                  | link de nova senha (1 hora, uso único) sem enviar e-mail, para repassar à pessoa                 |
+| Comando                                                   | O que faz                                                                                         |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `npm run dev` / `build` / `start`                         | Next.js                                                                                           |
+| `npm run dev:local`                                       | Next.js contra o Supabase local (`.env.test`), para seguir o roteiro à mão                        |
+| `npm run lint` / `typecheck` / `format`                   | ESLint, `tsc`, Prettier                                                                           |
+| `npm test`                                                | testes unitários (leitor do export do BI, CNPJ, competência, moeda)                               |
+| `npm run test:db`                                         | testes das funções SQL e da RLS contra o Supabase local (`.env.test`)                             |
+| `npm run test:e2e`                                        | Playwright: **zera o banco local**, faz build e executa o roteiro de validação e os casos extras  |
+| `npm run db:start` / `db:stop` / `db:status` / `db:reset` | Supabase local                                                                                    |
+| `npm run db:clean`                                        | zera os dados do Supabase local (`tests/reset-data.sql`), sem recriar o schema                    |
+| `npm run db:push`                                         | aplica as migrations no banco de `SUPABASE_DB_URL` (projeto real); `-- --dry-run` só lista        |
+| `npm run db:types`                                        | regenera `src/lib/supabase/types.ts` depois de uma migration                                      |
+| `npm run bootstrap`                                       | cria diretor ou analista no Supabase de `.env.local`                                              |
+| `npm run bootstrap:local`                                 | o mesmo, no Supabase local                                                                        |
+| `npm run reset-link -- --email <e-mail>`                  | link de nova senha (1 hora, uso único) sem enviar e-mail; para parceiros, use a ficha do parceiro |
 
 ## Estrutura
 

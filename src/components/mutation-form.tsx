@@ -11,6 +11,8 @@ type MutationFormProps = {
   pendingLabel?: string;
   className?: string;
   variant?: "default" | "outline" | "destructive";
+  // Rótulo do link devolvido pela ação (convite, nova senha).
+  linkLabel?: string;
 };
 
 // Formulário com server action. O envio é feito fora de <form action> para que o React
@@ -22,6 +24,7 @@ export function MutationForm({
   pendingLabel = "Salvando…",
   className = "",
   variant = "default",
+  linkLabel = "Link do convite",
 }: MutationFormProps) {
   const [state, submit, pending] = useActionState<FormState, FormData>(action, {});
 
@@ -56,7 +59,7 @@ export function MutationForm({
       )}
       {state.link && (
         <label className="block text-sm">
-          Link do convite
+          {linkLabel}
           <input
             readOnly
             value={state.link}

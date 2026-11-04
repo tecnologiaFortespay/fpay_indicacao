@@ -8,6 +8,7 @@ import { databaseError, formValue } from "@/lib/actions";
 import { actionUser } from "@/lib/auth/session";
 import { normalizeCnpj } from "@/lib/cnpj";
 import { appOrigin } from "@/lib/env";
+import { partnerLogin } from "@/lib/partners/queries";
 import type { FormState } from "@/lib/auth/validation";
 import { competencyToDate, isCompetency } from "@/lib/competency";
 import { parseMoneyInput } from "@/lib/money";
@@ -162,6 +163,31 @@ export async function createInvitation(_previous: FormState, form: FormData): Pr
   return {
     success: "Convite criado. Copie o link abaixo e envie ao parceiro.",
     link: `${appOrigin(await headers())}/convite/${secret}`,
+  };
+}
+
+// Enquanto o e-mail do Supabase não é confiável, a nova senha sai por um link que o diretor envia.
+export async function createPasswordReset(
+  _previous: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const user = await actionUser("director");
+  if (!user) {
+    return forbidden;
+  }
+  const login = await partnerLogin(formValue(form, "partner_id"));
+  if (!login) {
+    return { error: "Este parceiro ainda não tem login." };
+  }
+  const secret = randomBytes(32).toString("base64url");
+  const supabase = await createClient();
+  const result = await supabase.rpc("create_password_reset", { target: login.user_id, secret });
+  if (result.error) {
+    return { error: databaseError(result.error) };
+  }
+  return {
+    success: "Link gerado. Copie e envie ao parceiro: vale por 24 horas e uma única vez.",
+    link: `${appOrigin(await headers())}/nova-senha/${secret}`,
   };
 }
 

@@ -219,14 +219,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "created_at": string,"display_name": string,"partner_id": string | null,"role": string,"user_id": string
+                    "created_at": string,"display_name": string,"partner_id": string | null,"password_reset_expires_at": string | null,"password_reset_hash": string | null,"role": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"display_name": string,"partner_id"?: string | null,"role": string,"user_id": string
+                    "created_at"?: string,"display_name": string,"partner_id"?: string | null,"password_reset_expires_at"?: string | null,"password_reset_hash"?: string | null,"role": string,"user_id": string
                   }
                   Update: {
-                    "created_at"?: string,"display_name"?: string,"partner_id"?: string | null,"role"?: string,"user_id"?: string
+                    "created_at"?: string,"display_name"?: string,"partner_id"?: string | null,"password_reset_expires_at"?: string | null,"password_reset_hash"?: string | null,"role"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -321,6 +321,9 @@ isOneToOne: false
 "create_invitation":
 { Args: { "payload": Json }; Returns: string
                            },
+"create_password_reset":
+{ Args: { "secret": string,"target": string }; Returns: string
+                           },
 "create_referral":
 { Args: { "payload": Json }; Returns: string
                            },
@@ -372,6 +375,9 @@ isOneToOne: false
 "partner_has_closing_item":
 { Args: { "target": string }; Returns: boolean
                            },
+"password_reset_preview":
+{ Args: { "secret": string }; Returns: Json
+                           },
 "prepare_closing":
 { Args: { "month": string }; Returns: string
                            },
@@ -380,6 +386,9 @@ isOneToOne: false
                            },
 "reject_partner":
 { Args: { "reason": string,"target": string }; Returns: undefined
+                           },
+"reset_password_with_token":
+{ Args: { "password": string,"secret": string }; Returns: undefined
                            },
 "respond_closing_item":
 { Args: { "note": string,"response": string,"target": string }; Returns: undefined

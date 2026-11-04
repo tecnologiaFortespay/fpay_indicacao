@@ -129,6 +129,12 @@ Exige a chave `ANTHROPIC_API_KEY` no servidor. Sem ela, as telas abaixo dizem qu
 11.4. Diretor → Fechamento → mês preparado → "Analisar com IA" → resumo e alertas do cálculo; recalcular depois mostra o aviso de que a revisão é anterior ao cálculo atual.
 11.5. Parceiro → nenhuma tela mostra IA.
 
+## Bloco 12 — Nova senha pelo diretor (decisão de 03/11/2026)
+
+12.1. Diretor → Parceiros → ficha de um parceiro com login → "Acesso do parceiro" → Gerar link de nova senha → aparece o link para copiar.
+12.2. Em outra janela, abrir o link → tela "Definir nova senha" com o nome e o e-mail do parceiro → salvar a senha nova → login mostra "Senha alterada" → entrar com a senha nova.
+12.3. Abrir o mesmo link de novo → "Link inválido ou expirado".
+
 ## Como rodar à mão (ambiente local)
 
 ```bash

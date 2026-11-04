@@ -23,6 +23,9 @@ export default function RecoveryPage() {
           autoComplete="email"
         />
       </MutationForm>
+      <p className="text-sm text-muted-foreground">
+        Se o e-mail não chegar em alguns minutos, peça à Fortes Pay um link de nova senha.
+      </p>
       <Link href="/login" className="text-sm text-primary underline">
         Voltar ao login
       </Link>
