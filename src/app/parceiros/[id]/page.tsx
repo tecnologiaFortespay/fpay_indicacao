@@ -234,9 +234,11 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
                     <td className="fp-num">{formatCurrency(item.value_per_life)}</td>
                     <td>{item.term_months === null ? "sem prazo" : `${item.term_months} meses`}</td>
                     <td>
-                      {item.id === latest?.id && latestEditable
-                        ? "sim, é a mais recente"
-                        : "não, histórico"}
+                      {item.id !== latest?.id
+                        ? "não, histórico"
+                        : latestEditable
+                          ? "sim, é a mais recente"
+                          : "não, já usada em mês fechado"}
                     </td>
                   </tr>
                 ))}
