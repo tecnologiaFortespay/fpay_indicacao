@@ -10,6 +10,9 @@ pagaram no mês (export do BI) e quanto pagar a cada parceiro (vidas × valor po
 - Roteiro de validação, que é a definição do MVP: [`docs/roteiro-validacao.md`](docs/roteiro-validacao.md).
 - Decisões tomadas depois do requisito (configuração da indicação, pagamento, ordem dos
   fechamentos): [`docs/decisoes.md`](docs/decisoes.md).
+- Documentação de entrega para a Fortes Pay: [produto](docs/entrega/documentacao-do-produto.md)
+  (regras e telas, para a área de negócio) e [técnica](docs/entrega/documentacao-tecnica.md)
+  (arquitetura, banco, publicação e operação).
 
 ## Stack
 
@@ -27,11 +30,11 @@ npm run db:reset          # aplica as migrations do zero
 cp .env.example .env.local
 npm run db:status         # copie API URL, anon key e service_role key para .env.local
 npm run bootstrap -- --email denis@exemplo.com --role director --name "Denis" --password "uma-senha-forte"
-npm run bootstrap -- --email analista@exemplo.com --role analyst --name "Analista"
 npm run dev               # http://localhost:3000
 ```
 
-Perfis internos (diretor e analista de dados) são criados pelo script acima. Parceiros entram só por
+São dois perfis: diretor e parceiro. Diretores (quem envia a planilha do BI também usa esse perfil)
+são criados pelo script acima, um login por pessoa. Parceiros entram só por
 convite: o diretor gera o link em **Parceiros → Convites**, a unidade preenche o cadastro, e o diretor
 aprova informando a regra do parceiro (valor por vida, vigência, prazo). Cada indicação pode ter valor
 por vida e prazo próprios, definidos pelo diretor em **Indicações**; em branco vale a regra do parceiro.
@@ -73,11 +76,11 @@ Passos, nesta ordem:
    `supabase/config.toml` do repositório: ele é o do ambiente local (localhost).
 3. **E-mail**: o projeto usa o e-mail padrão do Supabase, que envia poucos e-mails por hora e não é
    confiável. Nenhum fluxo do sistema depende dele: o cadastro pelo convite não manda e-mail, e a
-   nova senha do parceiro sai por um link que o diretor gera na ficha do parceiro (para diretor e
-   analista, `npm run reset-link -- --email <e-mail>`). Com um SMTP próprio (Authentication →
+   nova senha do parceiro sai por um link que o diretor gera na ficha do parceiro (para diretores,
+   `npm run reset-link -- --email <e-mail>`). Com um SMTP próprio (Authentication →
    SMTP Settings), o "Esqueci minha senha" da tela passa a funcionar sozinho.
-4. **Contas internas**: `npm run bootstrap -- --email <diretor> --role director --name "..." --password "..."`
-   e o mesmo com `--role analyst`.
+4. **Contas internas**: `npm run bootstrap -- --email <diretor> --role director --name "..." --password "..."`,
+   uma por pessoa (também para quem envia a planilha do BI).
 5. **Variáveis no servidor do app**: nenhuma é obrigatória (veja "Deploy").
 
 ## Deploy (Vercel)
@@ -138,7 +141,7 @@ Passos, nesta ordem:
 | `npm run db:clean`                                        | zera os dados do Supabase local (`tests/reset-data.sql`), sem recriar o schema                    |
 | `npm run db:push`                                         | aplica as migrations no banco de `SUPABASE_DB_URL` (projeto real); `-- --dry-run` só lista        |
 | `npm run db:types`                                        | regenera `src/lib/supabase/types.ts` depois de uma migration                                      |
-| `npm run bootstrap`                                       | cria diretor ou analista no Supabase de `.env.local`                                              |
+| `npm run bootstrap`                                       | cria um diretor no Supabase de `.env.local`                                                       |
 | `npm run bootstrap:local`                                 | o mesmo, no Supabase local                                                                        |
 | `npm run reset-link -- --email <e-mail>`                  | link de nova senha (1 hora, uso único) sem enviar e-mail; para parceiros, use a ficha do parceiro |
 

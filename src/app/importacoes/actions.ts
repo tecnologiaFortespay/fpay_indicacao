@@ -22,7 +22,7 @@ import { readFirstSheet, WorkbookError } from "@/lib/imports/xlsx";
 import { createClient } from "@/lib/supabase/server";
 
 export async function uploadImport(_previous: FormState, form: FormData): Promise<FormState> {
-  const user = await actionUser("director", "analyst");
+  const user = await actionUser("director");
   if (!user) {
     return deniedState("Você não tem permissão para importar.");
   }
@@ -66,7 +66,7 @@ export async function uploadImport(_previous: FormState, form: FormData): Promis
   }
   const hash = createHash("sha256").update(bytes).digest("hex");
   // A análise da IA roda nos envios do diretor; compara com as vidas do mês antes deste envio.
-  const withAi = user.profile.role === "director" && aiConfigured();
+  const withAi = aiConfigured();
   const livesBefore = withAi ? await livesByCnpj(competency) : null;
   const supabase = await createClient();
   const result = await supabase.rpc("import_lives", {

@@ -31,7 +31,7 @@ export function uniqueEmail(prefix: string): string {
 // Cria um usuário no Auth e, se pedido, o perfil correspondente.
 export async function createUser(
   admin: Client,
-  role: "director" | "analyst" | "partner" | null,
+  role: "director" | "partner" | null,
   partnerId: string | null = null,
 ): Promise<{ id: string; email: string }> {
   const email = uniqueEmail(role ?? "user");

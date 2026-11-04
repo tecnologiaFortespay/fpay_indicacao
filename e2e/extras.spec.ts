@@ -20,7 +20,7 @@ import {
 let staff: Staff;
 
 test.beforeAll(async () => {
-  staff = await resetAndSeedStaff({ director: "Diretor Extras", analyst: "Analista Extras" });
+  staff = await resetAndSeedStaff({ director: "Diretor Extras", bi: "Equipe BI Extras" });
 });
 
 test("senha errada é recusada sem revelar detalhes", async ({ page }) => {
@@ -51,7 +51,7 @@ test("convite expirado não abre o cadastro", async ({ page }) => {
 });
 
 test("planilha sem as colunas do BI é recusada com explicação", async ({ page }) => {
-  await login(page, staff.analyst.email, PASSWORD);
+  await login(page, staff.bi.email, PASSWORD);
   await upload(
     page,
     "estranha.xlsx",
@@ -155,7 +155,7 @@ test("endereço inexistente mostra a página em português", async ({ page }) =>
   }
 });
 
-test("IA analisa o envio do diretor e aponta CNPJ possivelmente errado; analista não vê", async ({
+test("IA analisa o envio de quem manda a planilha e aponta CNPJ possivelmente errado", async ({
   browser,
   baseURL,
 }) => {
@@ -194,16 +194,10 @@ test("IA analisa o envio do diretor e aponta CNPJ possivelmente errado; analista
   );
   await resetFakeRequests();
 
-  const analyst = await actor(browser, baseURL ?? "http://localhost:3100");
-  await login(analyst, staff.analyst.email, PASSWORD);
-  await upload(analyst, "analista.xlsx", month, sheet);
-  await expect(analyst).toHaveURL(/\/importacoes\/[0-9a-f-]{36}$/);
-  await expect(analyst.getByRole("region", { name: "Análise da IA" })).toHaveCount(0);
-  expect(await fakeRequests()).toHaveLength(0);
-
+  // Quem envia a planilha usa um login de diretor: o envio já pede a análise.
   const director = await actor(browser, baseURL ?? "http://localhost:3100");
-  await login(director, staff.director.email, PASSWORD);
-  await upload(director, "diretor.xlsx", month, sheet);
+  await login(director, staff.bi.email, PASSWORD);
+  await upload(director, "bi.xlsx", month, sheet);
   await expect(director).toHaveURL(/\/importacoes\/[0-9a-f-]{36}$/);
   const panel = director.getByRole("region", { name: "Análise da IA" });
   await expect(panel).toBeVisible();
@@ -227,9 +221,6 @@ test("IA analisa o envio do diretor e aponta CNPJ possivelmente errado; analista
       candidatos_no_arquivo: [expect.objectContaining({ empresa: "PADARIA PAO QUENTE LTDA" })],
     }),
   ]);
-
-  await analyst.goto(director.url().replace(/^https?:\/\/[^/]+/, ""));
-  await expect(analyst.getByText(FAKE_IMPORT_SUMMARY)).toHaveCount(0);
 });
 
 test("link de nova senha gerado sem e-mail (npm run reset-link) troca a senha", async ({
@@ -237,7 +228,7 @@ test("link de nova senha gerado sem e-mail (npm run reset-link) troca a senha", 
 }) => {
   const { data, error } = await adminClient().auth.admin.generateLink({
     type: "recovery",
-    email: staff.analyst.email,
+    email: staff.bi.email,
   });
   expect(error).toBeNull();
   await page.goto(`/auth/confirm?token_hash=${data.properties?.hashed_token}&type=recovery`);
@@ -246,8 +237,8 @@ test("link de nova senha gerado sem e-mail (npm run reset-link) troca a senha", 
   await page.getByLabel("Confirme a nova senha").fill("Senha-nova-link-1");
   await page.getByRole("button", { name: "Salvar nova senha" }).click();
   await expect(page).toHaveURL(/\/login\?senha=alterada$/);
-  await login(page, staff.analyst.email, "Senha-nova-link-1");
-  await expect(page).toHaveURL(/\/importacoes$/);
+  await login(page, staff.bi.email, "Senha-nova-link-1");
+  await expect(page).toHaveURL(/\/inicio$/);
 
   await page.context().clearCookies();
   await page.goto(`/auth/confirm?token_hash=${data.properties?.hashed_token}&type=recovery`);

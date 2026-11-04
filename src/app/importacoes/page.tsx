@@ -27,7 +27,7 @@ export const maxDuration = 300;
 type PageProps = { searchParams: Promise<{ page?: string }> };
 
 export default async function ImportsPage({ searchParams }: PageProps) {
-  await requireRole("director", "analyst");
+  await requireRole("director");
   const params = await searchParams;
   const page = Math.max(1, Math.min(100000, Number(params.page) || 1));
   const [{ items, total }, last] = await Promise.all([listBatches(page), latestImport()]);

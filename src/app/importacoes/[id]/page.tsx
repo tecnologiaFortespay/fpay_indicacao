@@ -28,7 +28,7 @@ export const maxDuration = 300;
 type PageProps = { params: Promise<{ id: string }> };
 
 export default async function ImportDetailPage({ params }: PageProps) {
-  const user = await requireRole("director", "analyst");
+  await requireRole("director");
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) {
     redirect("/importacoes");
@@ -38,8 +38,7 @@ export default async function ImportDetailPage({ params }: PageProps) {
     notFound();
   }
   const { batch, rows } = result;
-  const director = user.profile.role === "director";
-  const review = director ? await latestReview({ batch_id: batch.id }) : null;
+  const review = await latestReview({ batch_id: batch.id });
   const months = batch.competencies
     .map((date) => {
       const competency = dateToCompetency(date);
@@ -84,16 +83,14 @@ export default async function ImportDetailPage({ params }: PageProps) {
           ],
         ]}
       />
-      {director && (
-        <AiReviewPanel
-          title="Análise da IA"
-          description="A IA compara este envio com o anterior do mesmo mês e com o mês passado, aponta quedas, saltos e indicações que sumiram e, no momento do envio, procura no arquivo empresas que podem ser a indicação com o CNPJ digitado errado. Ela não altera nenhum dado."
-          review={review}
-          configured={aiConfigured()}
-          action={analyzeImport}
-          fields={{ batch_id: batch.id }}
-        />
-      )}
+      <AiReviewPanel
+        title="Análise da IA"
+        description="A IA compara este envio com o anterior do mesmo mês e com o mês passado, aponta quedas, saltos e indicações que sumiram e, no momento do envio, procura no arquivo empresas que podem ser a indicação com o CNPJ digitado errado. Ela não altera nenhum dado."
+        review={review}
+        configured={aiConfigured()}
+        action={analyzeImport}
+        fields={{ batch_id: batch.id }}
+      />
       <SectionCard
         title={`Linhas ignoradas ou mescladas (${rows.length})`}
         subtitle="Linhas que não entraram como vieram, com o motivo. Empresas sem indicação na plataforma só são contadas."

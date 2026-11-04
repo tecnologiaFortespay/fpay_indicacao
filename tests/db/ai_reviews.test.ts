@@ -12,16 +12,16 @@ import {
 } from "./helpers";
 
 let director: Client;
-let analyst: Client;
+let noProfile: Client;
 let partner: Client;
 let batchId: string;
 
 beforeAll(async () => {
   const admin = adminClient();
   const directorUser = await createUser(admin, "director");
-  const analystUser = await createUser(admin, "analyst");
+  const noProfileUser = await createUser(admin, null);
   director = await userClient(directorUser.email);
-  analyst = await userClient(analystUser.email);
+  noProfile = await userClient(noProfileUser.email);
   const partnerRow = ok(
     await admin
       .from("partners")
@@ -33,7 +33,7 @@ beforeAll(async () => {
   const partnerUser = await createUser(admin, "partner", partnerRow.id);
   partner = await userClient(partnerUser.email);
   batchId = ok(
-    await analyst.rpc("import_lives", {
+    await director.rpc("import_lives", {
       batch: batch("ia.xlsx", "2099-09-01"),
       rows: rows([[CNPJ_A, "2099-09-01", 5]]),
     }),
@@ -77,8 +77,8 @@ describe("análises da IA: só o diretor", () => {
     expect(again.error?.details).toBe("Análise não encontrada ou já concluída.");
   });
 
-  it("analista e parceiro não leem nem abrem análises", async () => {
-    for (const client of [analyst, partner]) {
+  it("conta sem perfil e parceiro não leem nem abrem análises", async () => {
+    for (const client of [noProfile, partner]) {
       const read = ok(await client.from("ai_reviews").select("id"), "ai_reviews (other roles)");
       expect(read).toEqual([]);
       const start = await client.rpc("start_ai_review", { subject: { batch_id: batchId } });

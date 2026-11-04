@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Notice } from "@/components/notice";
@@ -35,9 +34,6 @@ type PageProps = { searchParams: Promise<{ competency?: string }> };
 
 export default async function HomePage({ searchParams }: PageProps) {
   const user = await requireUser();
-  if (user.profile.role === "analyst") {
-    redirect("/importacoes");
-  }
   const params = await searchParams;
   if (user.profile.role === "partner") {
     return <PartnerPanel user={user} requestedCompetency={params.competency} />;

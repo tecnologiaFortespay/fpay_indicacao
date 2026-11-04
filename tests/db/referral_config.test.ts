@@ -7,7 +7,7 @@ import { adminClient, batch, createUser, done, ok, rows, userClient, type Client
 
 let admin: Client;
 let director: Client;
-let analyst: Client;
+let noProfile: Client;
 let partner: Client;
 let partnerId: string;
 let plainId: string;
@@ -34,7 +34,7 @@ async function months(referralId: string) {
 beforeAll(async () => {
   admin = adminClient();
   director = await userClient((await createUser(admin, "director")).email);
-  analyst = await userClient((await createUser(admin, "analyst")).email);
+  noProfile = await userClient((await createUser(admin, null)).email);
   await admin.from("referrals").delete().in("cnpj", [PLAIN, CUSTOM, OWN]);
   await admin.from("companies").delete().in("cnpj", [PLAIN, CUSTOM, OWN]);
   partnerId = ok(
@@ -153,17 +153,17 @@ describe("configuração da indicação", () => {
     expect(longTerm.error?.details).toBe("Prazo entre 1 e 120 meses; em branco usa o do parceiro.");
   });
 
-  it("só o diretor configura: parceiro e analista são recusados", async () => {
+  it("só o diretor configura: parceiro e conta sem perfil são recusados", async () => {
     const byPartner = await partner.rpc("set_referral_config", {
       target: customId,
       payload: { value_per_life: "9.00", term_months: "" },
     });
     expect(byPartner.error?.code).toBe("42501");
-    const byAnalyst = await analyst.rpc("set_referral_config", {
+    const byNoProfile = await noProfile.rpc("set_referral_config", {
       target: customId,
       payload: { value_per_life: "9.00", term_months: "" },
     });
-    expect(byAnalyst.error?.code).toBe("42501");
+    expect(byNoProfile.error?.code).toBe("42501");
     const ownWithConfig = await partner.rpc("create_referral", {
       payload: { cnpj: OWN, company_name: "Própria", value_per_life: "5.00" },
     });

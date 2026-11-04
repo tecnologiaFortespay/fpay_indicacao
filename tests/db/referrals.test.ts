@@ -5,7 +5,7 @@ import { adminClient, batch, createUser, done, ok, rows, userClient, type Client
 
 let admin: Client;
 let director: Client;
-let analyst: Client;
+let noProfile: Client;
 let natal: Client;
 let manaus: Client;
 let natalId: string;
@@ -46,9 +46,9 @@ async function status(client: Client, cnpj: string): Promise<string> {
 beforeAll(async () => {
   admin = adminClient();
   const directorUser = await createUser(admin, "director");
-  const analystUser = await createUser(admin, "analyst");
+  const noProfileUser = await createUser(admin, null);
   director = await userClient(directorUser.email);
-  analyst = await userClient(analystUser.email);
+  noProfile = await userClient(noProfileUser.email);
   natalId = await activePartner(`Unidade Natal ${Date.now()}`);
   manausId = await activePartner(`Unidade Manaus ${Date.now()}`);
   natal = await partnerClient(natalId);
@@ -114,7 +114,7 @@ describe("fatia 3 — indicações com 7 situações e CNPJ único", () => {
     expect(company).toEqual([]);
   });
 
-  it("diretor muda a situação só pelas transições permitidas; analista não muda", async () => {
+  it("diretor muda a situação só pelas transições permitidas; conta sem perfil não muda", async () => {
     const id = ok(
       await director.from("referrals").select("id").eq("cnpj", CNPJ_Y).single(),
       "id",
@@ -134,8 +134,11 @@ describe("fatia 3 — indicações com 7 situações e CNPJ único", () => {
     expect(await status(natal, CNPJ_Y)).toBe("negotiating");
     done(await director.rpc("set_referral_status", { target: id, new_status: "signed" }), "signed");
     expect(await status(natal, CNPJ_Y)).toBe("signed");
-    const byAnalyst = await analyst.rpc("set_referral_status", { target: id, new_status: "lost" });
-    expect(byAnalyst.error?.code).toBe("42501");
+    const byNoProfile = await noProfile.rpc("set_referral_status", {
+      target: id,
+      new_status: "lost",
+    });
+    expect(byNoProfile.error?.code).toBe("42501");
     const byPartner = await natal.rpc("set_referral_status", { target: id, new_status: "lost" });
     expect(byPartner.error?.code).toBe("42501");
   });

@@ -348,9 +348,6 @@ isOneToOne: false
 "invitation_token_hash":
 { Args: { "secret": string }; Returns: string
                            },
-"is_analyst":
-{ Args: Record<PropertyKey, never>; Returns: boolean
-                           },
 "is_closed_competency":
 { Args: { "month": string }; Returns: boolean
                            },

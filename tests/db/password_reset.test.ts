@@ -6,7 +6,7 @@ import { adminClient, createUser, done, ok, PASSWORD, userClient, type Client } 
 
 let admin: Client;
 let director: Client;
-let analyst: Client;
+let noProfile: Client;
 let partnerUser: { id: string; email: string };
 
 function anonClient(): Client {
@@ -28,7 +28,7 @@ function secret(): string {
 beforeAll(async () => {
   admin = adminClient();
   director = await userClient((await createUser(admin, "director")).email);
-  analyst = await userClient((await createUser(admin, "analyst")).email);
+  noProfile = await userClient((await createUser(admin, null)).email);
   const partner = ok(
     await admin
       .from("partners")
@@ -42,7 +42,7 @@ beforeAll(async () => {
 
 describe("link de nova senha gerado pelo diretor", () => {
   it("só o diretor gera o link", async () => {
-    for (const client of [analyst, await userClient(partnerUser.email)]) {
+    for (const client of [noProfile, await userClient(partnerUser.email)]) {
       const denied = await client.rpc("create_password_reset", {
         target: partnerUser.id,
         secret: secret(),

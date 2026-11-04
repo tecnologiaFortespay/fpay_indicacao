@@ -9,4 +9,4 @@ execSync(`docker exec -i ${container} psql -U postgres -d postgres -v ON_ERROR_S
   input: readFileSync("tests/reset-data.sql"),
   stdio: ["pipe", "inherit", "inherit"],
 });
-console.log("Banco local zerado. Crie diretor e analista com npm run bootstrap:local.");
+console.log("Banco local zerado. Crie um diretor com npm run bootstrap:local.");

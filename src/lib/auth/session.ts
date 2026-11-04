@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const profileSchema = z.object({
   user_id: z.uuid(),
-  role: z.enum(["director", "analyst", "partner"]),
+  role: z.enum(["director", "partner"]),
   display_name: z.string(),
   partner: z
     .object({
@@ -69,9 +69,6 @@ export function hasAccess(user: SessionUser): user is AuthorizedUser {
 export function landingPath(user: SessionUser): string {
   if (!user.profile) {
     return "/sem-acesso";
-  }
-  if (user.profile.role === "analyst") {
-    return "/importacoes";
   }
   if (user.profile.role === "partner" && user.profile.partner?.status !== "active") {
     return "/cadastro-em-analise";

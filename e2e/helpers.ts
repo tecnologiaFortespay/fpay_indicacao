@@ -15,15 +15,13 @@ const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://127.0.0.1:54344";
 
 export type Staff = {
   director: { id: string; email: string };
-  analyst: { id: string; email: string };
+  // Quem envia a planilha do BI: outro login de diretor.
+  bi: { id: string; email: string };
 };
 
-// Banco local zerado (tests/reset-data.sql, TRUNCATE direto no Postgres) e diretor e analista
+// Banco local zerado (tests/reset-data.sql, TRUNCATE direto no Postgres) e dois diretores
 // criados como no `npm run bootstrap`.
-export async function resetAndSeedStaff(names: {
-  director: string;
-  analyst: string;
-}): Promise<Staff> {
+export async function resetAndSeedStaff(names: { director: string; bi: string }): Promise<Staff> {
   const container = process.env.SUPABASE_DB_CONTAINER ?? "supabase_db_fpay_indicacao";
   execSync(`docker exec -i ${container} psql -U postgres -d postgres -v ON_ERROR_STOP=1 -q -f -`, {
     input: readFileSync("tests/reset-data.sql"),
@@ -35,18 +33,18 @@ export async function resetAndSeedStaff(names: {
     name: names.director,
     password: PASSWORD,
   });
-  const analyst = await ensureStaffUser({
-    email: "analista.e2e@fortespay.local",
-    role: "analyst",
-    name: names.analyst,
+  const bi = await ensureStaffUser({
+    email: "bi.e2e@fortespay.local",
+    role: "director",
+    name: names.bi,
     password: PASSWORD,
   });
-  return { director, analyst };
+  return { director, bi };
 }
 
 export { adminClient };
 
-// Uma sessão de navegador por pessoa (diretor, analista, cada parceiro).
+// Uma sessão de navegador por pessoa (cada diretor, cada parceiro).
 export async function actor(browser: Browser, baseURL: string): Promise<Page> {
   const context = await browser.newContext({
     baseURL,

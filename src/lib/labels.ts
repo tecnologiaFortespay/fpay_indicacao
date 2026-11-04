@@ -1,7 +1,6 @@
 // Textos de interface em português, centralizados por domínio.
 export const roleLabels = {
   director: "Diretor",
-  analyst: "Analista de dados",
   partner: "Parceiro",
 } as const;
 

@@ -5,7 +5,7 @@ import { adminClient, batch, createUser, done, ok, rows, userClient, type Client
 
 let admin: Client;
 let director: Client;
-let analyst: Client;
+let noProfile: Client;
 let natalId: string;
 let teresinaId: string;
 let natalClient: Client;
@@ -54,9 +54,9 @@ async function items(competency: string) {
 beforeAll(async () => {
   admin = adminClient();
   const directorUser = await createUser(admin, "director");
-  const analystUser = await createUser(admin, "analyst");
+  const noProfileUser = await createUser(admin, null);
   director = await userClient(directorUser.email);
-  analyst = await userClient(analystUser.email);
+  noProfile = await userClient(noProfileUser.email);
   // Estado limpo para estes meses (o banco local é compartilhado entre execuções).
   await admin.from("closings").delete().in("competency", [AUGUST, SEPTEMBER, OCTOBER]);
   await admin.from("monthly_lives").delete().in("cnpj", [CNPJ_N, CNPJ_T]);
@@ -121,8 +121,8 @@ describe("fatia 4 — fechamento mensal", () => {
     expect(blocker).toBe(AUGUST);
     const skipAugust = await director.rpc("prepare_closing", { month: SEPTEMBER });
     expect(skipAugust.error?.details).toBe(`Feche primeiro o mês ${AUGUST_LABEL}.`);
-    const analystBlocker = await analyst.rpc("closing_blocker", { month: SEPTEMBER });
-    expect(analystBlocker.error?.code).toBe("42501");
+    const noProfileBlocker = await noProfile.rpc("closing_blocker", { month: SEPTEMBER });
+    expect(noProfileBlocker.error?.code).toBe("42501");
     // Importação datada de dentro do mês não libera agosto.
     const batches = ok(
       await admin
@@ -150,8 +150,8 @@ describe("fatia 4 — fechamento mensal", () => {
         "restore",
       );
     }
-    const analystTry = await analyst.rpc("prepare_closing", { month: AUGUST });
-    expect(analystTry.error?.code).toBe("42501");
+    const noProfileTry = await noProfile.rpc("prepare_closing", { month: AUGUST });
+    expect(noProfileTry.error?.code).toBe("42501");
   });
 
   it("prepara agosto com vidas × valor e saldo anterior zero; ajuste é preservado ao recalcular", async () => {
@@ -314,11 +314,11 @@ describe("fatia 4 — fechamento mensal", () => {
     expect(onAccumulated.error?.details).toBe(
       "Só a linha paga de um mês fechado recebe a forma de pagamento.",
     );
-    const byAnalyst = await analyst.rpc("set_payment_note", {
+    const byNoProfile = await noProfile.rpc("set_payment_note", {
       target: paidItem?.id ?? "",
       note: "x",
     });
-    expect(byAnalyst.error?.code).toBe("42501");
+    expect(byNoProfile.error?.code).toBe("42501");
     ok(
       await director.rpc("save_partner_rule", {
         payload: {
@@ -359,7 +359,7 @@ describe("fatia 4 — fechamento mensal", () => {
     expect(closed.teresina?.decision).toBe("pay");
   });
 
-  it("parceiro lê só os próprios itens de meses fechados; analista não lê fechamentos", async () => {
+  it("parceiro lê só os próprios itens de meses fechados; conta sem perfil não lê fechamentos", async () => {
     const own = ok(
       await natalClient.from("closing_items").select("partner_id, total, decision").order("total"),
       "own items",
@@ -371,8 +371,8 @@ describe("fatia 4 — fechamento mensal", () => {
       "closings as partner",
     );
     expect(closings.map((closing) => closing.competency).sort()).toEqual([AUGUST, SEPTEMBER]);
-    const forAnalyst = ok(await analyst.from("closings").select("id"), "closings as analyst");
-    expect(forAnalyst).toEqual([]);
+    const forNoProfile = ok(await noProfile.from("closings").select("id"), "closings as noProfile");
+    expect(forNoProfile).toEqual([]);
     const denied = await natalClient.rpc("close_closing", {
       target: (await items(SEPTEMBER)).closing.id,
       paid_partner_ids: [],

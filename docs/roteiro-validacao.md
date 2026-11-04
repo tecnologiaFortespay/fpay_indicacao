@@ -22,22 +22,22 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 - **Banco limpo** e **uma pessoa por vez** seguindo o roteiro: dois testes ao mesmo tempo usam os
   mesmos CNPJs e os mesmos meses e um atrapalha o outro.
 - Navegador **Chrome** (o seletor de mês do Firefox e do Safari é uma caixa de texto: digite AAAA-MM).
-  Use janelas separadas (ou perfis) para diretor, analista e cada parceiro: duas janelas anônimas
+  Use janelas separadas (ou perfis) para o diretor e para cada parceiro: duas janelas anônimas
   do mesmo navegador dividem a mesma sessão.
-- Contas: diretor e analista criados pela equipe técnica (`npm run bootstrap`). Cada parceiro precisa
-  de um e-mail diferente (ex.: `seunome+teresina@empresa.com.br`).
+- Dois perfis: **diretor** (quem envia a planilha do BI usa o mesmo acesso) e **parceiro**. O login
+  de diretor é criado pela equipe técnica (`npm run bootstrap`). Cada parceiro precisa de um e-mail
+  diferente (ex.: `seunome+teresina@empresa.com.br`).
 - Três planilhas do BI "Detalhamento Empresas" (Excel, como sai do Power BI): [M-2], [M-1] e [M0].
   Em cada uma, anote 4 CNPJs que você vai indicar (A, B, D, E) e o C. Cash-in deles. C e F são CNPJs
   válidos que **não** estão em nenhuma planilha (para F, use `88.999.000/1001-41`).
-- O e-mail do Supabase não é confiável: a troca de senha por e-mail (1.4) pode não chegar. Os
-  outros passos não dependem de e-mail.
+- O e-mail do Supabase não é confiável: a troca de senha por e-mail (12.4, opcional) pode não
+  chegar. Os outros passos não dependem de e-mail.
 
 ## Bloco 1 — Acesso
 
 1.1. Abrir / sem login → tela de login; /inicio, /parceiros, /fechamento levam ao login.
 1.2. Entrar como diretor → Visão geral; menu: Visão geral, Parceiros, Indicações, Importações, Fechamento do mês.
-1.3. Entrar como analista → Importações; menu só com Importações. Digitar /parceiros → volta para Importações.
-1.4. Esqueci minha senha com o e-mail do analista → e-mail com o link → Definir nova senha → entrar com a nova funciona; a antiga não. **Se o e-mail não chegar em 5 minutos, anote "e-mail não chegou" e siga**: o caminho garantido é o link gerado pelo diretor (bloco 12).
+1.3. Entrar com a senha errada → "E-mail ou senha incorretos.", sem dizer qual dos dois está errado.
 
 ## Bloco 2 — Convite e aprovação (3 parceiros)
 
@@ -66,12 +66,12 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 
 ## Bloco 4 — Importação ([M-2] e [M-1])
 
-4.1. Analista → Importações → Mês de referência [M-2] → planilha de [M-2] → detalhe do envio: linhas lidas, importadas (só A, B, D, E), fora da plataforma (as outras empresas, sem gravar), ignoradas (CPF/CNPJ inválido, com motivo).
+4.1. Diretor → Importações → Mês de referência [M-2] → planilha de [M-2] → detalhe do envio: linhas lidas, importadas (só A, B, D, E), fora da plataforma (as outras empresas, sem gravar), ignoradas (CPF/CNPJ inválido, com motivo).
 4.2. Escolher [M-1] e enviar a planilha de [M-2] → recusado: o rodapé "Filtros aplicados" não bate com o mês.
 4.3. [M-2] de novo → envio novo; vidas iguais (substitui, não soma).
 4.4. [M-1] → planilha de [M-1] → OK.
 4.5. Mês [M+1] → o navegador recusa mês futuro.
-4.6. Diretor → Importações → envios com data, hora e quem enviou; abre o detalhe. Analista não vê Parceiros/Indicações.
+4.6. Diretor → Importações → envios com data, hora e quem enviou; o detalhe de cada envio abre.
 4.7. Diretor → Indicações → A, B, D, E **Ativa** com "Rende desde [M-2]". C Perdida.
 
 ## Bloco 5 — Cálculo e painéis
@@ -80,7 +80,7 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 5.2. [M-1]: recalculado com as vidas de [M-1].
 5.3. Teresina → Meu painel → [M-2]: cartão "[M-2] · prévia" com "Sua regra no mês: R$ 1,50 por vida · sem prazo", vidas e valor previsto; Minhas indicações só com A e B; "Rendendo comissão" conta 2.
 5.4. Contador → Meu painel: "Sua regra no mês: R$ 1,50 por vida · prazo de 12 meses"; E com "12 meses: [M-2] a …".
-5.5. Analista envia de novo [M-1] com A +8 vidas → Teresina recarrega: vidas e "Prévia com a base do BI de …" mudam.
+5.5. Diretor envia de novo [M-1] com A +8 vidas → Teresina recarrega: vidas e "Prévia com a base do BI de …" mudam.
 
 ## Bloco 6 — Fechamento de [M-2] (com acúmulo)
 
@@ -91,7 +91,7 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 6.5. **Fechar lote** sem marcar a conferência → "Confirme que conferiu…". Marcar Teresina e Natal, não marcar o Contador, marcar a conferência → "Lote fechado. Nada mais entra neste mês."; título "[M-2] · Fechado"; as três etapas concluídas.
 6.6. Teresina e Natal "Pagar"; Contador "Acumular".
 6.7. Visão geral → "Saldo acumulado a pagar" = valor do Contador em [M-2], na linha dele e no total.
-6.8. Analista reenvia [M-2] → linhas "Mês já fechado"; o fechamento não muda.
+6.8. Diretor reenvia [M-2] → linhas "Mês já fechado"; o fechamento não muda.
 6.9. Contador → Nova vigência a partir de [M-2] → recusada (mês fechado). A partir de [M0] → aceita.
 6.10. Teresina → Meus fechamentos → [M-2]: vidas, valor, saldo que vinha de antes 0, total, Pagar → **Confirmar valor** → "Resposta registrada…" e "Você confirmou em …".
 6.11. Natal → [M-2] mostra o ajuste -10 com o motivo. Contestar sem texto → "Explique o que não confere". Com texto → "Você contestou em …".
@@ -109,10 +109,10 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 
 O mês em andamento pode ser enviado várias vezes; cada envio substitui o mês e atualiza a prévia. Envio do mês em andamento é **parcial**: não marca ninguém como inadimplente. O envio feito **depois que o mês termina** completa o mês e marca como Inadimplente a indicação ativa sem vidas.
 
-8.1. Analista → [M0] → planilha de [M0] sem o CNPJ B → envio "[M0] (parcial)".
+8.1. Diretor → Importações → [M0] → planilha de [M0] sem o CNPJ B → envio "[M0] (parcial)".
 8.2. Diretor → Indicações → A, B, D, E continuam Ativa.
 8.3. Teresina → Meu painel → [M0]: B "Rendendo" com 0 vidas; A com vidas × 1,80.
-8.4. Analista → nova planilha parcial de [M0] com mais vidas em A → Teresina vê o novo número de A (substitui, não soma).
+8.4. Diretor → nova planilha parcial de [M0] com mais vidas em A → Teresina vê o novo número de A (substitui, não soma).
 8.5. Diretor muda D para Cancelada → Natal → [M0]: D não conta; [M-2] e [M-1] mostram o valor oficial, inalterados.
 8.6. Visão geral → Indicações por etapa: Ativa 3, Inadimplente 0, Cancelada 1, Perdida 1.
 8.7. (À mão, no mês seguinte) planilha final de [M0] enviada depois do dia 1º, sem B → B Inadimplente; o envio aparece como "mês completo". Coberto no teste de banco.
@@ -120,9 +120,8 @@ O mês em andamento pode ser enviado várias vezes; cada envio substitui o mês 
 ## Bloco 9 — Isolamento
 
 9.1. Teresina abre pela URL a ficha de Natal (/parceiros/<id>), /fechamento, /importacoes → volta para Meu painel, sem dado alheio.
-9.2. Analista abre /fechamento ou /parceiros → volta para Importações, sem mensagem (redirecionamento silencioso). As chamadas diretas ao banco são cobertas pelo teste automático.
-9.3. Parceiro pendente (novo convite, cadastro sem aprovar) → /inicio continua em Cadastro em análise.
-9.4. Ctrl+U em qualquer tela, procurar `service_role` → nada.
+9.2. Parceiro pendente (novo convite, cadastro sem aprovar) → /inicio continua em Cadastro em análise.
+9.3. Ctrl+U em qualquer tela, procurar `service_role` → nada.
 
 ## Bloco 10 — Valor e prazo da indicação e "como foi pago"
 
@@ -139,15 +138,15 @@ Exige a chave da IA no servidor (`/status` mostra `"ia":"ligada"`). Sem ela, as 
 
 11.1. Diretor → Importações → enviar a planilha de [M0] → no envio, "Análise da IA" fica "analisando" e, em geral em menos de um minuto, mostra resumo e alertas.
 11.2. Registrar em nome de Natal uma empresa G que **está** na planilha de [M0], com o mesmo nome do BI e o CNPJ `77.123.456/0001-73` (válido, mas errado de propósito) → novo envio de [M0] → um alerta aponta G como possível CNPJ errado.
-11.3. Analista → mesmo envio → nada da IA aparece; envio do analista não pede análise.
-11.4. **Faça no passo 7.1, antes de fechar [M-1]**: Fechamento → [M-1] preparado → "Analisar com IA" → resumo e alertas; recalcular depois mostra o aviso de revisão anterior ao cálculo.
-11.5. Parceiro → nenhuma tela mostra IA.
+11.3. **Faça no passo 7.1, antes de fechar [M-1]**: Fechamento → [M-1] preparado → "Analisar com IA" → resumo e alertas; recalcular depois mostra o aviso de revisão anterior ao cálculo.
+11.4. Parceiro → nenhuma tela mostra IA.
 
 ## Bloco 12 — Nova senha pelo diretor
 
 12.1. Diretor → Parceiros → ficha de um parceiro ativo → **Acesso ao sistema** → Gerar link de nova senha → o link aparece para copiar.
 12.2. Em outra janela, abrir o link → "Definir nova senha" com o nome do responsável e o e-mail → salvar → login mostra "Senha alterada" → entrar com a nova.
 12.3. Abrir o mesmo link de novo → "Link inválido ou expirado".
+12.4. (Opcional) Na tela de login, **Esqueci minha senha** com o e-mail de um parceiro de teste → e-mail com o link → Definir nova senha → entrar com a nova funciona. **Se o e-mail não chegar em 5 minutos, anote "e-mail não chegou"**: o caminho garantido é o link do diretor (12.1).
 
 ## Bloco 13 — O parceiro entende o que rende
 
@@ -169,7 +168,6 @@ Exige a chave da IA no servidor (`/status` mostra `"ia":"ligada"`). Sem ela, as 
 npm run db:start                 # Supabase local (Docker)
 npm run db:clean                 # banco limpo (tests/reset-data.sql)
 npm run bootstrap:local -- --email diretor@exemplo.com --role director --name "Denis" --password "Senha-forte-1"
-npm run bootstrap:local -- --email analista@exemplo.com --role analyst --name "Analista" --password "Senha-forte-2"
 npm run dev:local                # http://localhost:3000 contra o Supabase local
 ```
 

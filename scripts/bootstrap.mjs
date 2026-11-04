@@ -1,10 +1,11 @@
-// Cria (ou atualiza) um usuário interno — diretor ou analista de dados — com a chave service_role.
+// Cria (ou atualiza) uma conta interna da Fortes Pay — sempre diretor; quem envia a planilha do BI
+// também usa esse perfil — com a chave service_role.
 // Uso: npm run bootstrap -- --email denis@fortespay.com.br --role director --name "Denis" [--password ...]
 import { randomBytes } from "node:crypto";
 import { parseArgs } from "node:util";
 import { createClient } from "@supabase/supabase-js";
 
-const ROLES = ["director", "analyst"];
+const ROLES = ["director"];
 
 export function adminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -36,7 +37,9 @@ export async function findUserByEmail(admin, email) {
 
 export async function ensureStaffUser({ email, role, name, password }) {
   if (!ROLES.includes(role)) {
-    throw new Error(`Perfil inválido: ${role}. Use director ou analyst.`);
+    throw new Error(
+      `Perfil inválido: ${role}. Contas internas são sempre de diretor (--role director).`,
+    );
   }
   const admin = adminClient();
   const normalizedEmail = email.trim().toLowerCase();
@@ -82,16 +85,16 @@ async function main() {
       password: { type: "string" },
     },
   });
-  if (!values.email || !values.role) {
+  if (!values.email) {
     console.error(
-      "Uso: npm run bootstrap -- --email <e-mail> --role director|analyst --name <nome> [--password <senha>]",
+      "Uso: npm run bootstrap -- --email <e-mail> [--role director] --name <nome> [--password <senha>]",
     );
     process.exit(1);
   }
   const name = values.name ?? values.email.split("@")[0];
   const result = await ensureStaffUser({
     email: values.email,
-    role: values.role,
+    role: values.role ?? "director",
     name,
     password: values.password,
   });

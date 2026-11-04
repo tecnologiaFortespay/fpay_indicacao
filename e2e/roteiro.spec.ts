@@ -202,12 +202,13 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   const base = baseURL ?? "http://localhost:3100";
   const staff = await resetAndSeedStaff({
     director: "Diretor Roteiro",
-    analyst: "Analista Roteiro",
+    bi: "Equipe BI Roteiro",
   });
   await request.delete("http://127.0.0.1:54344/api/v1/messages");
   const anon = await actor(browser, base);
   const dir = await actor(browser, base);
-  const ana = await actor(browser, base);
+  // Quem envia a planilha do BI usa um login de diretor próprio (decisão 14).
+  const bi = await actor(browser, base);
   const ter = await actor(browser, base);
   const nat = await actor(browser, base);
   const con = await actor(browser, base);
@@ -237,40 +238,16 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     ]);
   });
 
-  await test.step("1.3 analista cai em Importações e só vê Importações", async () => {
-    await login(ana, staff.analyst.email, PASSWORD);
-    await expect(ana).toHaveURL(/\/importacoes$/);
-    expect(await navLabels(ana)).toEqual(["Importações"]);
-    await ana.goto("/parceiros");
-    await expect(ana).toHaveURL(/\/importacoes$/);
-  });
-
-  await test.step("1.4 esqueci minha senha pelo Mailpit; a nova entra, a antiga não", async () => {
-    const page = await actor(browser, base);
-    await page.goto("/login");
-    await page.getByRole("link", { name: "Esqueci minha senha" }).click();
-    await expect(page).toHaveURL(/\/esqueci-senha$/);
-    await page.getByLabel("E-mail", { exact: true }).fill(staff.analyst.email);
-    await page.getByRole("button", { name: "Enviar link" }).click();
-    await expect(page.getByRole("status").filter({ hasText: "Se houver uma conta" })).toBeVisible();
-    await page.goto(await recoveryLink(request, staff.analyst.email));
-    await expect(page.getByRole("heading", { level: 1, name: "Definir nova senha" })).toBeVisible();
-    await page.getByLabel("Nova senha (mínimo de 8 caracteres)").fill(NEW_PASSWORD);
-    await page.getByLabel("Confirme a nova senha").fill(NEW_PASSWORD);
-    await page.getByRole("button", { name: "Salvar nova senha" }).click();
-    await expect(page).toHaveURL(/\/login\?senha=alterada$/);
-    await login(page, staff.analyst.email, NEW_PASSWORD);
-    await expect(page).toHaveURL(/\/importacoes$/);
-    const old = await actor(browser, base);
-    await old.goto("/login");
-    await old.getByLabel("E-mail", { exact: true }).fill(staff.analyst.email);
-    await old.getByLabel("Senha", { exact: true }).fill(PASSWORD);
-    await old.getByRole("button", { name: "Entrar", exact: true }).click();
+  await test.step("1.3 senha errada é recusada sem dizer qual campo errou", async () => {
+    await anon.goto("/login");
+    await anon.getByLabel("E-mail", { exact: true }).fill(staff.director.email);
+    await anon.getByLabel("Senha", { exact: true }).fill("senha-errada-123");
+    await anon.getByRole("button", { name: "Entrar", exact: true }).click();
     await expect(
-      old.getByRole("alert").filter({ hasText: "E-mail ou senha incorretos." }),
+      anon.getByRole("alert").filter({ hasText: "E-mail ou senha incorretos." }),
     ).toBeVisible();
-    await ana.context().clearCookies();
-    await login(ana, staff.analyst.email, NEW_PASSWORD);
+    await login(bi, staff.bi.email, PASSWORD);
+    await expect(bi).toHaveURL(/\/inicio$/);
   });
 
   await test.step("2.1 sem Novo parceiro; convite de 7 dias, link exibido uma vez", async () => {
@@ -524,64 +501,60 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   });
 
   await test.step("4.1 export de agosto: importadas só A, B, D, E; o resto fora da plataforma", async () => {
-    await upload(ana, "Detalhamento Empresas - agosto.xlsx", AUG, AUGUST);
-    expect(await batchSummary(ana)).toEqual({ read: 14, imported: 4, skipped: 8, ignored: 2 });
-    await expect(ana.getByRole("cell", { name: "CNPJ inválido." })).toHaveCount(2);
+    await upload(bi, "Detalhamento Empresas - agosto.xlsx", AUG, AUGUST);
+    expect(await batchSummary(bi)).toEqual({ read: 14, imported: 4, skipped: 8, ignored: 2 });
+    await expect(bi.getByRole("cell", { name: "CNPJ inválido." })).toHaveCount(2);
   });
 
   await test.step("4.2 export de agosto informado como setembro é recusado", async () => {
-    await upload(ana, "Detalhamento Empresas - agosto.xlsx", SEP, AUGUST);
+    await upload(bi, "Detalhamento Empresas - agosto.xlsx", SEP, AUGUST);
     await expect(
-      ana.getByRole("alert").filter({
+      bi.getByRole("alert").filter({
         hasText: `O arquivo é de ${AUG_LABEL}, mas o mês escolhido foi ${SEP_LABEL}.`,
       }),
     ).toBeVisible();
   });
 
   await test.step("4.3 agosto de novo: lote novo, mesmas vidas", async () => {
-    await upload(ana, "Detalhamento Empresas - agosto.xlsx", AUG, AUGUST);
-    expect((await batchSummary(ana)).imported).toBe(4);
+    await upload(bi, "Detalhamento Empresas - agosto.xlsx", AUG, AUGUST);
+    expect((await batchSummary(bi)).imported).toBe(4);
   });
 
   await test.step("4.4 export de setembro", async () => {
-    await upload(ana, "Detalhamento Empresas - setembro.xlsx", SEP, SEPTEMBER);
+    await upload(bi, "Detalhamento Empresas - setembro.xlsx", SEP, SEPTEMBER);
     septemberAt = Date.now();
-    expect(await batchSummary(ana)).toEqual({ read: 14, imported: 4, skipped: 8, ignored: 2 });
+    expect(await batchSummary(bi)).toEqual({ read: 14, imported: 4, skipped: 8, ignored: 2 });
   });
 
   await test.step("4.5 novembro (futuro) é recusado", async () => {
-    await ana.goto("/importacoes");
-    const month = ana.getByLabel("Mês de referência", { exact: true });
+    await bi.goto("/importacoes");
+    const month = bi.getByLabel("Mês de referência", { exact: true });
     await month.fill(NOV);
-    await ana.getByLabel("Planilha do BI", { exact: true }).setInputFiles({
+    await bi.getByLabel("Planilha do BI", { exact: true }).setInputFiles({
       name: "novembro.xlsx",
       mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       buffer: Buffer.from(SEPTEMBER),
     });
-    await ana.getByRole("button", { name: "Importar", exact: true }).click();
+    await bi.getByRole("button", { name: "Importar", exact: true }).click();
     expect(await month.evaluate((input: HTMLInputElement) => input.validity.rangeOverflow)).toBe(
       true,
     );
     await month.evaluate((input: HTMLInputElement) => input.removeAttribute("max"));
-    await ana.getByRole("button", { name: "Importar", exact: true }).click();
+    await bi.getByRole("button", { name: "Importar", exact: true }).click();
     await expect(
-      ana.getByRole("alert").filter({ hasText: "O mês de referência não pode ser um mês futuro." }),
+      bi.getByRole("alert").filter({ hasText: "O mês de referência não pode ser um mês futuro." }),
     ).toBeVisible();
   });
 
-  await test.step("4.6 diretor vê os lotes com data, hora e autor; analista sem Parceiros", async () => {
+  await test.step("4.6 diretor vê os lotes com data, hora e quem enviou", async () => {
     await dir.goto("/importacoes");
     const batches = dir.locator("a.fp-action-row");
     await expect(batches).toHaveCount(3);
     await expect(batches.first()).toContainText(
-      /\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2} · Analista Roteiro/,
+      /\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2} · Equipe BI Roteiro/,
     );
     await batches.first().click();
     await expect(dir).toHaveURL(/\/importacoes\/[0-9a-f-]{36}$/);
-    for (const path of ["/parceiros", "/indicacoes"]) {
-      await ana.goto(path);
-      await expect(ana).toHaveURL(/\/importacoes$/);
-    }
   });
 
   await test.step("4.7 A, B, D, E Ativa com o primeiro mês pago; C Perdida", async () => {
@@ -601,7 +574,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     expect(await rowText(dir, "Contador Fulano")).toContain("10 R$ 1,50 R$ 15,00");
     expect(clean(await dir.locator("tfoot").innerText())).toContain("Total 110 R$ 190,00");
     await expect(
-      dir.getByText(/Planilha do BI enviada em .* por Analista Roteiro\./),
+      dir.getByText(/Planilha do BI enviada em .* por Equipe BI Roteiro\./),
     ).toBeVisible();
   });
 
@@ -645,8 +618,8 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     while (minuteOf(Date.now()) <= minuteOf(septemberAt)) {
       await ter.waitForTimeout(2000);
     }
-    await upload(ana, "Detalhamento Empresas - setembro (2).xlsx", SEP, SEPTEMBER_A8);
-    await batchSummary(ana);
+    await upload(bi, "Detalhamento Empresas - setembro (2).xlsx", SEP, SEPTEMBER_A8);
+    await batchSummary(bi);
     await ter.reload();
     await expect(ter.locator(".fp-kpi-value").first()).toHaveText("63");
     expect(clean(await note.innerText())).not.toBe(before);
@@ -734,10 +707,10 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   await test.step("6.8 reenviar agosto: linhas ignoradas, fechamento intacto", async () => {
     await dir.goto(`/fechamento?competency=${AUG}`);
     const before = clean(await dir.locator("tfoot").first().innerText());
-    await upload(ana, "Detalhamento Empresas - agosto.xlsx", AUG, AUGUST);
-    await batchSummary(ana);
+    await upload(bi, "Detalhamento Empresas - agosto.xlsx", AUG, AUGUST);
+    await batchSummary(bi);
     await expect(
-      ana.getByRole("cell", { name: `Mês já fechado (${AUG_NUMERIC}); a linha não entrou.` }),
+      bi.getByRole("cell", { name: `Mês já fechado (${AUG_NUMERIC}); a linha não entrou.` }),
     ).toHaveCount(4);
     await dir.reload();
     expect(clean(await dir.locator("tfoot").first().innerText())).toBe(before);
@@ -890,9 +863,9 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   });
 
   await test.step("8.1 export parcial de outubro sem B", async () => {
-    await upload(ana, "Detalhamento Empresas - outubro.xlsx", OCT, OCTOBER);
-    expect(await batchSummary(ana)).toEqual({ read: 13, imported: 3, skipped: 8, ignored: 2 });
-    await expect(ana.locator(".fp-facts")).toContainText(`${OCT_LABEL} (parcial)`);
+    await upload(bi, "Detalhamento Empresas - outubro.xlsx", OCT, OCTOBER);
+    expect(await batchSummary(bi)).toEqual({ read: 13, imported: 3, skipped: 8, ignored: 2 });
+    await expect(bi.locator(".fp-facts")).toContainText(`${OCT_LABEL} (parcial)`);
   });
 
   await test.step("8.2 arquivo parcial não marca inadimplência: A, B, D, E Ativa", async () => {
@@ -910,8 +883,8 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   });
 
   await test.step("8.4 novo envio parcial substitui o mês: A passa a 40 vidas", async () => {
-    await upload(ana, "Detalhamento Empresas - outubro (2).xlsx", OCT, OCTOBER_UPDATE);
-    expect(await batchSummary(ana)).toEqual({ read: 13, imported: 3, skipped: 8, ignored: 2 });
+    await upload(bi, "Detalhamento Empresas - outubro (2).xlsx", OCT, OCTOBER_UPDATE);
+    expect(await batchSummary(bi)).toEqual({ read: 13, imported: 3, skipped: 8, ignored: 2 });
     await ter.goto("/inicio");
     expect(await rowText(ter, A.company)).toContain("40 R$ 1,80 R$ 72,00");
     await expect(ter.locator(".fp-kpi-preview")).toContainText("R$ 72,00");
@@ -945,7 +918,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     }
   });
 
-  await test.step("9.1 Teresina não abre nada alheio pela URL", async () => {
+  await test.step("9.1 Teresina não abre nada alheio pela URL nem pela API", async () => {
     for (const path of [`/parceiros/${ids.natal}`, "/fechamento", "/importacoes"]) {
       await ter.goto(path);
       await expect(ter).toHaveURL(/\/inicio$/);
@@ -953,21 +926,18 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
         /Unidade Natal|Empresa D|Contador Fulano/,
       );
     }
-  });
-
-  await test.step("9.2 analista não chama fechamento nem regras, nem pela API", async () => {
-    for (const path of ["/fechamento", `/parceiros/${ids.teresina}`, "/indicacoes"]) {
-      await ana.goto(path);
-      await expect(ana).toHaveURL(/\/importacoes$/);
-    }
     const client = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
     expect(
-      (await client.auth.signInWithPassword({ email: staff.analyst.email, password: NEW_PASSWORD }))
-        .error,
+      (
+        await client.auth.signInWithPassword({
+          email: "teresina.e2e@fortespay.local",
+          password: PASSWORD,
+        })
+      ).error,
     ).toBeNull();
     const calls = await Promise.all([
       client.rpc("prepare_closing", { month: `${OCT}-01` }),
@@ -985,11 +955,12 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     for (const call of calls) {
       expect(call.error?.code).toBe("42501");
     }
-    expect((await client.from("partner_rules").select("id")).data).toEqual([]);
-    expect((await client.from("closing_items").select("id")).data).toEqual([]);
+    const rules = (await client.from("partner_rules").select("partner_id")).data ?? [];
+    expect(rules.every((rule) => rule.partner_id === ids.teresina)).toBe(true);
+    expect((await client.from("import_batches").select("id")).data).toEqual([]);
   });
 
-  await test.step("9.3 parceiro pendente continua em Cadastro em análise", async () => {
+  await test.step("9.2 parceiro pendente continua em Cadastro em análise", async () => {
     const link = await createInvite(dir, "Unidade Pendente", "Unidade");
     await register(pen, link, {
       contact: "Ana Pendente",
@@ -1002,8 +973,8 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(pen).toHaveURL(/\/cadastro-em-analise$/);
   });
 
-  await test.step("9.4 o navegador não recebe service_role", async () => {
-    for (const page of [dir, ter, ana, anon]) {
+  await test.step("9.3 o navegador não recebe service_role", async () => {
+    for (const page of [dir, ter, bi, anon]) {
       const sources = await page.evaluate(() =>
         Array.from(document.scripts)
           .map((script) => script.src)
@@ -1111,5 +1082,32 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     const row = await rowText(dir, F.company);
     expect(row).toContain("Unidade Natal");
     expect(row).toContain("R$ 3,00 por vida · 6 meses");
+  });
+
+  await test.step("12.4 esqueci minha senha por e-mail (Mailpit): a nova entra, a antiga não", async () => {
+    const email = "contador.e2e@fortespay.local";
+    const page = await actor(browser, base);
+    await page.goto("/login");
+    await page.getByRole("link", { name: "Esqueci minha senha" }).click();
+    await expect(page).toHaveURL(/\/esqueci-senha$/);
+    await page.getByLabel("E-mail", { exact: true }).fill(email);
+    await page.getByRole("button", { name: "Enviar link" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Se houver uma conta" })).toBeVisible();
+    await page.goto(await recoveryLink(request, email));
+    await expect(page.getByRole("heading", { level: 1, name: "Definir nova senha" })).toBeVisible();
+    await page.getByLabel("Nova senha (mínimo de 8 caracteres)").fill(NEW_PASSWORD);
+    await page.getByLabel("Confirme a nova senha").fill(NEW_PASSWORD);
+    await page.getByRole("button", { name: "Salvar nova senha" }).click();
+    await expect(page).toHaveURL(/\/login\?senha=alterada$/);
+    await login(page, email, NEW_PASSWORD);
+    await expect(page).toHaveURL(/\/inicio$/);
+    const old = await actor(browser, base);
+    await old.goto("/login");
+    await old.getByLabel("E-mail", { exact: true }).fill(email);
+    await old.getByLabel("Senha", { exact: true }).fill(PASSWORD);
+    await old.getByRole("button", { name: "Entrar", exact: true }).click();
+    await expect(
+      old.getByRole("alert").filter({ hasText: "E-mail ou senha incorretos." }),
+    ).toBeVisible();
   });
 });

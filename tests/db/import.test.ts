@@ -13,7 +13,7 @@ import {
 } from "./helpers";
 
 let director: Client;
-let analyst: Client;
+let noProfile: Client;
 let natalId: string;
 
 async function savePartner(client: Client, name: string) {
@@ -62,9 +62,9 @@ async function referralStatus(client: Client, cnpj: string) {
 beforeAll(async () => {
   const admin = adminClient();
   const directorUser = await createUser(admin, "director");
-  const analystUser = await createUser(admin, "analyst");
+  const noProfileUser = await createUser(admin, null);
   director = await userClient(directorUser.email);
-  analyst = await userClient(analystUser.email);
+  noProfile = await userClient(noProfileUser.email);
   // O banco local é compartilhado entre execuções: limpa o que estes CNPJs deixaram da última vez.
   const testCnpjs = [CNPJ_A, CNPJ_B, CNPJ_C];
   await admin.from("monthly_lives").delete().in("cnpj", testCnpjs);
@@ -237,24 +237,33 @@ describe("fatia 1 — importação e cálculo vidas × valor vigente", () => {
     ]);
   });
 
-  it("analista importa, mas não enxerga parceiros nem regras e não grava cadastro", async () => {
-    const partners = ok(await analyst.from("partners").select("id"), "partners as analyst");
+  it("conta sem perfil não enxerga parceiros nem regras, não grava cadastro e não importa", async () => {
+    const partners = ok(await noProfile.from("partners").select("id"), "partners without profile");
     expect(partners).toEqual([]);
-    const rules = ok(await analyst.from("partner_rules").select("id"), "rules as analyst");
+    const rules = ok(await noProfile.from("partner_rules").select("id"), "rules without profile");
     expect(rules).toEqual([]);
-    const denied = await analyst.rpc("save_partner", {
+    const denied = await noProfile.rpc("save_partner", {
       payload: { name: "X", kind: "unit" },
     });
     expect(denied.error?.code).toBe("42501");
+    const importDenied = await noProfile.rpc("import_lives", {
+      batch: batch("sem-perfil.csv"),
+      rows: rows([[CNPJ_B, "2099-10-01", 11]]),
+    });
+    expect(importDenied.error?.code).toBe("42501");
+    const batches = ok(
+      await noProfile.from("import_batches").select("id"),
+      "batches without profile",
+    );
+    expect(batches).toEqual([]);
+    // Quem envia a planilha usa o perfil de diretor: o mesmo envio, agora aceito.
     ok(
-      await analyst.rpc("import_lives", {
-        batch: batch("analista.csv"),
+      await director.rpc("import_lives", {
+        batch: batch("bi.csv"),
         rows: rows([[CNPJ_B, "2099-10-01", 11]]),
       }),
-      "import_lives as analyst",
+      "import_lives as director",
     );
-    const batches = ok(await analyst.from("import_batches").select("id"), "batches as analyst");
-    expect(batches.length).toBeGreaterThan(0);
   });
 
   it("importação rejeita linha inválida e CNPJ repetido no mesmo mês", async () => {

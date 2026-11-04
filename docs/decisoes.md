@@ -55,7 +55,7 @@ valem sobre o que ele diz.
     a nova senha do parceiro sai por um link que o diretor gera na ficha do parceiro ("Acesso do
     parceiro") e envia por conta própria. O link vale 24 horas e uma única vez; gerar outro
     invalida o anterior. Só o hash fica guardado (colunas em `profiles`, sem tabela nova). Para
-    diretor e analista, `npm run reset-link`. Com um SMTP próprio, o "Esqueci minha senha" volta
+    diretor, `npm run reset-link`. Com um SMTP próprio, o "Esqueci minha senha" volta
     a ser o caminho normal.
 
 ## 04/11/2026 — reforma de UX (aprovada pelo Diego: "reforma guiada")
@@ -69,3 +69,13 @@ valem sobre o que ele diz.
     glossário único (`src/lib/glossary.ts`): Valor por vida (R$), Vale a partir de, Prazo (meses),
     Vidas pagas, Prévia (mês em andamento) e Valor oficial (mês fechado). As regras de negócio não
     mudaram.
+
+## 04/11/2026 — perfis (pedido do Diego)
+
+14. **Dois perfis: diretor e parceiro.** O perfil de analista de dados sai (`docs/requisitos.md`,
+    seção 2, previa que ele só importasse). Quem exporta e envia a planilha do BI usa o perfil de
+    diretor, com o mesmo acesso: vê tudo, envia a planilha, pode fechar o mês e mudar regras, e a
+    análise da IA roda em todo envio. Recomendação registrada: um login de diretor por pessoa, para
+    o histórico (quem enviou, quem preparou, quem fechou, quem decidiu) mostrar quem fez cada coisa.
+    No banco, a migration `20261104000012_two_profiles.sql` converte quem fosse analista em
+    diretor, tira o perfil das políticas e da importação e só aceita `director` e `partner`.

@@ -15,7 +15,7 @@ import {
 
 let admin: Client;
 let director: Client;
-let analyst: Client;
+let noProfile: Client;
 
 function anonClient(): Client {
   return createClient<Database>(
@@ -50,9 +50,9 @@ async function registerWithNewUser(secret: string, payload: Record<string, strin
 beforeAll(async () => {
   admin = adminClient();
   const directorUser = await createUser(admin, "director");
-  const analystUser = await createUser(admin, "analyst");
+  const noProfileUser = await createUser(admin, null);
   director = await userClient(directorUser.email);
-  analyst = await userClient(analystUser.email);
+  noProfile = await userClient(noProfileUser.email);
 });
 
 describe("fatia 2 — convite, cadastro e aprovação", () => {
@@ -69,7 +69,7 @@ describe("fatia 2 — convite, cadastro e aprovação", () => {
     });
     const missing = await anonClient().rpc("invitation_preview", { secret: "nao-existe" });
     expect(missing.data).toBeNull();
-    const denied = await analyst.rpc("create_invitation", {
+    const denied = await noProfile.rpc("create_invitation", {
       payload: {
         partner_name: "X",
         kind: "unit",
@@ -154,11 +154,22 @@ describe("fatia 2 — convite, cadastro e aprovação", () => {
     done(
       await admin
         .from("profiles")
-        .insert({ user_id: account, role: "analyst", display_name: "Analista" }),
+        .insert({ user_id: account, role: "director", display_name: "Diretor" }),
       "profile",
     );
     const result = await anonClient().rpc("confirm_invited_signup", { secret, account });
     expect(result.data).toBe(false);
+  });
+
+  it("só existem os perfis diretor e parceiro (o de analista saiu em 04/11/2026)", async () => {
+    const created = await admin.auth.admin.createUser({
+      email: uniqueEmail("ex-analista"),
+      password: PASSWORD,
+    });
+    const result = await admin
+      .from("profiles")
+      .insert({ user_id: created.data.user?.id ?? "", role: "analyst", display_name: "Analista" });
+    expect(result.error?.code).toBe("23514");
   });
 
   it("convite expirado não cadastra", async () => {
@@ -200,8 +211,8 @@ describe("fatia 2 — convite, cadastro e aprovação", () => {
       payload: { partner_id: partnerId, value_per_life: "2.00" },
     });
     expect(noStart.error?.details).toBe("Informe o mês de início da vigência.");
-    const analystTry = await analyst.rpc("approve_partner", { payload: base });
-    expect(analystTry.error?.code).toBe("42501");
+    const noProfileTry = await noProfile.rpc("approve_partner", { payload: base });
+    expect(noProfileTry.error?.code).toBe("42501");
     done(await director.rpc("approve_partner", { payload: base }), "approve");
     const approved = ok(
       await director.from("partners").select("status").eq("id", partnerId).single(),
