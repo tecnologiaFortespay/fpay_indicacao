@@ -81,13 +81,13 @@ export function AiReviewPanel({
               <ul className="space-y-3">
                 {review.alerts.map((alert, index) => (
                   <li key={index} className="fp-notice fp-notice-compact">
-                    <span>
+                    <div>
                       <span className={severity[alert.gravidade].className}>
                         {severity[alert.gravidade].label}
                       </span>{" "}
                       <strong>{alert.titulo}</strong>
-                    </span>
-                    <span>{alert.detalhe}</span>
+                    </div>
+                    <div>{alert.detalhe}</div>
                     {(alert.parceiro || alert.empresa) && (
                       <small className="fp-help">
                         {[alert.parceiro, alert.empresa].filter(Boolean).join(" · ")}

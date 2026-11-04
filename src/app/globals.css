@@ -85,6 +85,18 @@
   color: var(--fp-red-text);
 }
 
+/* Botão Sair na barra lateral e no menu do celular (sempre escuros). Fora da camada para vencer as
+   classes do Button (bg-card), que deixariam o texto branco sobre branco. */
+.orbita-account button {
+  border-color: #55565c;
+  background: transparent;
+  color: #fff;
+}
+.orbita-account button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
 @layer components {
   .fp-num {
     font-family: var(--font-geist-mono), monospace;
@@ -204,11 +216,6 @@
     display: block;
     font-size: 11px;
     color: #b3b5b9;
-  }
-  .orbita-account button {
-    border-color: #55565c;
-    background: transparent;
-    color: #fff;
   }
   .orbita-workspace {
     min-width: 0;
@@ -351,10 +358,9 @@
     font-size: 13px;
     text-decoration: underline;
   }
+  /* Bloco de texto comum (não flex): um link no meio da frase continua na mesma linha. */
   .fp-notice {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    display: block;
     margin-bottom: 20px;
     padding: 14px 18px;
     border: 1px solid var(--fp-line);
@@ -364,8 +370,19 @@
     font-size: 14px;
     line-height: 1.55;
   }
+  .fp-notice > strong,
+  .fp-notice > small {
+    display: block;
+  }
   .fp-notice > strong {
+    margin-bottom: 4px;
     font-weight: 600;
+  }
+  .fp-notice > small {
+    margin-top: 4px;
+  }
+  .fp-notice > :is(p, div) + :is(p, div, ul, ol) {
+    margin-top: 6px;
   }
   .fp-notice ol,
   .fp-notice ul {
