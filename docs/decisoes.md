@@ -39,8 +39,8 @@ valem sobre o que ele diz.
    as indicações que aparecem, mas não marca inadimplência, porque o cliente ainda pode pagar até o
    fim do mês. O envio feito depois que o mês termina completa o mês: libera o fechamento e marca
    como inadimplente a indicação ativa sem vidas nele. Importações mostram "parcial" ou "mês
-   completo". [CONFIRMAR] cada export parcial traz o acumulado do mês até o dia, não só as vidas
-   novas desde o envio anterior.
+   completo". Confirmado pelo Diego em 09/11/2026: cada export parcial traz o acumulado do mês até
+   o dia, não só as vidas novas desde o envio anterior.
 10. **Cadastro pelo convite.** O convite válido confirma o e-mail da conta recém-criada, então o
     cadastro do parceiro conclui mesmo com "Confirm email" ligado no Supabase. Conta criada antes
     disso, sem cadastro concluído, entra com a própria senha pelo link do convite e conclui.
@@ -99,3 +99,12 @@ valem sobre o que ele diz.
     repetir as regras em outro lugar. Nenhuma tabela nova.
 17. **"C. Cash-in" são as vidas pagas do mês.** Confirmado pelo Diego em 09/11/2026 ("cash in são
     vidas pagas"). Fecha a hipótese aberta desde 28/10/2026; "Contas Cad" não é usada.
+
+## 09/11/2026 — pendências respondidas pelo Diego
+
+18. **O primeiro mês a fechar é escolha do diretor.** Nem o sistema nem a Fortes Pay fixam um mês
+    inicial. O primeiro fechamento é o do mês mais antigo que recebeu a planilha do BI depois de
+    terminar; dali em diante valem a ordem (decisão 5) e o saldo acumulado. Para começar em um mês,
+    basta não enviar planilhas de meses anteriores a ele: mês sem envio não precisa ser fechado e
+    não bloqueia os seguintes. Se um dia for preciso ter envios de meses anteriores sem fechá-los,
+    isso vira um ajuste (anotado em `docs/depois.md`).

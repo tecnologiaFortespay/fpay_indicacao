@@ -64,7 +64,8 @@ Passos, nesta ordem:
 
 1. **Migrations**: `npm run db:push -- --dry-run` mostra o que falta; `npm run db:push` aplica
    `supabase/migrations` e registra o histórico em `supabase_migrations.schema_migrations`
-   (não precisa de token da CLI; usa `SUPABASE_DB_URL`). Feito em 28/10/2026 com as 7 migrations.
+   (não precisa de token da CLI; usa `SUPABASE_DB_URL`). Primeira aplicação em 28/10/2026; cada
+   migration nova é aplicada do mesmo jeito.
 2. **Auth** (feito em 03/11/2026 pela CLI): "Confirm email" **desligado** (o convite é que valida
    a origem; ligado, cada cadastro pelo link dispara um e-mail e esbarra no limite por hora do
    Supabase), Site URL `https://fpay-indicacao.vercel.app` e, nas Redirect URLs,
@@ -163,7 +164,7 @@ Limite do projeto: no máximo 12 tabelas. Hoje: 12 (`profiles`, `partners`, `par
 
 ### Kit de tela
 
-Toda página monta com os mesmos blocos, para as telas lerem igual nos três perfis:
+Toda página monta com os mesmos blocos, para as telas lerem igual nos dois perfis:
 
 - `PageIntro` (frase de propósito + seletor de mês), `SectionCard` (cartão com título, ação e
   rodapé), `KeyValueStrip` (fatos em linha), `Notice` (aviso info/sucesso/atenção/erro),

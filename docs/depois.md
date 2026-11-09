@@ -19,6 +19,7 @@ Regra 4 da seção 11: nada fora do documento entra sem decisão explícita.
 - Automação da importação do BI (somente leitura, via time da Soma).
 - Penetração por região (depende da fonte de município/UF, a confirmar).
 - Carga inicial do histórico da planilha da Géssica.
+- Escolher um mês inicial de fechamento diferente do primeiro mês com envio do BI (hoje todo mês que recebeu planilha depois de terminar precisa ser fechado antes do seguinte; decisão 18 em docs/decisoes.md).
 - CI no GitHub da Fortes Pay (rodar os testes a cada push; o deploy na Vercel já é automático).
 - Avisar o parceiro por e-mail quando o mês dele é fechado (hoje ele vê ao entrar no painel).
 - Parceiro alterar a resposta ao fechamento depois de confirmar/contestar (hoje a tela mostra só a resposta dada).
