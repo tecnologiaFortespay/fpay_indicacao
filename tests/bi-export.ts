@@ -197,3 +197,81 @@ export function biExport(rows: ExportRow[], month: string | null, options: Expor
   }
   return zipSync(files, { level: 6 });
 }
+
+export type CsvOptions = {
+  // ";" is what Excel in Portuguese writes; Google Sheets writes ",".
+  separator?: "," | ";";
+  // Excel in Portuguese saves CSV as Windows-1252; Google Sheets as UTF-8.
+  latin1?: boolean;
+};
+
+const integerFormat = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
+
+function csvLives(lives: number | string): string {
+  return typeof lives === "number" ? integerFormat.format(lives) : lives;
+}
+
+// Measures as Google Sheets shows them: "1.000", "R$ 5.906", "R$ 41,60"; "C. Cash-in" in the 10th column.
+function csvMeasures(lives: number | string): string[] {
+  return [
+    "1",
+    "mar./ 26",
+    "R$ 1.000",
+    "1",
+    "R$ 1.000",
+    "1.017",
+    csvLives(lives),
+    "R$ 81,70",
+    "1",
+    "R$ 5.000",
+    "3",
+    "R$ 100",
+    "",
+    "",
+  ];
+}
+
+function csvCell(value: string, separator: string): string {
+  return /["\r\n]/.test(value) || value.includes(separator)
+    ? `"${value.replace(/"/g, '""')}"`
+    : value;
+}
+
+function latin1Bytes(text: string): Uint8Array {
+  const bytes = new Uint8Array(text.length);
+  for (let index = 0; index < text.length; index += 1) {
+    const code = text.charCodeAt(index);
+    bytes[index] = code < 256 ? code : 63;
+  }
+  return bytes;
+}
+
+// The same matrix saved as CSV, the way it arrives from Google Sheets ("Planilha sem título -
+// Export.csv"): group and company names only on their subtotal rows (blank on the CNPJ rows),
+// numbers formatted in Portuguese, a grand total, a blank row and the multi-line "Filtros
+// aplicados" footer in one quoted cell.
+export function biExportCsv(rows: ExportRow[], month: string | null, options: CsvOptions = {}) {
+  const separator = options.separator ?? ",";
+  const out: string[][] = [BI_HEADER];
+  const blank = Array(BI_HEADER.length - 3).fill("");
+  let lastGroup: string | null = null;
+  for (const row of rows) {
+    const group = row.group ?? row.company;
+    if (group !== lastGroup) {
+      lastGroup = group;
+      out.push([group, "Total", "", ...csvMeasures(8)]);
+    }
+    out.push(["", row.company, "Total", ...csvMeasures(8)]);
+    out.push(["", "", row.cnpj, ...csvMeasures(row.lives)]);
+  }
+  out.push(["Total", "", "", ...csvMeasures(99)]);
+  out.push(["", "", "", ...blank]);
+  const filters = footer(month === null ? [] : [month]);
+  if (filters) {
+    out.push([filters.replace(/\r\n/g, "\n"), "", "", ...blank]);
+  }
+  const text = out
+    .map((cells) => cells.map((cell) => csvCell(cell, separator)).join(separator))
+    .join("\r\n");
+  return options.latin1 ? latin1Bytes(text) : new TextEncoder().encode(text);
+}

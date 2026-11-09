@@ -12,20 +12,27 @@ import type { FormState } from "@/lib/auth/validation";
 import {
   competencyLabel,
   competencyToDate,
+  completesMonth,
   currentCompetency,
   dateToCompetency,
   isCompetency,
 } from "@/lib/competency";
 import { BiFormatError, parseBiExport, type ParsedExport } from "@/lib/imports/bi";
-import { validateImportFile } from "@/lib/imports/file";
-import { readFirstSheet, WorkbookError } from "@/lib/imports/xlsx";
+import { readImportSheet, validateImportFile } from "@/lib/imports/file";
+import { parseDatabasePreview, partnerTotals, type ImportPreview } from "@/lib/imports/preview";
+import { WorkbookError } from "@/lib/imports/xlsx";
 import { createClient } from "@/lib/supabase/server";
 
-export async function uploadImport(_previous: FormState, form: FormData): Promise<FormState> {
-  const user = await actionUser("director");
-  if (!user) {
-    return deniedState("Você não tem permissão para importar.");
-  }
+type Upload = {
+  competency: string;
+  file: File;
+  hash: string;
+  parsed: ParsedExport;
+};
+
+// Lê e confere o formulário de envio (mês e arquivo .csv ou .xlsx do BI). Usado pela conferência
+// e pela importação, que leem o mesmo arquivo do mesmo jeito.
+async function readUpload(form: FormData): Promise<Upload | { error: string }> {
   const competency = formValue(form, "competency");
   if (!isCompetency(competency)) {
     return { error: "Informe o mês de referência (o mesmo filtrado no BI)." };
@@ -34,8 +41,8 @@ export async function uploadImport(_previous: FormState, form: FormData): Promis
     return { error: "O mês de referência não pode ser um mês futuro." };
   }
   const file = form.get("file");
-  if (!(file instanceof File)) {
-    return { error: "Selecione a planilha exportada do BI." };
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Selecione o arquivo exportado do BI." };
   }
   try {
     validateImportFile(file.name, file.type, file.size);
@@ -45,7 +52,7 @@ export async function uploadImport(_previous: FormState, form: FormData): Promis
   const bytes = new Uint8Array(await file.arrayBuffer());
   let parsed: ParsedExport;
   try {
-    parsed = parseBiExport(readFirstSheet(bytes), competencyToDate(competency));
+    parsed = parseBiExport(readImportSheet(file.name, bytes), competencyToDate(competency));
   } catch (error) {
     if (error instanceof WorkbookError || error instanceof BiFormatError) {
       return { error: error.message };
@@ -61,24 +68,78 @@ export async function uploadImport(_previous: FormState, form: FormData): Promis
   if (parsed.rows.length === 0) {
     return {
       error:
-        "Nenhuma linha de empresa válida na planilha. Confira se é o export “Detalhamento Empresas” do BI.",
+        "Nenhuma linha de empresa válida no arquivo. Confira se é o export “Detalhamento Empresas” do BI.",
     };
   }
   const hash = createHash("sha256").update(bytes).digest("hex");
+  return { competency, file, hash, parsed };
+}
+
+function batchPayload(upload: Upload) {
+  return {
+    batch: {
+      file_name: upload.file.name,
+      file_hash: upload.hash,
+      competency: upload.parsed.competency,
+      rows_read: upload.parsed.rows_read,
+      issues: upload.parsed.issues,
+    },
+    rows: upload.parsed.rows,
+  };
+}
+
+export type PreviewState = { error?: string; preview?: ImportPreview };
+
+// Conferência: roda a importação no banco e desfaz (preview_import); nada fica gravado.
+export async function previewImport(form: FormData): Promise<PreviewState> {
+  const user = await actionUser("director");
+  if (!user) {
+    return { error: "Você não tem permissão para importar." };
+  }
+  const upload = await readUpload(form);
+  if ("error" in upload) {
+    return { error: upload.error };
+  }
+  const supabase = await createClient();
+  const result = await supabase.rpc("preview_import", batchPayload(upload));
+  if (result.error) {
+    return { error: databaseError(result.error) };
+  }
+  const preview = parseDatabasePreview(result.data);
+  return {
+    preview: {
+      ...preview,
+      partners: partnerTotals(preview.referrals),
+      file_name: upload.file.name,
+      file_hash: upload.hash,
+      competency: upload.competency,
+      complete: completesMonth(new Date(), upload.competency),
+      rows_read: upload.parsed.rows_read,
+    },
+  };
+}
+
+export async function uploadImport(_previous: FormState, form: FormData): Promise<FormState> {
+  const user = await actionUser("director");
+  if (!user) {
+    return deniedState("Você não tem permissão para importar.");
+  }
+  const upload = await readUpload(form);
+  if ("error" in upload) {
+    return { error: upload.error };
+  }
+  const expectedHash = formValue(form, "expected_hash");
+  if (expectedHash && expectedHash !== upload.hash) {
+    return {
+      error: "O arquivo mudou depois da conferência. Clique em Conferir arquivo de novo.",
+    };
+  }
+  const { competency, parsed } = upload;
   // A análise da IA roda nos envios do diretor; compara com as vidas do mês antes deste envio.
   const withAi = aiConfigured();
   const livesBefore = withAi ? await livesByCnpj(competency) : null;
   const supabase = await createClient();
-  const result = await supabase.rpc("import_lives", {
-    batch: {
-      file_name: file.name,
-      file_hash: hash,
-      competency: parsed.competency,
-      rows_read: parsed.rows_read,
-      issues: parsed.issues,
-    },
-    rows: parsed.rows,
-  });
+  const result = await supabase.rpc("import_lives", batchPayload(upload));
   if (result.error) {
     return { error: databaseError(result.error) };
   }

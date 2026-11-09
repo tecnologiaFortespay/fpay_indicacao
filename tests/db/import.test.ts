@@ -130,6 +130,49 @@ describe("fatia 1 — importação e cálculo vidas × valor vigente", () => {
     expect((await amounts(director, natalId))[0]).toMatchObject({ lives: 50, amount: 75 });
   });
 
+  it("a conferência mostra o que mudaria e não grava nada", async () => {
+    const admin = adminClient();
+    const batchesBefore = (await admin.from("import_batches").select("id", { count: "exact" }))
+      .count;
+    const preview = ok(
+      await director.rpc("preview_import", {
+        batch: batch("setembro-v3.csv", "2099-09-01"),
+        rows: rows([
+          [CNPJ_A, "2099-09-01", 60],
+          [CNPJ_B, "2099-09-01", 7],
+        ]),
+      }),
+      "preview_import",
+    ) as {
+      closed: boolean;
+      rows_imported: number;
+      rows_skipped: number;
+      referrals: Record<string, unknown>[];
+    };
+    expect(preview).toMatchObject({ closed: false, rows_imported: 1, rows_skipped: 1 });
+    expect(preview.referrals.find((referral) => referral.cnpj === CNPJ_A)).toMatchObject({
+      status_before: "active",
+      status_after: "active",
+      lives_before: 50,
+      lives_after: 60,
+      in_file: true,
+      counts_after: true,
+      value_per_life: 1.5,
+      amount_before: 75,
+      amount_after: 90,
+    });
+    // Nada ficou gravado: nem o lote, nem as vidas.
+    expect((await admin.from("import_batches").select("id", { count: "exact" })).count).toBe(
+      batchesBefore,
+    );
+    expect((await amounts(director, natalId))[0]).toMatchObject({ lives: 50, amount: 75 });
+    const denied = await noProfile.rpc("preview_import", {
+      batch: batch("x.csv", "2099-09-01"),
+      rows: rows([[CNPJ_A, "2099-09-01", 1]]),
+    });
+    expect(denied.error).not.toBeNull();
+  });
+
   it("arquivo parcial sem o CNPJ não deixa inadimplente; o mês completo deixa", async () => {
     const partial = ok(
       await director.rpc("import_lives", {

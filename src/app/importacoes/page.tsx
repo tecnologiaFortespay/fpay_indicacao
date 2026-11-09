@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
-import { Field, Pagination } from "@/components/fields";
-import { MutationForm } from "@/components/mutation-form";
+import { Pagination } from "@/components/fields";
 import { Notice } from "@/components/notice";
 import { OrbitaIcon } from "@/components/orbita-icon";
 import { PageIntro } from "@/components/page-intro";
@@ -17,7 +16,7 @@ import {
   formatDateTime,
 } from "@/lib/competency";
 import { BATCH_PAGE_SIZE, latestImport, listBatches } from "@/lib/imports/queries";
-import { uploadImport } from "./actions";
+import { ImportForm } from "./import-form";
 
 export const metadata: Metadata = { title: "Importações" };
 
@@ -42,8 +41,13 @@ export default async function ImportsPage({ searchParams }: PageProps) {
         <ul>
           <li>
             Envie a planilha <strong>Detalhamento Empresas</strong> exportada do BI com o filtro de
-            um mês, do jeito que sai de lá (Excel, até 4 MB). A coluna <strong>C. Cash-in</strong> é
-            lida como vidas pagas.
+            um mês, do jeito que sai de lá (.csv ou .xlsx, até 4 MB). A coluna{" "}
+            <strong>C. Cash-in</strong> é lida como vidas pagas.
+          </li>
+          <li>
+            Antes de gravar, <strong>Conferir arquivo</strong> mostra o que vai mudar: cada
+            indicação com as vidas de hoje e as do arquivo, a situação e o valor do mês, por
+            parceiro. Só depois de <strong>Confirmar e importar</strong> algo é gravado.
           </li>
           <li>
             Só entram as empresas indicadas na plataforma; as outras são só contadas como “fora da
@@ -70,27 +74,7 @@ export default async function ImportsPage({ searchParams }: PageProps) {
         }
       >
         <PanelBody>
-          <MutationForm action={uploadImport} label="Importar" pendingLabel="Importando…">
-            <div className="fp-form-grid">
-              <Field
-                label="Mês de referência"
-                name="competency"
-                type="month"
-                defaultValue={currentCompetency()}
-                max={currentCompetency()}
-                required
-                hint="O mesmo mês do filtro do BI. O sistema confere com o rodapé da planilha."
-              />
-              <Field
-                label="Planilha do BI"
-                name="file"
-                type="file"
-                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                required
-                hint="Arquivo .xlsx exportado do BI (Detalhamento Empresas)."
-              />
-            </div>
-          </MutationForm>
+          <ImportForm defaultMonth={currentCompetency()} />
         </PanelBody>
       </SectionCard>
 

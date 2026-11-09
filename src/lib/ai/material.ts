@@ -148,11 +148,27 @@ export type PreviousClosingFact = {
 };
 
 export type ClosingReferralFact = ReferralFact & {
+  // Primeiro mês pago ("2026-11-01"); null = ainda não pagou nenhum mês.
+  activated_competency: string | null;
   lives: number;
   lives_previous_month: number;
   value_per_life: number | null;
   term: string;
 };
+
+// A situação é a de hoje, mas o mês revisado pode ser anterior: uma indicação que só começou a
+// pagar depois dele aparecia como "Ativa" com zero vidas, e a IA apontava um problema que não
+// existe. Nesse caso a IA recebe "ainda não rendia neste mês".
+function situationInMonth(referral: ClosingReferralFact, competency: string): string {
+  const firstPaid = referral.activated_competency?.slice(0, 7) ?? null;
+  const paying = referral.status === "active" || referral.status === "delinquent";
+  if (paying && (firstPaid === null || firstPaid > competency)) {
+    return firstPaid
+      ? `Ainda não rendia neste mês (rende desde ${competencyLabel(firstPaid)})`
+      : "Ainda não rendia neste mês";
+  }
+  return referralStatusLabels[referral.status];
+}
 
 export function closingMaterial(input: {
   competency: string;
@@ -192,7 +208,7 @@ export function closingMaterial(input: {
           .filter((referral) => !CLOSED_STATUSES.includes(referral.status))
           .map((referral) => ({
             empresa: referral.company_name,
-            situacao: referralStatusLabels[referral.status],
+            situacao: situationInMonth(referral, input.competency),
             vidas: referral.lives,
             vidas_mes_anterior: referral.lives_previous_month,
             valor_por_vida: referral.value_per_life,

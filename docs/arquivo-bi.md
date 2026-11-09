@@ -1,7 +1,9 @@
 # Arquivo do BI — "Detalhamento Empresas"
 
 A importação lê a planilha **Detalhamento Empresas** exatamente como o BI da Fortes Pay a exporta
-(Power BI → Exportar dados → Excel), sem cabeçalho próprio. Exemplo recebido em 28/10/2026:
+(Power BI → Exportar dados → Excel), sem cabeçalho próprio, em **.xlsx ou .csv**. Desde 09/11/2026
+o modelo enviado é o CSV salvo pelo Google Planilhas ("Planilha sem título - Export.csv"; ver
+"O mesmo arquivo em CSV" abaixo). Exemplo recebido em 28/10/2026:
 `Detalhamento Empresas (77).xlsx`, 155 KB, cerca de 1.800 CNPJs (todas as empresas clientes).
 O arquivo real não é versionado (dados de clientes); `*.xlsx` está no `.gitignore`.
 
@@ -18,14 +20,32 @@ O arquivo real não é versionado (dados de clientes); `*.xlsx` está no `.gitig
   (`src/lib/imports/xlsx.ts`) também aceita o mesmo arquivo salvo de novo pelo Excel (strings
   compartilhadas, referências de célula).
 
+## O mesmo arquivo em CSV
+
+Exemplo recebido em 09/11/2026: `Planilha sem título - Export.csv`, 190 KB, novembro/2026, 1.256
+linhas de CNPJ (4 com CPF, ignoradas). As colunas e os três níveis de linha são os mesmos do
+.xlsx, com três diferenças que o leitor (`src/lib/imports/csv.ts` + `bi.ts`) trata:
+
+- **Nomes só nos subtotais.** O grupo aparece na linha de subtotal do grupo e a empresa na de
+  subtotal da empresa; a linha do CNPJ traz as duas colunas em branco. O nome vale para os CNPJs
+  seguintes até o próximo subtotal (há empresa com vários CNPJs e grupo sem nome).
+- **Números formatados em português:** `2.657` (ponto de milhar), `R$ 5.906`, `"R$ 41,60"`.
+  `C. Cash-in` é lida sem o ponto de milhar; célula vazia conta 0.
+- **Rodapé numa célula de várias linhas** entre aspas: `"Filtros aplicados:` … `Incluídos (1)
+novembro (Mês)` …`"`, depois de uma linha de total geral e uma linha em branco.
+
+Também aceita o CSV do Excel em português (separador `;`, codificação Windows-1252). O "Total"
+do BI conta contas distintas no grupo, então a soma das linhas pode passar um pouco do total do
+rodapé (44 vidas no exemplo de novembro; 39 no .xlsx de outubro): é do BI, não da leitura.
+
 ## O que a importação lê
 
-| Coluna              | Como é localizada (sem acento, sem caixa) | Uso                                                                                                                |
-| ------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `cnpj`              | nome `cnpj`                               | chave: 14 caracteres alfanuméricos, dígitos verificadores conferidos                                               |
-| `C. Cash-in`        | nome `c. cash-in` (aceita também `vidas`) | **vidas pagas do mês** — **[CONFIRMAR]** com a Fortes Pay; a alternativa seria `Contas Cad`. Célula vazia conta 0. |
-| `nome_empresa`      | nome `nome_empresa` ou `empresa`          | `companies.name`                                                                                                   |
-| `Grupo Empresarial` | nome `grupo empresarial` ou `grupo`       | `companies.group_name`                                                                                             |
+| Coluna              | Como é localizada (sem acento, sem caixa) | Uso                                                                                     |
+| ------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| `cnpj`              | nome `cnpj`                               | chave: 14 caracteres alfanuméricos, dígitos verificadores conferidos                    |
+| `C. Cash-in`        | nome `c. cash-in` (aceita também `vidas`) | **vidas pagas do mês**, confirmado pela Fortes Pay em 09/11/2026. Célula vazia conta 0. |
+| `nome_empresa`      | nome `nome_empresa` ou `empresa`          | `companies.name`                                                                        |
+| `Grupo Empresarial` | nome `grupo empresarial` ou `grupo`       | `companies.group_name`                                                                  |
 
 As demais colunas são ignoradas. Quando o arquivo mudar, só `src/lib/imports/bi.ts` (e seus
 testes em `src/lib/imports/bi.test.ts`) precisa mudar; o gerador de arquivos de teste no mesmo
@@ -33,6 +53,10 @@ formato está em `tests/bi-export.ts`.
 
 ## Regras
 
+0. **Conferir antes de gravar.** "Conferir arquivo" roda a importação no banco e desfaz
+   (`preview_import`): mostra vidas de hoje × do arquivo, mudança de situação e valor do mês de
+   cada indicação, totais por parceiro, indicações ausentes e linhas que não entram. Só
+   "Confirmar e importar" grava, e só se for o mesmo arquivo conferido.
 1. **Mês de referência.** Quem importa informa o mês (o mesmo filtrado no BI). Se o rodapé
    "Filtros aplicados" trouxer outro mês, a importação é recusada; se trouxer mais de um mês,
    idem (exporte um mês por vez). Sem rodapé, vale o mês informado. Mês futuro não é aceito.
@@ -52,11 +76,11 @@ formato está em `tests/bi-export.ts`.
 
 ## Hipóteses em aberto
 
-- **[CONFIRMAR]** `C. Cash-in` é a medida de "vidas pagas do mês".
+- ~~`C. Cash-in` é a medida de "vidas pagas do mês"~~: confirmado em 09/11/2026 (decisão 17).
 - O export mostra o mês até a data da exportação (no dia 10 só aparece quem já pagou); por isso
   o fechamento exige uma importação feita depois do fim do mês.
 - No arquivo de exemplo, 4 das 1.220 linhas trazem um CPF com zeros à esquerda no lugar do CNPJ
   (pessoa física/MEI no BI); são ignoradas com o motivo "CNPJ inválido.", como deve ser, já que a
   plataforma só trata CNPJ.
-- `Prim cashin` (data do primeiro cash-in da empresa) não é usada; serviria para o alerta
+- `Prim cashin` (mês do primeiro cash-in da empresa, no CSV como `mar./ 26`) não é usada; serviria para o alerta
   "cliente já pagava antes da indicação" (docs/depois.md).

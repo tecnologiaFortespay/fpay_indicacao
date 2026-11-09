@@ -702,8 +702,11 @@
   }
 
   /* ---------- Tabelas ---------- */
+  /* position: relative prende os rótulos invisíveis (sr-only, position: absolute) dentro da
+     rolagem da tabela; sem isso eles alargavam a página no celular. */
   .fp-table-wrap {
     overflow-x: auto;
+    position: relative;
   }
   .fp-table {
     width: 100%;
@@ -767,6 +770,64 @@
     margin-top: 2px;
     font-size: 12px;
     color: var(--fp-text-3);
+  }
+  /* Nome de parceiro ou empresa quebra só entre palavras: "anywhere" deixava a coluna encolher
+     até uma letra ("Escritóri / o") quando outra coluna era larga. */
+  .fp-table td strong {
+    overflow-wrap: break-word;
+  }
+  /* Conferência do envio do BI, antes de gravar. */
+  .fp-preview {
+    border-top: 1px solid var(--fp-line);
+    padding-top: 20px;
+  }
+  .fp-preview > * + * {
+    margin-top: 18px;
+  }
+  .fp-preview h3 {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .fp-preview header p,
+  .fp-preview-note {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--fp-text-2);
+  }
+  .fp-preview h4 {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .fp-preview .fp-table-wrap {
+    border: 1px solid var(--fp-line);
+    border-radius: 10px;
+  }
+  .fp-preview-summary {
+    font-size: 14px;
+  }
+  .fp-preview-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .fp-status-change {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .fp-table small.fp-delta-up {
+    color: var(--fp-green-text);
+  }
+  .fp-table small.fp-delta-down {
+    color: var(--fp-red-text);
+  }
+  /* Nota sob um número (motivo do ajuste): texto normal que quebra linha, sem esticar a coluna. */
+  .fp-table .fp-num small {
+    max-width: 240px;
+    margin-left: auto;
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    white-space: normal;
   }
   .fp-table .fp-row-total td {
     font-weight: 600;

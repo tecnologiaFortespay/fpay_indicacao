@@ -79,3 +79,23 @@ valem sobre o que ele diz.
     o histórico (quem enviou, quem preparou, quem fechou, quem decidiu) mostrar quem fez cada coisa.
     No banco, a migration `20261104000012_two_profiles.sql` converte quem fosse analista em
     diretor, tira o perfil das políticas e da importação e só aceita `director` e `partner`.
+
+## 09/11/2026 — arquivo em CSV e conferência antes de gravar (pedido do Diego)
+
+15. **O arquivo do BI chega em CSV.** O modelo que vai ser enviado é o mesmo "Detalhamento
+    Empresas" salvo como CSV pelo Google Planilhas ("Planilha sem título - Export.csv"). A
+    importação aceita .csv e .xlsx. No CSV o nome do grupo e da empresa aparece só na linha de
+    subtotal (a linha do CNPJ vem em branco), os números vêm formatados ("2.657", "R$ 5.906") e o
+    rodapé "Filtros aplicados" é uma célula de várias linhas; o leitor trata os três casos e
+    também o CSV do Excel em português (";" e Windows-1252). A coluna de vidas continua sendo
+    `C. Cash-in` (decisão 17).
+16. **Conferir antes de gravar.** O envio passa a ter duas etapas: **Conferir arquivo** mostra,
+    sem gravar nada, cada indicação com as vidas de hoje e as do arquivo, a mudança de situação
+    (ex.: Fechada → Ativa), o valor do mês antes e depois, os totais por parceiro, as indicações
+    que não aparecem no arquivo e as linhas que não entram; **Confirmar e importar** grava o
+    mesmo arquivo (a impressão do arquivo é conferida). A conferência roda a própria
+    `import_lives` dentro de um bloco desfeito no fim (função `preview_import`, migration
+    `20261109000013_import_preview.sql`), então mostra exatamente o que a importação faria, sem
+    repetir as regras em outro lugar. Nenhuma tabela nova.
+17. **"C. Cash-in" são as vidas pagas do mês.** Confirmado pelo Diego em 09/11/2026 ("cash in são
+    vidas pagas"). Fecha a hipótese aberta desde 28/10/2026; "Contas Cad" não é usada.

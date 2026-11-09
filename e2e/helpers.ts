@@ -62,14 +62,33 @@ export async function login(page: Page, email: string, password: string) {
   await expect(page).not.toHaveURL(/\/login/);
 }
 
-// Envia o export do BI (gerado no formato real, docs/arquivo-bi.md) para o mês informado ("YYYY-MM").
-export async function upload(page: Page, name: string, month: string, buffer: Uint8Array) {
+// Envia o export do BI (gerado no formato real, docs/arquivo-bi.md) para o mês informado ("YYYY-MM"),
+// como na tela: "Conferir arquivo" (nada é gravado) e, se a conferência aparecer, "Confirmar e
+// importar". Recusas (mês errado, colunas) aparecem já na conferência. confirm: false para só
+// conferir.
+export async function upload(
+  page: Page,
+  name: string,
+  month: string,
+  buffer: Uint8Array,
+  options: { confirm?: boolean } = {},
+) {
   await page.goto("/importacoes");
   await page.getByLabel("Mês de referência", { exact: true }).fill(month);
-  await page
-    .getByLabel("Planilha do BI", { exact: true })
-    .setInputFiles({ name, mimeType: XLSX_TYPE, buffer: Buffer.from(buffer) });
-  await page.getByRole("button", { name: "Importar", exact: true }).click();
+  await page.getByLabel("Planilha do BI", { exact: true }).setInputFiles({
+    name,
+    mimeType: name.toLowerCase().endsWith(".csv") ? "text/csv" : XLSX_TYPE,
+    buffer: Buffer.from(buffer),
+  });
+  await page.getByRole("button", { name: "Conferir arquivo", exact: true }).click();
+  const preview = page.getByRole("region", { name: "Conferência do envio" });
+  const refusal = page.locator("form").getByRole("alert");
+  await expect(preview.or(refusal)).toBeVisible({ timeout: 60000 });
+  if (options.confirm === false || !(await preview.isVisible())) {
+    return;
+  }
+  await preview.getByRole("button", { name: "Confirmar e importar", exact: true }).click();
+  await page.waitForURL(/\/importacoes\/[0-9a-f-]{36}$/, { timeout: 60000 });
 }
 
 // Link de recuperação de senha que o Supabase local entrega no Mailpit.

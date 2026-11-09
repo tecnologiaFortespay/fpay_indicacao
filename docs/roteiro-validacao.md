@@ -66,7 +66,8 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 
 ## Bloco 4 — Importação ([M-2] e [M-1])
 
-4.1. Diretor → Importações → Mês de referência [M-2] → planilha de [M-2] → detalhe do envio: linhas lidas, importadas (só A, B, D, E), fora da plataforma (as outras empresas, sem gravar), ignoradas (CPF/CNPJ inválido, com motivo).
+4.0. Diretor → Importações → Mês de referência [M-2] → planilha de [M-2] → **Conferir arquivo** → "Confira antes de importar": indicações no arquivo (A, B, D, E) com vidas de hoje (0) e do arquivo, A "Fechada → Ativa" com o valor do mês, totais por parceiro. **Cancelar** → nenhum envio na lista.
+4.1. Diretor → Importações → Mês de referência [M-2] → planilha de [M-2] → Conferir arquivo → **Confirmar e importar** → detalhe do envio: linhas lidas, importadas (só A, B, D, E), fora da plataforma (as outras empresas, sem gravar), ignoradas (CPF/CNPJ inválido, com motivo).
 4.2. Escolher [M-1] e enviar a planilha de [M-2] → recusado: o rodapé "Filtros aplicados" não bate com o mês.
 4.3. [M-2] de novo → envio novo; vidas iguais (substitui, não soma).
 4.4. [M-1] → planilha de [M-1] → OK.
@@ -112,7 +113,7 @@ O mês em andamento pode ser enviado várias vezes; cada envio substitui o mês 
 8.1. Diretor → Importações → [M0] → planilha de [M0] sem o CNPJ B → envio "[M0] (parcial)".
 8.2. Diretor → Indicações → A, B, D, E continuam Ativa.
 8.3. Teresina → Meu painel → [M0]: B "Rendendo" com 0 vidas; A com vidas × 1,80.
-8.4. Diretor → nova planilha parcial de [M0] com mais vidas em A → Teresina vê o novo número de A (substitui, não soma).
+8.4. Diretor → nova planilha parcial de [M0] com mais vidas em A, **em CSV** (como o Google Planilhas exporta) → a conferência mostra A com as vidas de hoje e as novas → confirmar → Teresina vê o novo número de A (substitui, não soma).
 8.5. Diretor muda D para Cancelada → Natal → [M0]: D não conta; [M-2] e [M-1] mostram o valor oficial, inalterados.
 8.6. Visão geral → Indicações por etapa: Ativa 3, Inadimplente 0, Cancelada 1, Perdida 1.
 8.7. (À mão, no mês seguinte) planilha final de [M0] enviada depois do dia 1º, sem B → B Inadimplente; o envio aparece como "mês completo". Coberto no teste de banco.

@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { biExport } from "../../../tests/bi-export";
+import { biExport, biExportCsv } from "../../../tests/bi-export";
 import { BiFormatError, parseBiExport, parseFilters, parseLives } from "./bi";
-import { validateImportFile } from "./file";
+import { readImportSheet, validateImportFile } from "./file";
 import { readFirstSheet, WorkbookError } from "./xlsx";
 
 const CNPJ_A = "11222333000181";
@@ -131,13 +131,24 @@ describe("helpers", () => {
     expect(parseLives("")).toBe(0);
     expect(parseLives("-1")).toBeNull();
     expect(parseLives("4.8")).toBeNull();
+    // CSV em português: ponto de milhar.
+    expect(parseLives("2.657")).toBe(2657);
+    expect(parseLives("1.234.567")).toBe(1234567);
+    expect(parseLives("1.000")).toBe(1000);
+    expect(parseLives("2.65")).toBeNull();
     expect(parseLives("dez")).toBeNull();
   });
 
   it("validates the uploaded file by name, type and size", () => {
     expect(() => validateImportFile("Detalhamento Empresas (77).xlsx", "", 100)).not.toThrow();
-    expect(() => validateImportFile("dados.csv", "text/csv", 100)).toThrow(/\.xlsx/);
+    expect(() =>
+      validateImportFile("Planilha sem título - Export.csv", "text/csv", 100),
+    ).not.toThrow();
+    expect(() => validateImportFile("dados.pdf", "application/pdf", 100)).toThrow(
+      /\.csv ou \.xlsx/,
+    );
     expect(() => validateImportFile("dados.xlsx", "text/plain", 100)).toThrow(/não suportado/);
+    expect(() => validateImportFile("dados.csv", "application/pdf", 100)).toThrow(/não suportado/);
     expect(() => validateImportFile("dados.xlsx", "", 0)).toThrow(/vazio/);
     expect(() => validateImportFile("dados.xlsx", "", 6 * 1024 * 1024)).toThrow(/4 MB/);
   });
@@ -160,4 +171,104 @@ describe("real export", () => {
     expect(result.filter_competency).toBe("2026-10-01");
     expect(invalid.length).toBeLessThan(result.rows_read * 0.05);
   });
+});
+
+describe("CSV export (Google Sheets / Excel)", () => {
+  const rows = [
+    { group: "Grupo X", company: "Empresa A", cnpj: CNPJ_A, lives: 2657 },
+    { group: "Grupo X", company: "Empresa B", cnpj: CNPJ_B, lives: 10 },
+    { group: "Grupo Y", company: "Produtor Rural", cnpj: "00003358246507", lives: 46 },
+  ];
+
+  it("reads names from the subtotal rows, numbers in Portuguese and the multi-line footer", () => {
+    const result = parseBiExport(
+      readImportSheet("Planilha sem título - Export.csv", biExportCsv(rows, "2026-11")),
+      "2026-11-01",
+    );
+    expect(result.filter_competency).toBe("2026-11-01");
+    expect(result.rows_read).toBe(3);
+    expect(
+      result.rows.map((row) => [row.cnpj, row.lives, row.company_name, row.group_name]),
+    ).toEqual([
+      [CNPJ_A, 2657, "Empresa A", "Grupo X"],
+      [CNPJ_B, 10, "Empresa B", "Grupo X"],
+    ]);
+    // CPF com zeros à esquerda no lugar do CNPJ: ignorado, como no .xlsx.
+    expect(result.issues.map((issue) => [issue.outcome, issue.reason])).toEqual([
+      ["ignored", "CNPJ inválido."],
+    ]);
+  });
+
+  it("reads the Excel-in-Portuguese variant: ';' separator and Windows-1252", () => {
+    const accented = [
+      { group: "Pães & Cia", company: "Padaria São João", cnpj: CNPJ_A, lives: 1500 },
+    ];
+    const result = parseBiExport(
+      readImportSheet(
+        "export.csv",
+        biExportCsv(accented, "2026-10", { separator: ";", latin1: true }),
+      ),
+      OCTOBER,
+    );
+    expect(result.filter_competency).toBe(OCTOBER);
+    expect(result.rows).toMatchObject([
+      { cnpj: CNPJ_A, lives: 1500, company_name: "Padaria São João", group_name: "Pães & Cia" },
+    ]);
+  });
+
+  it("a group with no name leaves the group blank", () => {
+    const sheet = readImportSheet(
+      "x.csv",
+      new TextEncoder().encode(
+        [
+          "Grupo Empresarial,nome_empresa,cnpj,C. Cash-in",
+          "Grupo Z,Total,,5",
+          ",Empresa Z,Total,5",
+          `,,${CNPJ_A},5`,
+          ",Total,,3",
+          ",Empresa Sem Grupo,Total,3",
+          `,,${CNPJ_B},3`,
+        ].join("\n"),
+      ),
+    );
+    const result = parseBiExport(sheet, OCTOBER);
+    expect(result.rows.map((row) => [row.company_name, row.group_name])).toEqual([
+      ["Empresa Z", "Grupo Z"],
+      ["Empresa Sem Grupo", null],
+    ]);
+  });
+
+  it("refuses a CSV with an unfinished quoted cell", () => {
+    expect(() => readImportSheet("x.csv", new TextEncoder().encode('cnpj,"C. Cash-in\n1'))).toThrow(
+      BiFormatError,
+    );
+  });
+});
+
+// The real CSV is not versioned (client data); this runs only where the file exists.
+describe("real CSV export", () => {
+  const folder = ".local/exports-csv";
+  let file: string | undefined;
+  try {
+    file = readdirSync(folder).find((name) => name.endsWith(".csv"));
+  } catch {
+    file = undefined;
+  }
+
+  it.skipIf(!file)(
+    "reads the real CSV: names carried, only CPF rows ignored, month in the footer",
+    () => {
+      const grid = readImportSheet(file as string, readFileSync(`${folder}/${file}`));
+      const result = parseBiExport(grid, "2026-11-01");
+      expect(result.filter_competency).toMatch(/^\d{4}-\d{2}-01$/);
+      expect(result.rows.length).toBeGreaterThan(1000);
+      expect(
+        result.rows.every((row) => !/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(row.company_name)),
+      ).toBe(true);
+      for (const issue of result.issues) {
+        expect(issue.reason).toBe("CNPJ inválido.");
+        expect(issue.raw_line).toMatch(/;000\d{11};/);
+      }
+    },
+  );
 });

@@ -9,7 +9,7 @@ import {
   currentCompetency,
   shortCompetencyLabel,
 } from "@/lib/competency";
-import { biExport, type ExportRow } from "../tests/bi-export";
+import { biExport, biExportCsv, type ExportRow } from "../tests/bi-export";
 import { FAKE_CLOSING_SUMMARY, fakeRequests, resetFakeRequests } from "./fake-anthropic";
 import {
   actor,
@@ -59,7 +59,11 @@ const INVALID: ExportRow[] = [
   { cnpj: "11111111111111", company: "Documento repetido", lives: 2, group: "Pessoa física" },
 ];
 
-function exportFor(month: string, lives: Partial<Record<"A" | "B" | "D" | "E", number>>) {
+function exportFor(
+  month: string,
+  lives: Partial<Record<"A" | "B" | "D" | "E", number>>,
+  format: "xlsx" | "csv" = "xlsx",
+) {
   const referred: ExportRow[] = [];
   for (const [key, entry] of [
     ["A", A],
@@ -72,15 +76,17 @@ function exportFor(month: string, lives: Partial<Record<"A" | "B" | "D" | "E", n
       referred.push({ cnpj: entry.cnpj, company: entry.company, lives: value, group: entry.group });
     }
   }
-  return biExport([...referred, ...OTHERS, ...INVALID], month);
+  const all = [...referred, ...OTHERS, ...INVALID];
+  return format === "csv" ? biExportCsv(all, month) : biExport(all, month);
 }
 
 const AUGUST = exportFor(AUG, { A: 30, B: 20, D: 50, E: 10 });
 const SEPTEMBER = exportFor(SEP, { A: 33, B: 22, D: 55, E: 12 });
 const SEPTEMBER_A8 = exportFor(SEP, { A: 41, B: 22, D: 55, E: 12 });
 const OCTOBER = exportFor(OCT, { A: 37, D: 58, E: 23 });
-// Envio parcial seguinte do mesmo mês: A fechou mais vidas.
-const OCTOBER_UPDATE = exportFor(OCT, { A: 40, D: 58, E: 23 });
+// Envio parcial seguinte do mesmo mês: A fechou mais vidas. Vem em CSV, como o Google Planilhas
+// exporta (nomes só nos subtotais, números com ponto de milhar).
+const OCTOBER_UPDATE = exportFor(OCT, { A: 40, D: 58, E: 23 }, "csv");
 
 const NEW_PASSWORD = "Nova-senha-e2e-999";
 
@@ -500,6 +506,26 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(rows.first()).toContainText(D.company);
   });
 
+  await test.step("4.0 conferência antes de gravar: o que muda em cada indicação; nada gravado", async () => {
+    await upload(bi, "Detalhamento Empresas - agosto.xlsx", AUG, AUGUST, { confirm: false });
+    const preview = bi.getByRole("region", { name: "Conferência do envio" });
+    await expect(preview.locator(".fp-facts")).toContainText(/Indicações no arquivo\s*4/);
+    await expect(preview.locator(".fp-facts")).toContainText(/Fora da plataforma\s*8/);
+    await expect(
+      preview.getByRole("heading", { name: "Indicações que estão no arquivo (4)" }),
+    ).toBeVisible();
+    // A estava Fechada e passa a Ativa com 30 vidas × R$ 1,50.
+    const a = preview.getByRole("row", { name: new RegExp(A.company) });
+    await expect(a).toContainText("Fechada");
+    await expect(a).toContainText("Ativa");
+    await expect(a).toContainText("R$ 45,00");
+    await expect(preview.getByRole("row", { name: /^Unidade Teresina/ })).toContainText("R$ 75,00");
+    await preview.getByRole("button", { name: "Cancelar" }).click();
+    await expect(preview).toHaveCount(0);
+    await bi.goto("/importacoes");
+    await expect(bi.locator("a.fp-action-row")).toHaveCount(0);
+  });
+
   await test.step("4.1 export de agosto: importadas só A, B, D, E; o resto fora da plataforma", async () => {
     await upload(bi, "Detalhamento Empresas - agosto.xlsx", AUG, AUGUST);
     expect(await batchSummary(bi)).toEqual({ read: 14, imported: 4, skipped: 8, ignored: 2 });
@@ -535,12 +561,12 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
       mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       buffer: Buffer.from(SEPTEMBER),
     });
-    await bi.getByRole("button", { name: "Importar", exact: true }).click();
+    await bi.getByRole("button", { name: "Conferir arquivo", exact: true }).click();
     expect(await month.evaluate((input: HTMLInputElement) => input.validity.rangeOverflow)).toBe(
       true,
     );
     await month.evaluate((input: HTMLInputElement) => input.removeAttribute("max"));
-    await bi.getByRole("button", { name: "Importar", exact: true }).click();
+    await bi.getByRole("button", { name: "Conferir arquivo", exact: true }).click();
     await expect(
       bi.getByRole("alert").filter({ hasText: "O mês de referência não pode ser um mês futuro." }),
     ).toBeVisible();
@@ -882,8 +908,8 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(ter.locator(".fp-kpi-preview")).toContainText("R$ 66,60");
   });
 
-  await test.step("8.4 novo envio parcial substitui o mês: A passa a 40 vidas", async () => {
-    await upload(bi, "Detalhamento Empresas - outubro (2).xlsx", OCT, OCTOBER_UPDATE);
+  await test.step("8.4 novo envio parcial (CSV) substitui o mês: A passa a 40 vidas", async () => {
+    await upload(bi, "Planilha sem título - Export.csv", OCT, OCTOBER_UPDATE);
     expect(await batchSummary(bi)).toEqual({ read: 13, imported: 3, skipped: 8, ignored: 2 });
     await ter.goto("/inicio");
     expect(await rowText(ter, A.company)).toContain("40 R$ 1,80 R$ 72,00");

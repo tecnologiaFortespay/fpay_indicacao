@@ -41,7 +41,7 @@ Navegador ──► Vercel (Next.js 16, região gru1 / São Paulo)
 | Interface     | Tailwind 4, componentes próprios (Sistema Órbita), fonte Geist           |
 | Banco e login | Supabase: Postgres, Auth, RLS; `@supabase/ssr` e `@supabase/supabase-js` |
 | Validação     | Zod 4                                                                    |
-| Planilha      | leitor próprio de .xlsx sobre `fflate` (sem biblioteca de planilha)      |
+| Planilha      | leitores próprios de .xlsx (sobre `fflate`) e .csv, sem biblioteca       |
 | IA            | `@anthropic-ai/sdk`, modelo `claude-opus-5-5`                            |
 | Testes        | Vitest (unidade e banco), Playwright (ponta a ponta)                     |
 | Runtime       | Node 22 ou mais novo                                                     |
@@ -55,7 +55,7 @@ src/app/               rotas em português: login, inicio, parceiros, indicacoes
                        fechamento, fechamentos, meu-cadastro, convite, nova-senha, status, ...
 src/components/        shell, navegação, formulários e o kit de tela (PageIntro, SectionCard,
                        Notice, FormDisclosure, Stepper, ...)
-src/lib/               env, sessão, leitor do BI (imports/xlsx.ts, imports/bi.ts), consultas
+src/lib/               env, sessão, leitor do BI (imports/xlsx.ts, csv.ts, bi.ts), consultas
                        por domínio, IA (ai/), rótulos e glossário
 src/proxy.ts           renova a sessão a cada requisição e impede cache de páginas logadas
 tests/db/              testes das funções SQL e da RLS (Vitest, Supabase local)
@@ -101,7 +101,7 @@ só com aprovação.
 | Convite    | `create_invitation`, `invitation_preview`, `register_partner`, `confirm_invited_signup`                                     |
 | Parceiro   | `approve_partner`, `reject_partner`, `save_partner`, `save_partner_rule`, `delete_partner_rule`                             |
 | Indicação  | `create_referral`, `set_referral_status`, `set_referral_config`, `valid_cnpj`                                               |
-| Importação | `import_lives`, `last_import_at`, `latest_complete_competency`                                                              |
+| Importação | `import_lives`, `preview_import` (conferência: roda e desfaz), `last_import_at`, `latest_complete_competency`               |
 | Fechamento | `closing_blocker`, `prepare_closing`, `set_closing_adjustment`, `close_closing`, `respond_closing_item`, `set_payment_note` |
 | Nova senha | `create_password_reset`, `password_reset_preview`, `reset_password_with_token`                                              |
 | IA         | `start_ai_review`, `finish_ai_review`                                                                                       |
@@ -144,15 +144,15 @@ Regras garantidas no banco (não só na tela):
 
 ## 7. Fluxos no código
 
-| Fluxo               | Arquivos principais                                                                                                                              |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Envio da planilha   | `src/app/importacoes/actions.ts` → `src/lib/imports/file.ts` (arquivo) → `xlsx.ts` (leitura) → `bi.ts` (colunas, mês, CNPJ) → RPC `import_lives` |
-| Painéis             | `src/lib/dashboard/queries.ts` (diretor), `src/lib/partner-panel/queries.ts` (parceiro)                                                          |
-| Fechamento          | `src/app/fechamento/` + `src/lib/closings/queries.ts` → RPCs de fechamento                                                                       |
-| Indicações e etapas | `src/app/indicacoes/`, `src/lib/referrals/` (`stages.ts`: etapas e frases; `transitions.ts`: mudanças permitidas, espelho da função SQL)         |
-| Convite e aprovação | `src/app/convite/`, `src/app/parceiros/`, `src/lib/invitations/queries.ts`                                                                       |
-| IA                  | `src/lib/ai/material.ts` (o que vai para a IA), `claude.ts` (chamada), `reviews.ts` (registro)                                                   |
-| Mensagens e erros   | `src/lib/actions.ts` (`databaseError`: códigos do banco → texto), `src/lib/auth/errors.ts`, `src/lib/flash.ts`                                   |
+| Fluxo               | Arquivos principais                                                                                                                                                                                                                       |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Envio da planilha   | `src/app/importacoes/import-form.tsx` → `actions.ts` (`previewImport` → RPC `preview_import`; `uploadImport` → RPC `import_lives`) → `src/lib/imports/file.ts` (arquivo) → `xlsx.ts` ou `csv.ts` (leitura) → `bi.ts` (colunas, mês, CNPJ) |
+| Painéis             | `src/lib/dashboard/queries.ts` (diretor), `src/lib/partner-panel/queries.ts` (parceiro)                                                                                                                                                   |
+| Fechamento          | `src/app/fechamento/` + `src/lib/closings/queries.ts` → RPCs de fechamento                                                                                                                                                                |
+| Indicações e etapas | `src/app/indicacoes/`, `src/lib/referrals/` (`stages.ts`: etapas e frases; `transitions.ts`: mudanças permitidas, espelho da função SQL)                                                                                                  |
+| Convite e aprovação | `src/app/convite/`, `src/app/parceiros/`, `src/lib/invitations/queries.ts`                                                                                                                                                                |
+| IA                  | `src/lib/ai/material.ts` (o que vai para a IA), `claude.ts` (chamada), `reviews.ts` (registro)                                                                                                                                            |
+| Mensagens e erros   | `src/lib/actions.ts` (`databaseError`: códigos do banco → texto), `src/lib/auth/errors.ts`, `src/lib/flash.ts`                                                                                                                            |
 
 O formato da planilha do BI e as regras de leitura estão em [`docs/arquivo-bi.md`](../arquivo-bi.md).
 Se o BI mudar as colunas, só `src/lib/imports/bi.ts` e os testes dele mudam.
@@ -304,7 +304,7 @@ comandos acima. Passo a passo no README.
   administra; nunca na Vercel, no código ou no git.
 - O repositório está **público** no GitHub da Fortes Pay. Não há segredo nele (a chave pública do
   Supabase é pública por natureza), mas a recomendação é torná-lo privado antes do uso real.
-- Planilhas reais do BI nunca vão para o git (`*.xlsx` no `.gitignore`).
+- Planilhas reais do BI nunca vão para o git (`*.xlsx` no `.gitignore`; os CSV reais ficam em `.local/`).
 - Tokens de convite e de nova senha: só o hash fica no banco. Senhas ficam no Supabase Auth.
 - Páginas logadas saem com `Cache-Control: no-store`.
 

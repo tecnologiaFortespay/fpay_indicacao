@@ -101,6 +101,7 @@ describe("closingMaterial", () => {
           company_name: "Empresa A",
           partner_name: "Natal",
           status: "active",
+          activated_competency: "2026-08-01",
           lives: 55,
           lives_previous_month: 50,
           value_per_life: 2,
@@ -115,5 +116,55 @@ describe("closingMaterial", () => {
       mes_anterior: { vidas: 50, total: 90, decisao: "pago" },
       indicacoes: [{ empresa: "Empresa A", situacao: "Ativa", vidas: 55, prazo: "sem prazo" }],
     });
+  });
+
+  it("indicação que só começou a pagar depois do mês não aparece como ativa sem vidas", () => {
+    const material = closingMaterial({
+      competency: "2026-09",
+      items: [
+        {
+          partner_name: "Natal",
+          lives: 30,
+          value_per_life: 2,
+          month_amount: 60,
+          adjustment: 0,
+          adjustment_note: null,
+          previous_balance: 0,
+          total: 60,
+        },
+      ],
+      previous: new Map(),
+      referrals: [
+        {
+          cnpj: "12345678000110",
+          company_name: "Farmácia Nova",
+          partner_name: "Natal",
+          status: "active",
+          activated_competency: "2026-11-01",
+          lives: 0,
+          lives_previous_month: 0,
+          value_per_life: null,
+          term: "6 meses",
+        },
+        {
+          cnpj: "98765432000100",
+          company_name: "Clínica Antiga",
+          partner_name: "Natal",
+          status: "delinquent",
+          activated_competency: "2026-09-01",
+          lives: 25,
+          lives_previous_month: 0,
+          value_per_life: 2,
+          term: "sem prazo",
+        },
+      ],
+    });
+    expect(material.parceiros[0].indicacoes).toMatchObject([
+      {
+        empresa: "Farmácia Nova",
+        situacao: "Ainda não rendia neste mês (rende desde novembro de 2026)",
+      },
+      { empresa: "Clínica Antiga", situacao: "Inadimplente" },
+    ]);
   });
 });

@@ -378,6 +378,9 @@ isOneToOne: false
 "prepare_closing":
 { Args: { "month": string }; Returns: string
                            },
+"preview_import":
+{ Args: { "batch": Json,"rows": Json }; Returns: Json
+                           },
 "register_partner":
 { Args: { "payload": Json,"secret": string }; Returns: string
                            },

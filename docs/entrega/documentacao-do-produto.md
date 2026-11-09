@@ -34,7 +34,7 @@ indicações dele.
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | **Parceiro**                  | Quem indica clientes: uma **Unidade** ou um **Parceiro externo**. Tem um login.                                     |
 | **Indicação**                 | Uma empresa (CNPJ) que o parceiro indicou à Fortes Pay.                                                             |
-| **Vidas pagas**               | Quantidade da coluna "C. Cash-in" da planilha do BI para aquele CNPJ no mês.                                        |
+| **Vidas pagas**               | Quantidade da coluna "C. Cash-in" da planilha do BI para aquele CNPJ no mês (confirmado em 09/11/2026).             |
 | **Valor por vida (R$)**       | Quanto o parceiro recebe por vida paga. Ex.: R$ 1,50.                                                               |
 | **Regra de remuneração**      | Valor por vida + **Vale a partir de** (mês em que começa) + **Prazo (meses)**. Cada parceiro tem a sua.             |
 | **Vigência**                  | Cada versão da regra do parceiro. Uma vigência nova vale do mês dela em diante; as anteriores ficam como histórico. |
@@ -161,9 +161,15 @@ vale para os meses abertos; os meses fechados guardam o valor do fechamento.
 
 ### O que enviar
 
-- A planilha **Detalhamento Empresas**, exportada do Power BI como de costume (Exportar dados →
-  Excel), **um mês por vez**. Não precisa mexer em nada no arquivo.
-- Em **Importações**, escolha o **Mês de referência** (o mesmo filtrado no BI) e envie o arquivo.
+- A planilha **Detalhamento Empresas** exportada do BI, **um mês por vez**, em **.csv** (como o
+  Google Planilhas salva) ou **.xlsx** (como o Power BI exporta). Não precisa mexer em nada no
+  arquivo.
+- Em **Importações**, escolha o **Mês de referência** (o mesmo filtrado no BI) e o arquivo e
+  clique em **Conferir arquivo**. A tela mostra, **sem gravar nada**, o que vai mudar: cada
+  indicação com as vidas de hoje e as do arquivo, a mudança de situação (por exemplo, Fechada →
+  Ativa), o valor do mês antes e depois, os totais por parceiro, as indicações que não aparecem
+  no arquivo e as linhas que não entram. Se estiver certo, **Confirmar e importar**; se não,
+  **Cancelar**.
 - O sistema lê o CNPJ, o nome da empresa, o grupo e a coluna **C. Cash-in** (vidas pagas). As
   outras colunas são ignoradas.
 
@@ -191,7 +197,7 @@ vale para os meses abertos; os meses fechados guardam o valor do fechamento.
 
 - O rodapé "Filtros aplicados" da planilha é de outro mês, ou de mais de um mês.
 - O mês escolhido é futuro.
-- O arquivo não tem as colunas do BI, passa de 4 MB ou não é um .xlsx.
+- O arquivo não tem as colunas do BI, passa de 4 MB ou não é .csv nem .xlsx.
 - Linhas de um mês já fechado não entram ("Mês já fechado"); o fechamento não muda.
 
 ## 8. Como o valor é calculado
@@ -325,9 +331,9 @@ pagar ou acumular e não altera dados.
 
 ## 14. Pontos que a Fortes Pay precisa confirmar
 
-1. **"C. Cash-in" é a medida de vidas pagas do mês.** A alternativa seria "Contas Cad". Se for
-   outra coluna, a troca é pequena.
-2. **Cada planilha parcial traz o acumulado do mês até o dia**, e não só as vidas novas desde o
+Já confirmado em 09/11/2026: **"C. Cash-in" é a medida de vidas pagas do mês.**
+
+1. **Cada planilha parcial traz o acumulado do mês até o dia**, e não só as vidas novas desde o
    envio anterior. O sistema substitui o mês a cada envio; se a planilha trouxer só as novas, os
    valores ficariam menores.
 

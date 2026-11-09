@@ -1,8 +1,10 @@
 import { formatCnpj, isValidCnpj, normalizeCnpj } from "@/lib/cnpj";
 
 // Reads the "Detalhamento Empresas" export of the Fortes Pay BI (a Power BI matrix exported to
-// Excel) as it is: one header row, subtotal rows ("Total") per group and per company, one row per
-// CNPJ and a last "Filtros aplicados" row with the month filter. See docs/arquivo-bi.md.
+// Excel, or the same matrix saved as CSV) as it is: one header row, subtotal rows ("Total") per
+// group and per company, one row per CNPJ and a last "Filtros aplicados" row with the month
+// filter. In the CSV the group and company names appear only on their subtotal rows (blank on
+// the CNPJ rows) and numbers come formatted ("2.657"). See docs/arquivo-bi.md.
 
 export type ImportRow = {
   line_number: number;
@@ -34,7 +36,7 @@ export type ParsedExport = {
 export class BiFormatError extends Error {}
 
 // Column names as the BI writes them, compared without accents, case or repeated spaces.
-// [CONFIRMAR] "vidas pagas no mês" = contas com cash-in no mês ("C. Cash-in"). Alternativa: "Contas Cad".
+// "Vidas pagas no mês" = contas com cash-in no mês ("C. Cash-in"), confirmado pela Fortes Pay em 09/11/2026.
 export const BI_COLUMNS = {
   cnpj: ["cnpj"],
   lives: ["c. cash-in", "c cash-in", "contas cash-in", "vidas"],
@@ -119,12 +121,18 @@ export function parseFilters(text: string): string | null {
   return `${year}-${String(month).padStart(2, "0")}-01`;
 }
 
-// Integer ≥ 0 as Excel writes it ("2728", "2728.0"). A blank measure in the matrix means no
-// account with cash-in, so it counts as zero.
+// Integer ≥ 0 as Excel writes it ("2728", "2728.0") or as a CSV in Portuguese shows it ("2.728",
+// thousands separated by dots). A blank measure in the matrix means no account with cash-in, so
+// it counts as zero.
 export function parseLives(value: string): number | null {
-  const text = value.trim().replace(/[.,]0+$/, "");
+  let text = value.trim();
   if (text === "") {
     return 0;
+  }
+  if (/^\d{1,3}(\.\d{3})+$/.test(text)) {
+    text = text.replace(/\./g, "");
+  } else {
+    text = text.replace(/[.,]0+$/, "");
   }
   if (!/^\d{1,7}$/.test(text)) {
     return null;
@@ -149,6 +157,9 @@ export function parseBiExport(sheet: string[][], competency: string): ParsedExpo
   const issues: ImportIssue[] = [];
   let rowsRead = 0;
   let filterCompetency: string | null = null;
+  // Last group and company named on a subtotal row: the CSV leaves them blank on the CNPJ rows.
+  let currentGroup = "";
+  let currentCompany = "";
   for (let index = headerIndex + 1; index < sheet.length; index += 1) {
     const cells = sheet[index] ?? [];
     const lineNumber = index + 1;
@@ -158,8 +169,19 @@ export function parseBiExport(sheet: string[][], competency: string): ParsedExpo
       continue;
     }
     const cnpjText = cell(cells, columns.cnpj).trim();
+    const companyText = cell(cells, columns.company).trim();
+    const groupText = cell(cells, columns.group).trim();
     // Subtotal rows ("Total") and blank rows are structure, not data.
-    if (cnpjText === "" || normalizeText(cnpjText) === "total") {
+    if (normalizeText(cnpjText) === "total") {
+      currentGroup = groupText || currentGroup;
+      currentCompany = companyText;
+      continue;
+    }
+    if (cnpjText === "") {
+      if (normalizeText(companyText) === "total") {
+        currentGroup = groupText;
+        currentCompany = "";
+      }
       continue;
     }
     rowsRead += 1;
@@ -184,8 +206,8 @@ export function parseBiExport(sheet: string[][], competency: string): ParsedExpo
       });
       continue;
     }
-    const companyName = cell(cells, columns.company).trim().slice(0, 240) || formatCnpj(cnpj);
-    const groupName = cell(cells, columns.group).trim().slice(0, 240) || null;
+    const companyName = (companyText || currentCompany).slice(0, 240) || formatCnpj(cnpj);
+    const groupName = (groupText || currentGroup).slice(0, 240) || null;
     const existing = rowsByCnpj.get(cnpj);
     if (!existing) {
       rowsByCnpj.set(cnpj, {
