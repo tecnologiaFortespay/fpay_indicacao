@@ -149,6 +149,8 @@ describe("helpers", () => {
     );
     expect(() => validateImportFile("dados.xlsx", "text/plain", 100)).toThrow(/não suportado/);
     expect(() => validateImportFile("dados.csv", "application/pdf", 100)).toThrow(/não suportado/);
+    expect(() => validateImportFile("dados.csv", "text/x-csv", 100)).not.toThrow();
+    expect(() => validateImportFile("dados.csv", "application/vnd.ms-excel", 100)).not.toThrow();
     expect(() => validateImportFile("dados.xlsx", "", 0)).toThrow(/vazio/);
     expect(() => validateImportFile("dados.xlsx", "", 6 * 1024 * 1024)).toThrow(/4 MB/);
   });

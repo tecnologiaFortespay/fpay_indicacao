@@ -30,8 +30,12 @@ export function validateImportFile(name: string, type: string, size: number): vo
       "Envie o arquivo do BI (Detalhamento Empresas) em .csv ou .xlsx, como ele é exportado.",
     );
   }
-  const types = /\.csv$/i.test(name) ? CSV_TYPES : XLSX_TYPES;
-  if (!types.includes(type)) {
+  const csv = /\.csv$/i.test(name);
+  // CSV: cada sistema dá um nome ("text/csv", "text/x-csv", "application/vnd.ms-excel"…).
+  const accepted = csv
+    ? CSV_TYPES.includes(type) || type.startsWith("text/")
+    : XLSX_TYPES.includes(type);
+  if (!accepted) {
     throw new Error("Tipo de arquivo não suportado. Envie o arquivo do BI em .csv ou .xlsx.");
   }
   if (size === 0) {
