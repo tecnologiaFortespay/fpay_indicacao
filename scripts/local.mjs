@@ -13,5 +13,9 @@ if (!command) {
   console.error("Informe o comando, por exemplo: node scripts/local.mjs next dev");
   process.exit(1);
 }
-const result = spawnSync(command, args, { stdio: "inherit", env });
+// No Windows, "next" é next.cmd e só roda pelo shell.
+const result =
+  process.platform === "win32"
+    ? spawnSync([command, ...args].join(" "), { stdio: "inherit", env, shell: true })
+    : spawnSync(command, args, { stdio: "inherit", env });
 process.exit(result.status ?? 1);
