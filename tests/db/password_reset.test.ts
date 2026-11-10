@@ -118,3 +118,65 @@ describe("link de nova senha gerado pelo diretor", () => {
     expect(expired.error?.message).toBe("RESET_INVALID");
   });
 });
+
+// 09/11/2026 — Minha conta: quem está conectado troca a própria senha informando a atual.
+describe("troca da própria senha", () => {
+  it("exige a senha atual, 8 a 128 caracteres e uma senha diferente; depois só a nova entra", async () => {
+    const user = await createUser(admin, "director");
+    const client = await userClient(user.email);
+    const wrong = await client.rpc("change_my_password", {
+      current_password: "errada-123",
+      new_password: "Senha-nova-conta-1",
+    });
+    expect(wrong.error?.details).toBe("A senha atual não confere.");
+    const short = await client.rpc("change_my_password", {
+      current_password: PASSWORD,
+      new_password: "curta",
+    });
+    expect(short.error?.details).toBe("A senha nova precisa ter de 8 a 128 caracteres.");
+    const same = await client.rpc("change_my_password", {
+      current_password: PASSWORD,
+      new_password: PASSWORD,
+    });
+    expect(same.error?.details).toBe("A senha nova precisa ser diferente da atual.");
+    done(
+      await client.rpc("change_my_password", {
+        current_password: PASSWORD,
+        new_password: "Senha-nova-conta-1",
+      }),
+      "change_my_password",
+    );
+    expect((await signIn(user.email, "Senha-nova-conta-1")).error).toBeNull();
+    expect((await signIn(user.email, PASSWORD)).error).not.toBeNull();
+  });
+
+  it("sem sessão não há troca de senha", async () => {
+    const denied = await anonClient().rpc("change_my_password", {
+      current_password: PASSWORD,
+      new_password: "Senha-nova-conta-1",
+    });
+    expect(denied.error?.code).toBe("42501");
+  });
+
+  it("o link de nova senha também serve para um diretor (Equipe)", async () => {
+    const other = await createUser(admin, "director");
+    const link = secret();
+    ok(
+      await director.rpc("create_password_reset", { target: other.id, secret: link }),
+      "create_password_reset for director",
+    );
+    const preview = ok(
+      await anonClient().rpc("password_reset_preview", { secret: link }),
+      "password_reset_preview",
+    );
+    expect(preview).toMatchObject({ email: other.email, display_name: "Teste director" });
+    done(
+      await anonClient().rpc("reset_password_with_token", {
+        secret: link,
+        password: "Senha-diretor-link-1",
+      }),
+      "reset_password_with_token",
+    );
+    expect((await signIn(other.email, "Senha-diretor-link-1")).error).toBeNull();
+  });
+});

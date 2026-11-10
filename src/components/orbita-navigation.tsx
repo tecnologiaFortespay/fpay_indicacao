@@ -68,7 +68,12 @@ export function OrbitaNavigation({ areas, email, roleLabel, homeHref }: Navigati
       </span>
       <div className="orbita-account-name">
         <span title={email}>{email}</span>
-        <small>{roleLabel}</small>
+        <small>
+          {roleLabel} ·{" "}
+          <Link href="/minha-conta" prefetch={false}>
+            Minha conta
+          </Link>
+        </small>
       </div>
       <LogoutButton />
     </div>

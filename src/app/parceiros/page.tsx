@@ -10,7 +10,11 @@ import { PageIntro } from "@/components/page-intro";
 import { SectionCard } from "@/components/section-card";
 import { requireRole } from "@/lib/auth/session";
 import { currentCompetency, formatDate } from "@/lib/competency";
-import { invitationStatus, listInvitations } from "@/lib/invitations/queries";
+import {
+  defaultInvitationValidUntil,
+  invitationStatus,
+  listInvitations,
+} from "@/lib/invitations/queries";
 import { invitationStatusLabels, partnerKindLabels } from "@/lib/labels";
 import { listAllRules, listPartners, type Partner } from "@/lib/partners/queries";
 import { currentRule, ruleSentence } from "@/lib/referrals/config";
@@ -19,11 +23,6 @@ import { createInvitation } from "./actions";
 export const metadata: Metadata = { title: "Parceiros" };
 
 const kindOptions = Object.entries(partnerKindLabels) as [string, string][];
-
-function defaultValidUntil(): string {
-  const sevenDays = 7 * 24 * 60 * 60 * 1000;
-  return new Date(Date.now() + sevenDays).toISOString().slice(0, 10);
-}
 
 function kindOf(partner: Partner): string {
   return partnerKindLabels[partner.kind as keyof typeof partnerKindLabels] ?? partner.kind;
@@ -59,7 +58,7 @@ export default async function PartnersPage() {
   await requireRole("director");
   const [partners, invitations, rules] = await Promise.all([
     listPartners(),
-    listInvitations(),
+    listInvitations(["unit", "external"]),
     listAllRules(),
   ]);
   const today = currentCompetency();
@@ -187,7 +186,7 @@ export default async function PartnersPage() {
                 name="valid_until"
                 type="date"
                 required
-                defaultValue={defaultValidUntil()}
+                defaultValue={defaultInvitationValidUntil()}
                 hint="Até o fim deste dia (horário de Fortaleza)."
               />
             </div>

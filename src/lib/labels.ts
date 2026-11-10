@@ -9,6 +9,12 @@ export const partnerKindLabels = {
   external: "Parceiro externo",
 } as const;
 
+// Tipos de convite: os de parceiro mais o de diretor (Equipe).
+export const invitationKindLabels = {
+  ...partnerKindLabels,
+  director: "Diretor",
+} as const;
+
 export const partnerStatusLabels = {
   pending: "Aguardando aprovação",
   active: "Ativo",

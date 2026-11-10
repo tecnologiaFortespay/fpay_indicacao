@@ -1,17 +1,10 @@
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import {
-  expect,
-  type APIRequestContext,
-  type Browser,
-  type Locator,
-  type Page,
-} from "@playwright/test";
+import { expect, type Browser, type Locator, type Page } from "@playwright/test";
 import { adminClient, ensureStaffUser } from "../scripts/bootstrap.mjs";
 
 export const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 export const PASSWORD = "Senha-e2e-12345";
-const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://127.0.0.1:54344";
 
 export type Staff = {
   director: { id: string; email: string };
@@ -89,28 +82,6 @@ export async function upload(
   }
   await preview.getByRole("button", { name: "Confirmar e importar", exact: true }).click();
   await page.waitForURL(/\/importacoes\/[0-9a-f-]{36}$/, { timeout: 60000 });
-}
-
-// Link de recuperação de senha que o Supabase local entrega no Mailpit.
-export async function recoveryLink(request: APIRequestContext, email: string): Promise<string> {
-  for (let attempt = 0; attempt < 30; attempt += 1) {
-    const search = await request.get(
-      `${MAILPIT_URL}/api/v1/search?query=to:${encodeURIComponent(email)}`,
-    );
-    const list = (await search.json()) as { messages?: { ID: string }[] };
-    for (const message of list.messages ?? []) {
-      const detail = await request.get(`${MAILPIT_URL}/api/v1/message/${message.ID}`);
-      const body = (await detail.json()) as { Text?: string; HTML?: string };
-      const text = `${body.Text ?? ""}\n${(body.HTML ?? "").replace(/&amp;/g, "&")}`;
-      const match = text.match(/https?:\/\/[^\s"<>]+\/auth\/v1\/verify[^\s"<>]+/);
-      if (match) {
-        await request.delete(`${MAILPIT_URL}/api/v1/messages`, { data: { IDs: [message.ID] } });
-        return match[0];
-      }
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-  throw new Error("E-mail de recuperação não chegou ao Mailpit.");
 }
 
 export function clean(text: string): string {

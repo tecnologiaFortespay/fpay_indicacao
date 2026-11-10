@@ -17,7 +17,6 @@ import {
   login,
   openDisclosure,
   PASSWORD,
-  recoveryLink,
   resetAndSeedStaff,
   submitIn,
   upload,
@@ -210,7 +209,6 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     director: "Diretor Roteiro",
     bi: "Equipe BI Roteiro",
   });
-  await request.delete("http://127.0.0.1:54344/api/v1/messages");
   const anon = await actor(browser, base);
   const dir = await actor(browser, base);
   // Quem envia a planilha do BI usa um login de diretor próprio (decisão 14).
@@ -241,6 +239,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
       "Indicações",
       "Importações",
       "Fechamento do mês",
+      "Equipe",
     ]);
   });
 
@@ -1110,30 +1109,110 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     expect(row).toContain("R$ 3,00 por vida · 6 meses");
   });
 
-  await test.step("12.4 esqueci minha senha por e-mail (Mailpit): a nova entra, a antiga não", async () => {
-    const email = "contador.e2e@fortespay.local";
-    const page = await actor(browser, base);
-    await page.goto("/login");
-    await page.getByRole("link", { name: "Esqueci minha senha" }).click();
-    await expect(page).toHaveURL(/\/esqueci-senha$/);
-    await page.getByLabel("E-mail", { exact: true }).fill(email);
-    await page.getByRole("button", { name: "Enviar link" }).click();
-    await expect(page.getByRole("status").filter({ hasText: "Se houver uma conta" })).toBeVisible();
-    await page.goto(await recoveryLink(request, email));
-    await expect(page.getByRole("heading", { level: 1, name: "Definir nova senha" })).toBeVisible();
-    await page.getByLabel("Nova senha (mínimo de 8 caracteres)").fill(NEW_PASSWORD);
-    await page.getByLabel("Confirme a nova senha").fill(NEW_PASSWORD);
-    await page.getByRole("button", { name: "Salvar nova senha" }).click();
-    await expect(page).toHaveURL(/\/login\?senha=alterada$/);
-    await login(page, email, NEW_PASSWORD);
-    await expect(page).toHaveURL(/\/inicio$/);
+  // Bloco 12 (continuação) — decisão 19 de 09/11/2026: senha e equipe sem e-mail.
+  await test.step("12.4 Minha conta: diretor troca a própria senha; a nova entra, a antiga não", async () => {
+    await dir.goto("/inicio");
+    await dir.getByRole("link", { name: "Minha conta" }).first().click();
+    await expect(dir).toHaveURL(/\/minha-conta$/);
+    await expect(dir.getByRole("heading", { level: 1, name: "Minha conta" })).toBeVisible();
+    await dir.getByLabel("Senha atual").fill(PASSWORD);
+    await dir.getByLabel("Nova senha (mínimo de 8 caracteres)").fill(NEW_PASSWORD);
+    await dir.getByLabel("Confirme a nova senha").fill(NEW_PASSWORD);
+    await dir.getByRole("button", { name: "Alterar senha" }).click();
+    await expect(dir.getByRole("status").filter({ hasText: "Senha alterada." })).toBeVisible();
+    const fresh = await actor(browser, base);
+    await login(fresh, staff.director.email, NEW_PASSWORD);
+    await expect(fresh).toHaveURL(/\/inicio$/);
     const old = await actor(browser, base);
     await old.goto("/login");
-    await old.getByLabel("E-mail", { exact: true }).fill(email);
+    await old.getByLabel("E-mail", { exact: true }).fill(staff.director.email);
     await old.getByLabel("Senha", { exact: true }).fill(PASSWORD);
     await old.getByRole("button", { name: "Entrar", exact: true }).click();
     await expect(
       old.getByRole("alert").filter({ hasText: "E-mail ou senha incorretos." }),
     ).toBeVisible();
+  });
+
+  await test.step("12.5 Equipe: diretor convida outro diretor, que entra direto; parceiro não vê Equipe", async () => {
+    await dir.goto("/equipe");
+    await expect(dir.getByRole("heading", { level: 1, name: "Equipe" })).toBeVisible();
+    const directors = section(dir, "Diretores");
+    await expect(directors.getByRole("row", { name: /Diretor Roteiro/ })).toContainText(
+      staff.director.email,
+    );
+    await expect(directors.getByRole("row", { name: /Equipe BI Roteiro/ })).toContainText(
+      staff.bi.email,
+    );
+    const form = await openDisclosure(dir, "Convidar diretor");
+    await form.getByLabel("Nome", { exact: true }).fill("Analista BI Novo");
+    await submitIn(form, "Gerar convite").click();
+    await expect(dir.getByRole("status").filter({ hasText: "Convite criado" })).toBeVisible();
+    const link = await dir.getByLabel("Link do convite").inputValue();
+    expect(link).toMatch(/\/convite\/[A-Za-z0-9_-]{43}$/);
+
+    const novo = await actor(browser, base);
+    await novo.goto(link);
+    await expect(
+      novo.getByRole("heading", { level: 1, name: "Cadastro · Analista BI Novo" }),
+    ).toBeVisible();
+    await expect(novo.getByText(/Convite para diretor/)).toBeVisible();
+    await expect(novo.getByLabel("Seu nome")).toHaveValue("Analista BI Novo");
+    await novo.getByLabel("E-mail de acesso").fill("novo.e2e@fortespay.local");
+    await novo.getByLabel("Senha (mínimo de 8 caracteres)").fill(PASSWORD);
+    await novo.getByRole("button", { name: "Criar acesso" }).click();
+    await expect(novo).toHaveURL(/\/inicio$/);
+    await expect(novo.getByRole("heading", { level: 1, name: "Visão geral" })).toBeVisible();
+    expect(await navLabels(novo)).toContain("Equipe");
+
+    await dir.goto("/equipe");
+    await expect(
+      section(dir, "Diretores").getByRole("row", { name: /Analista BI Novo/ }),
+    ).toContainText("novo.e2e@fortespay.local");
+    await expect(
+      section(dir, "Convites de diretor").getByRole("row", { name: /Analista BI Novo/ }),
+    ).toContainText("Cadastro feito");
+
+    await ter.goto("/equipe");
+    await expect(ter).toHaveURL(/\/inicio$/);
+  });
+
+  await test.step("12.6 Equipe: link de nova senha para outro diretor", async () => {
+    await dir.goto("/equipe");
+    const directors = section(dir, "Diretores");
+    await expect(
+      directors
+        .getByRole("row", { name: /Diretor Roteiro/ })
+        .getByRole("button", { name: "Gerar link de nova senha" }),
+    ).toHaveCount(0);
+    const row = directors.getByRole("row", { name: /Analista BI Novo/ });
+    await row.getByRole("button", { name: "Gerar link de nova senha" }).click();
+    const link = await row.getByLabel("Link de nova senha").inputValue();
+    expect(link).toMatch(/\/nova-senha\/[A-Za-z0-9_-]{43}$/);
+
+    const page = await actor(browser, base);
+    await page.goto(link);
+    await expect(page.getByText(/novo\.e2e@fortespay\.local/)).toBeVisible();
+    await page.getByLabel("Nova senha (mínimo de 8 caracteres)").fill("Senha-novo-diretor-1");
+    await page.getByLabel("Confirme a nova senha").fill("Senha-novo-diretor-1");
+    await page.getByRole("button", { name: "Salvar nova senha" }).click();
+    await expect(page).toHaveURL(/\/login\?senha=alterada$/);
+    await login(page, "novo.e2e@fortespay.local", "Senha-novo-diretor-1");
+    await expect(page).toHaveURL(/\/inicio$/);
+  });
+
+  await test.step("12.7 Esqueci minha senha explica o caminho pelo diretor, sem e-mail", async () => {
+    const page = await actor(browser, base);
+    await page.goto("/login");
+    await page.getByRole("link", { name: "Esqueci minha senha" }).click();
+    await expect(page).toHaveURL(/\/esqueci-senha$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Esqueci minha senha" }),
+    ).toBeVisible();
+    await expect(page.getByText("O sistema não envia e-mail.")).toBeVisible();
+    await expect(page.getByText(/gera o link em Equipe/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Enviar link" })).toHaveCount(0);
+    await expect(page.getByLabel("E-mail", { exact: true })).toHaveCount(0);
+    await page.getByRole("link", { name: "Voltar ao login" }).click();
+    await expect(page).toHaveURL(/\/login$/);
   });
 });

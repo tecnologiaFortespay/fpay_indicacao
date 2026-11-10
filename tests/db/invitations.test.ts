@@ -15,6 +15,7 @@ import {
 
 let admin: Client;
 let director: Client;
+let directorUser: { id: string; email: string };
 let noProfile: Client;
 
 function anonClient(): Client {
@@ -49,7 +50,7 @@ async function registerWithNewUser(secret: string, payload: Record<string, strin
 
 beforeAll(async () => {
   admin = adminClient();
-  const directorUser = await createUser(admin, "director");
+  directorUser = await createUser(admin, "director");
   const noProfileUser = await createUser(admin, null);
   director = await userClient(directorUser.email);
   noProfile = await userClient(noProfileUser.email);
@@ -257,5 +258,113 @@ describe("fatia 2 — convite, cadastro e aprovação", () => {
     });
     const twice = await director.rpc("reject_partner", { target: partnerId, reason: "De novo." });
     expect(twice.error?.details).toBe("Só um cadastro pendente pode ser recusado.");
+  });
+});
+
+// 09/11/2026 — Equipe: o diretor convida outros diretores pelo mesmo tipo de link do parceiro.
+describe("convite de diretor (Equipe)", () => {
+  async function newUserClient(): Promise<Client> {
+    return userClient((await createUser(admin, null)).email);
+  }
+
+  it("diretor convida outro diretor; quem abre o link vê o nome e o tipo", async () => {
+    const { secret } = await invite("Analista BI", "director");
+    const preview = ok(
+      await anonClient().rpc("invitation_preview", { secret }),
+      "invitation_preview",
+    );
+    expect(preview).toMatchObject({
+      partner_name: "Analista BI",
+      kind: "director",
+      status: "open",
+    });
+  });
+
+  it("cadastro pelo convite cria o perfil de diretor, que já age como diretor; o link não serve duas vezes", async () => {
+    const { secret } = await invite("Analista BI", "director");
+    const client = await newUserClient();
+    done(
+      await client.rpc("register_director", { secret, payload: { name: "Beatriz BI" } }),
+      "register_director",
+    );
+    const profile = ok(await client.rpc("current_profile"), "current_profile") as {
+      role: string;
+      display_name: string;
+      partner: unknown;
+    };
+    expect(profile).toMatchObject({ role: "director", display_name: "Beatriz BI", partner: null });
+    const invitations = ok(
+      await client.from("invitations").select("id"),
+      "invitations as director",
+    );
+    expect(invitations.length).toBeGreaterThan(0);
+
+    const again = await (
+      await newUserClient()
+    ).rpc("register_director", {
+      secret,
+      payload: { name: "Outra Pessoa" },
+    });
+    expect(again.error?.message).toBe("INVITATION_INVALID");
+    const preview = ok(
+      await anonClient().rpc("invitation_preview", { secret }),
+      "preview after use",
+    );
+    expect(preview).toMatchObject({ status: "used" });
+  });
+
+  it("convite de parceiro não cadastra diretor, nem convite de diretor cadastra parceiro", async () => {
+    const partnerInvite = await invite("Unidade Cruzada", "unit");
+    const directorInvite = await invite("Diretor Cruzado", "director");
+    const client = await newUserClient();
+    const asDirector = await client.rpc("register_director", {
+      secret: partnerInvite.secret,
+      payload: { name: "Fulano" },
+    });
+    expect(asDirector.error?.message).toBe("INVITATION_INVALID");
+    const asPartner = await client.rpc("register_partner", {
+      secret: directorInvite.secret,
+      payload: { name: "Unidade X", contact_name: "Fulano" },
+    });
+    expect(asPartner.error?.message).toBe("INVITATION_INVALID");
+  });
+
+  it("sem nome não cadastra; conta que já tem perfil não usa o convite", async () => {
+    const { secret } = await invite("Sem Nome", "director");
+    const noName = await (
+      await newUserClient()
+    ).rpc("register_director", {
+      secret,
+      payload: { name: "  " },
+    });
+    expect(noName.error?.details).toBe("Informe o seu nome.");
+    const already = await director.rpc("register_director", { secret, payload: { name: "Dir" } });
+    expect(already.error?.message).toBe("ALREADY_REGISTERED");
+  });
+
+  it("a lista de diretores traz nome e e-mail e só o diretor a vê", async () => {
+    const list = ok(await director.rpc("list_directors"), "list_directors") as {
+      user_id: string;
+      display_name: string;
+      email: string;
+      created_at: string;
+    }[];
+    const me = list.find((entry) => entry.user_id === directorUser.id);
+    expect(me).toMatchObject({ display_name: "Teste director", email: directorUser.email });
+    expect(list.every((entry) => entry.email.includes("@"))).toBe(true);
+
+    const partner = ok(
+      await admin
+        .from("partners")
+        .insert({ name: `Unidade Lista ${Date.now()}`, kind: "unit", status: "active" })
+        .select("id")
+        .single(),
+      "partner",
+    );
+    const partnerClient = await userClient((await createUser(admin, "partner", partner.id)).email);
+    for (const client of [noProfile, partnerClient]) {
+      const denied = await client.rpc("list_directors");
+      expect(denied.error?.code).toBe("42501");
+    }
   });
 });

@@ -49,10 +49,11 @@ Navegador ──► Vercel (Next.js 16, região gru1 / São Paulo)
 ## 4. Estrutura do repositório
 
 ```
-supabase/migrations/   11 migrations, em ordem; toda escrita é função SQL que confere o perfil
+supabase/migrations/   14 migrations, em ordem; toda escrita é função SQL que confere o perfil
 supabase/config.toml   configuração do Supabase LOCAL (não aplicar no projeto real)
 src/app/               rotas em português: login, inicio, parceiros, indicacoes, importacoes,
-                       fechamento, fechamentos, meu-cadastro, convite, nova-senha, status, ...
+                       fechamento, fechamentos, equipe, minha-conta, meu-cadastro, convite,
+                       nova-senha, status, ...
 src/components/        shell, navegação, formulários e o kit de tela (PageIntro, SectionCard,
                        Notice, FormDisclosure, Stepper, ...)
 src/lib/               env, sessão, leitor do BI (imports/xlsx.ts, csv.ts, bi.ts), consultas
@@ -60,7 +61,7 @@ src/lib/               env, sessão, leitor do BI (imports/xlsx.ts, csv.ts, bi.t
 src/proxy.ts           renova a sessão a cada requisição e impede cache de páginas logadas
 tests/db/              testes das funções SQL e da RLS (Vitest, Supabase local)
 e2e/                   roteiro de validação inteiro + casos extras (Playwright)
-scripts/               bootstrap (usuários internos), reset-link, db-push, db-clean, local
+scripts/               bootstrap (primeiro diretor), reset-link, db-push, db-clean, local
 docs/                  requisitos, decisões, formato do BI, roteiro, o que ficou para depois
 ```
 
@@ -98,12 +99,13 @@ só com aprovação.
 | Assunto    | Funções                                                                                                                     |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Perfil     | `is_director`, `my_partner_id`, `current_profile`, `current_role_name`                                                      |
-| Convite    | `create_invitation`, `invitation_preview`, `register_partner`, `confirm_invited_signup`                                     |
+| Convite    | `create_invitation`, `invitation_preview`, `register_partner`, `register_director`, `confirm_invited_signup`                |
+| Equipe     | `list_directors`                                                                                                            |
 | Parceiro   | `approve_partner`, `reject_partner`, `save_partner`, `save_partner_rule`, `delete_partner_rule`                             |
 | Indicação  | `create_referral`, `set_referral_status`, `set_referral_config`, `valid_cnpj`                                               |
 | Importação | `import_lives`, `preview_import` (conferência: roda e desfaz), `last_import_at`, `latest_complete_competency`               |
 | Fechamento | `closing_blocker`, `prepare_closing`, `set_closing_adjustment`, `close_closing`, `respond_closing_item`, `set_payment_note` |
-| Nova senha | `create_password_reset`, `password_reset_preview`, `reset_password_with_token`                                              |
+| Senha      | `create_password_reset`, `password_reset_preview`, `reset_password_with_token`, `change_my_password`                        |
 | IA         | `start_ai_review`, `finish_ai_review`                                                                                       |
 
 Regras garantidas no banco (não só na tela):
@@ -131,14 +133,19 @@ Regras garantidas no banco (não só na tela):
 - Supabase Auth com e-mail e senha. O cookie de sessão é `fp-indicacao-auth` (httpOnly, `secure`
   em https). `src/proxy.ts` renova a sessão a cada requisição.
 - São dois perfis: **diretor** e **parceiro**. Quem envia a planilha do BI usa o perfil de diretor.
-- **Diretores** são criados por script (`npm run bootstrap`), nunca pela tela.
+- **Diretores**: o primeiro é criado por script (`npm run bootstrap`); os demais entram por convite
+  em **Equipe** (tipo `director` em `invitations`, função `register_director`) e entram direto, sem
+  aprovação. Todos os diretores são iguais.
 - **Parceiro** só entra por convite: o token vai no link e só o hash SHA-256 fica no banco. O
   cadastro cria o usuário no Auth e o perfil; até a aprovação, o login só mostra "Cadastro em
   análise".
 - "Confirm email" está **desligado** no Supabase (o convite é que valida a origem).
-- **Nova senha**: para parceiro, o diretor gera na ficha um link de 24 horas e uso único (hash em
-  `profiles`). Para diretores, `npm run reset-link -- --email <e-mail>` gera um link de
-  recuperação do Supabase (1 hora), sem enviar e-mail.
+- **Nova senha**: um diretor gera um link de 24 horas e uso único (hash em `profiles`,
+  `create_password_reset`): para parceiro, na ficha dele; para outro diretor, em Equipe. Quem está
+  conectado troca a própria senha em **Minha conta** (`change_my_password`, que confere a senha
+  atual com bcrypt e grava a nova no formato do Supabase Auth). Último recurso para um diretor:
+  `npm run reset-link -- --email <e-mail>` gera um link de recuperação do Supabase (1 hora), sem
+  enviar e-mail.
 - Toda server action confere o perfil (`actionUser`); sem sessão, devolve "Sua sessão expirou" e
   manda para o login.
 
@@ -224,16 +231,18 @@ Supabase local, com as chaves de demonstração da CLI.
 o Supabase, a resposta do Supabase à chave (200 = aceita), problemas de configuração e se a IA está
 ligada.
 
-### Criar um diretor
+### Criar o primeiro diretor
 
 ```bash
 npm run bootstrap -- --email nome@fortespay.com.br --role director --name "Nome" --password "<senha>"
 ```
 
-Vale também para quem envia a planilha do BI. Se o e-mail já existir, o script atualiza o perfil
-e a senha.
+Só para o primeiro diretor de um ambiente novo: os demais (também quem envia a planilha do BI) são
+convidados pela tela **Equipe**. Se o e-mail já existir, o script atualiza o perfil e a senha.
 
-### Nova senha de diretor
+### Nova senha de diretor (último recurso)
+
+O caminho normal é outro diretor gerar o link em **Equipe**. Sem outro diretor disponível:
 
 ```bash
 npm run reset-link -- --email <e-mail>
@@ -278,9 +287,9 @@ Testado no Supabase local em 04/11/2026.
 
 ### E-mail
 
-O projeto usa o e-mail padrão do Supabase (poucos envios por hora). Nenhum fluxo depende dele. Para
-o "Esqueci minha senha" funcionar sozinho, configure um SMTP próprio em Supabase → Authentication →
-SMTP Settings.
+O sistema não envia e-mail e nenhum fluxo depende dele: convites e links de nova senha são copiados
+pelo diretor e enviados por conta própria, e o "Esqueci minha senha" da tela só explica esse caminho.
+Não é preciso configurar SMTP.
 
 ## 12. Testes
 

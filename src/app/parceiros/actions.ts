@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { databaseError, formValue } from "@/lib/actions";
+import { passwordResetLink } from "@/lib/auth/password-reset-link";
 import { actionUser, deniedState } from "@/lib/auth/session";
 import { normalizeCnpj } from "@/lib/cnpj";
 import { appOrigin } from "@/lib/env";
@@ -179,16 +180,7 @@ export async function createPasswordReset(
   if (!login) {
     return { error: "Este parceiro ainda não tem login." };
   }
-  const secret = randomBytes(32).toString("base64url");
-  const supabase = await createClient();
-  const result = await supabase.rpc("create_password_reset", { target: login.user_id, secret });
-  if (result.error) {
-    return { error: databaseError(result.error) };
-  }
-  return {
-    success: "Link gerado. Copie e envie ao parceiro: vale por 24 horas e uma única vez.",
-    link: `${appOrigin(await headers())}/nova-senha/${secret}`,
-  };
+  return passwordResetLink(login.user_id, "parceiro");
 }
 
 export async function approvePartner(_previous: FormState, form: FormData): Promise<FormState> {

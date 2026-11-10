@@ -306,6 +306,9 @@ isOneToOne: false
             "approve_partner":
 { Args: { "payload": Json }; Returns: undefined
                            },
+"change_my_password":
+{ Args: { "current_password": string,"new_password": string }; Returns: undefined
+                           },
 "close_closing":
 { Args: { "paid_partner_ids": (string)[],"target": string }; Returns: undefined
                            },
@@ -360,6 +363,11 @@ isOneToOne: false
 "latest_complete_competency":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"list_directors":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "created_at": string,"display_name": string,"email": string,"user_id": string
+            }[]
+                           },
 "my_partner_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -380,6 +388,9 @@ isOneToOne: false
                            },
 "preview_import":
 { Args: { "batch": Json,"rows": Json }; Returns: Json
+                           },
+"register_director":
+{ Args: { "payload": Json,"secret": string }; Returns: undefined
                            },
 "register_partner":
 { Args: { "payload": Json,"secret": string }; Returns: string

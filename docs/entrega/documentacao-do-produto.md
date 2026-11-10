@@ -25,8 +25,9 @@ sem precisar perguntar à Fortes Pay.
 | **Parceiro** | Unidade franqueada ou parceiro externo (por exemplo, contador) | Registra indicações e acompanha as próprias: o que já rende, quanto vai receber, os meses fechados.                                  |
 
 São só esses dois perfis. Quem exporta e envia a planilha do BI usa o perfil de diretor, com o
-mesmo acesso. Cada parceiro vê só os próprios dados: nenhum parceiro vê outro parceiro nem as
-indicações dele.
+mesmo acesso. Todos os diretores são iguais: qualquer um convida outro diretor em **Equipe** e gera
+link de nova senha para ele. Cada pessoa troca a própria senha em **Minha conta**. Cada parceiro vê
+só os próprios dados: nenhum parceiro vê outro parceiro nem as indicações dele.
 
 ## 3. Palavras do sistema
 
@@ -104,9 +105,10 @@ leitura.
 
 ### Nova senha
 
-O e-mail automático ainda não é confiável. Quando o parceiro esquece a senha, o diretor abre a
-ficha dele → **Acesso ao sistema → Gerar link de nova senha** e envia o link. O link vale 24 horas
-e uma única vez; gerar outro invalida o anterior.
+O sistema não envia e-mail. Quando o parceiro esquece a senha, o diretor abre a ficha dele →
+**Acesso ao sistema → Gerar link de nova senha** e envia o link por WhatsApp ou e-mail. O link vale
+24 horas e uma única vez; gerar outro invalida o anterior. Quem lembra a senha e quer trocá-la usa
+**Minha conta** (ao lado de Sair): senha atual, nova e confirmação.
 
 ## 6. Indicações
 
@@ -274,13 +276,14 @@ registrados** lista os meses com quem preparou e quem fechou.
 
 ### Diretor
 
-| Menu                  | O que tem                                                                                                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Visão geral**       | Valor do mês, vidas pagas, saldo acumulado a pagar e parceiros com vidas; tabela por parceiro; indicações por etapa. Avisa quando o mês escolhido já está fechado. |
-| **Parceiros**         | Aguardando aprovação, Ativos (com a regra de hoje), Recusados e Convites. Cada parceiro abre a ficha (seção 5).                                                    |
-| **Indicações**        | Todas as indicações, com filtros, situação, parceiro, valor e prazo; mudar situação; registrar em nome de um parceiro.                                             |
-| **Importações**       | Enviar a planilha; histórico de envios; detalhe de cada envio com linhas ignoradas e a análise da IA.                                                              |
-| **Fechamento do mês** | As três etapas, a tabela do mês, ajustes, fechar o lote, como foi pago, revisão da IA e fechamentos registrados.                                                   |
+| Menu                  | O que tem                                                                                                                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Visão geral**       | Valor do mês, vidas pagas, saldo acumulado a pagar e parceiros com vidas; tabela por parceiro; indicações por etapa. Avisa quando o mês escolhido já está fechado.                                         |
+| **Parceiros**         | Aguardando aprovação, Ativos (com a regra de hoje), Recusados e Convites. Cada parceiro abre a ficha (seção 5).                                                                                            |
+| **Indicações**        | Todas as indicações, com filtros, situação, parceiro, valor e prazo; mudar situação; registrar em nome de um parceiro.                                                                                     |
+| **Importações**       | Enviar a planilha; histórico de envios; detalhe de cada envio com linhas ignoradas e a análise da IA.                                                                                                      |
+| **Fechamento do mês** | As três etapas, a tabela do mês, ajustes, fechar o lote, como foi pago, revisão da IA e fechamentos registrados.                                                                                           |
+| **Equipe**            | Os diretores, com e-mail de acesso. **Convidar diretor** gera um link de uso único: quem abre cria o próprio acesso e entra direto. **Gerar link de nova senha** para outro diretor (24 horas, uso único). |
 
 ### Parceiro
 
@@ -290,6 +293,10 @@ registrados** lista os meses com quem preparou e quem fechou.
 | **Minhas indicações** | Nova indicação e as indicações nas três etapas, cada uma com uma frase do que está acontecendo e do que falta.                                                                                                                                      |
 | **Meus fechamentos**  | Cada mês fechado com o valor oficial, a decisão, como foi pago e os botões Confirmar valor e Contestar.                                                                                                                                             |
 | **Meu cadastro**      | Dados do cadastro e a regra de remuneração (só leitura).                                                                                                                                                                                            |
+
+Nos dois perfis, **Minha conta** (ao lado de Sair) mostra nome, e-mail de acesso e perfil, e é onde
+a pessoa troca a própria senha: senha atual, nova e confirmação. Quem esqueceu a senha pede o link a
+um diretor.
 
 ## 11. IA do diretor
 
@@ -318,9 +325,8 @@ pagar ou acumular e não altera dados.
 
 ## 13. Limitações conhecidas
 
-- **E-mail automático**: o "Esqueci minha senha" depende do e-mail padrão do Supabase, que envia
-  poucos e-mails por hora. O caminho garantido é o link gerado pelo diretor. Com um servidor de
-  e-mail próprio (SMTP), passa a funcionar sozinho.
+- **E-mail**: o sistema não envia e-mail. Convites e links de nova senha são copiados pelo diretor
+  e enviados por WhatsApp ou e-mail próprio; o "Esqueci minha senha" da tela explica esse caminho.
 - **Endereço**: o sistema está em https://fpay-indicacao.vercel.app até o domínio da Fortes Pay ser
   configurado.
 - **Um login por parceiro**. Vendedores (fase 2) ainda não existem.

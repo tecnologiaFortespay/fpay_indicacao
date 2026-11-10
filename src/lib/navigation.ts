@@ -23,6 +23,7 @@ export function navigationFor(role: Role): NavArea[] {
     { id: "referrals", href: "/indicacoes", label: "Indicações", icon: "commercial" },
     { id: "imports", href: "/importacoes", label: "Importações", icon: "calculation" },
     { id: "closing", href: "/fechamento", label: "Fechamento do mês", icon: "finance" },
+    { id: "team", href: "/equipe", label: "Equipe", icon: "settings" },
   ];
 }
 

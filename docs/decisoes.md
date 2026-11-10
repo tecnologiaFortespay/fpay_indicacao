@@ -108,3 +108,20 @@ valem sobre o que ele diz.
     basta não enviar planilhas de meses anteriores a ele: mês sem envio não precisa ser fechado e
     não bloqueia os seguintes. Se um dia for preciso ter envios de meses anteriores sem fechá-los,
     isso vira um ajuste (anotado em `docs/depois.md`).
+
+## 09/11/2026 — acesso e senha sem e-mail (pedido do Diego)
+
+19. **Equipe e Minha conta.** Nos testes, a redefinição de senha do diretor falhou: "Esqueci minha
+    senha" dependia do e-mail do Supabase, que não chega. Como o sistema não envia e-mail e tudo é
+    configurado pelo diretor, o acesso passa a ter três peças, no mesmo jeito do convite de
+    parceiro: (a) **Minha conta** (diretor e parceiro, ao lado de Sair): troca da própria senha com
+    senha atual, nova e confirmação; (b) **Equipe** (menu do diretor): lista dos diretores,
+    **Convidar diretor** (link de 7 dias e uso único; quem abre cria o próprio acesso e entra
+    direto, sem aprovação: o convite já é a aprovação) e **Gerar link de nova senha** para outro
+    diretor (24 horas, uso único, igual ao do parceiro); (c) **Esqueci minha senha** deixa de ter
+    formulário e explica o caminho pelo diretor. Todos os diretores são iguais (quem envia a
+    planilha do BI também é diretor): qualquer um convida e gera link para outro, e fica registrado
+    quem fez; o Diego não quis um "super diretor". `npm run bootstrap` fica para o primeiro diretor
+    de um ambiente novo e como último recurso. No banco, a migration
+    `20261109000014_team_access.sql`: tipo `director` em `invitations`, funções `register_director`,
+    `list_directors` e `change_my_password` (bcrypt, como o link); nenhuma tabela nova.

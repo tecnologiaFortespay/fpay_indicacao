@@ -33,11 +33,12 @@ npm run bootstrap -- --email denis@exemplo.com --role director --name "Denis" --
 npm run dev               # http://localhost:3000
 ```
 
-São dois perfis: diretor e parceiro. Diretores (quem envia a planilha do BI também usa esse perfil)
-são criados pelo script acima, um login por pessoa. Parceiros entram só por
-convite: o diretor gera o link em **Parceiros → Convites**, a unidade preenche o cadastro, e o diretor
-aprova informando a regra do parceiro (valor por vida, vigência, prazo). Cada indicação pode ter valor
-por vida e prazo próprios, definidos pelo diretor em **Indicações**; em branco vale a regra do parceiro.
+São dois perfis: diretor e parceiro. O primeiro diretor é criado pelo script acima; os demais (quem
+envia a planilha do BI também usa esse perfil) entram por convite em **Equipe**, um login por pessoa.
+Parceiros entram só por convite: o diretor gera o link em **Parceiros → Convites**, a unidade preenche
+o cadastro, e o diretor aprova informando a regra do parceiro (valor por vida, vigência, prazo). Cada
+indicação pode ter valor por vida e prazo próprios, definidos pelo diretor em **Indicações**; em
+branco vale a regra do parceiro. Cada pessoa troca a própria senha em **Minha conta**.
 
 Para seguir o roteiro de validação à mão contra o Supabase local, mesmo com o `.env.local` apontando
 para o projeto real: `npm run db:clean`, `npm run bootstrap:local` e `npm run dev:local`
@@ -75,13 +76,13 @@ Passos, nesta ordem:
    `npx supabase --workdir <pasta> config diff --project-ref mltanrtdgyrfhsqmpcum` e depois
    `config push`. Campos não declarados no arquivo ficam como estão no projeto. Não use o
    `supabase/config.toml` do repositório: ele é o do ambiente local (localhost).
-3. **E-mail**: o projeto usa o e-mail padrão do Supabase, que envia poucos e-mails por hora e não é
-   confiável. Nenhum fluxo do sistema depende dele: o cadastro pelo convite não manda e-mail, e a
-   nova senha do parceiro sai por um link que o diretor gera na ficha do parceiro (para diretores,
-   `npm run reset-link -- --email <e-mail>`). Com um SMTP próprio (Authentication →
-   SMTP Settings), o "Esqueci minha senha" da tela passa a funcionar sozinho.
-4. **Contas internas**: `npm run bootstrap -- --email <diretor> --role director --name "..." --password "..."`,
-   uma por pessoa (também para quem envia a planilha do BI).
+3. **E-mail**: o sistema não envia e-mail e nenhum fluxo depende dele. Convites e links de nova
+   senha são gerados por um diretor, que copia e envia: para parceiro, na ficha dele; para outro
+   diretor, em **Equipe**. Quem está conectado troca a própria senha em **Minha conta**, e o
+   "Esqueci minha senha" da tela só explica esse caminho. Último recurso para um diretor sem outro
+   diretor disponível: `npm run reset-link -- --email <e-mail>`.
+4. **Primeiro diretor**: `npm run bootstrap -- --email <diretor> --role director --name "..." --password "..."`.
+   Os demais diretores (também quem envia a planilha do BI) são convidados em **Equipe**.
 5. **Variáveis no servidor do app**: nenhuma é obrigatória (veja "Deploy").
 
 ## Deploy (Vercel)
@@ -130,21 +131,21 @@ Passos, nesta ordem:
 
 ## Scripts
 
-| Comando                                                   | O que faz                                                                                         |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `npm run dev` / `build` / `start`                         | Next.js                                                                                           |
-| `npm run dev:local`                                       | Next.js contra o Supabase local (`.env.test`), para seguir o roteiro à mão                        |
-| `npm run lint` / `typecheck` / `format`                   | ESLint, `tsc`, Prettier                                                                           |
-| `npm test`                                                | testes unitários (leitor do export do BI, CNPJ, competência, moeda)                               |
-| `npm run test:db`                                         | testes das funções SQL e da RLS contra o Supabase local (`.env.test`)                             |
-| `npm run test:e2e`                                        | Playwright: **zera o banco local**, faz build e executa o roteiro de validação e os casos extras  |
-| `npm run db:start` / `db:stop` / `db:status` / `db:reset` | Supabase local                                                                                    |
-| `npm run db:clean`                                        | zera os dados do Supabase local (`tests/reset-data.sql`), sem recriar o schema                    |
-| `npm run db:push`                                         | aplica as migrations no banco de `SUPABASE_DB_URL` (projeto real); `-- --dry-run` só lista        |
-| `npm run db:types`                                        | regenera `src/lib/supabase/types.ts` depois de uma migration                                      |
-| `npm run bootstrap`                                       | cria um diretor no Supabase de `.env.local`                                                       |
-| `npm run bootstrap:local`                                 | o mesmo, no Supabase local                                                                        |
-| `npm run reset-link -- --email <e-mail>`                  | link de nova senha (1 hora, uso único) sem enviar e-mail; para parceiros, use a ficha do parceiro |
+| Comando                                                   | O que faz                                                                                                           |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev` / `build` / `start`                         | Next.js                                                                                                             |
+| `npm run dev:local`                                       | Next.js contra o Supabase local (`.env.test`), para seguir o roteiro à mão                                          |
+| `npm run lint` / `typecheck` / `format`                   | ESLint, `tsc`, Prettier                                                                                             |
+| `npm test`                                                | testes unitários (leitor do export do BI, CNPJ, competência, moeda)                                                 |
+| `npm run test:db`                                         | testes das funções SQL e da RLS contra o Supabase local (`.env.test`)                                               |
+| `npm run test:e2e`                                        | Playwright: **zera o banco local**, faz build e executa o roteiro de validação e os casos extras                    |
+| `npm run db:start` / `db:stop` / `db:status` / `db:reset` | Supabase local                                                                                                      |
+| `npm run db:clean`                                        | zera os dados do Supabase local (`tests/reset-data.sql`), sem recriar o schema                                      |
+| `npm run db:push`                                         | aplica as migrations no banco de `SUPABASE_DB_URL` (projeto real); `-- --dry-run` só lista                          |
+| `npm run db:types`                                        | regenera `src/lib/supabase/types.ts` depois de uma migration                                                        |
+| `npm run bootstrap`                                       | cria o primeiro diretor no Supabase de `.env.local` (os demais, por convite em Equipe)                              |
+| `npm run bootstrap:local`                                 | o mesmo, no Supabase local                                                                                          |
+| `npm run reset-link -- --email <e-mail>`                  | último recurso: link de nova senha (1 hora, uso único) sem e-mail; o caminho normal é Equipe ou a ficha do parceiro |
 
 ## Estrutura
 

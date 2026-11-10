@@ -6,15 +6,43 @@ import { Field } from "@/components/fields";
 import { MutationForm } from "@/components/mutation-form";
 import { Notice } from "@/components/notice";
 import { LogoutButton } from "@/components/session-controls";
-import { currentUser, landingPath } from "@/lib/auth/session";
+import { currentUser, landingPath, type SessionUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/competency";
 import { invitationPreview } from "@/lib/invitations/queries";
-import { partnerKindLabels } from "@/lib/labels";
-import { registerPartner } from "../actions";
+import { invitationKindLabels } from "@/lib/labels";
+import { registerDirector, registerPartner } from "../actions";
 
 export const metadata: Metadata = { title: "Convite" };
 
 type PageProps = { params: Promise<{ token: string }> };
+
+// E-mail e senha da conta nova; quem já está conectado (sem cadastro) só vê a conta que vai usar.
+function AccountFields({ user }: { user: SessionUser | null }) {
+  if (user) {
+    return <p className="text-sm text-muted-foreground">Conta: {user.email}</p>;
+  }
+  return (
+    <div className="fp-form-grid">
+      <Field
+        label="E-mail de acesso"
+        name="email"
+        type="email"
+        required
+        maxLength={254}
+        autoComplete="email"
+      />
+      <Field
+        label="Senha (mínimo de 8 caracteres)"
+        name="password"
+        type="password"
+        required
+        minLength={8}
+        maxLength={128}
+        autoComplete="new-password"
+      />
+    </div>
+  );
+}
 
 export default async function InvitationPage({ params }: PageProps) {
   const { token } = await params;
@@ -74,7 +102,29 @@ export default async function InvitationPage({ params }: PageProps) {
       </AuthShell>
     );
   }
-  const kind = partnerKindLabels[preview.kind];
+  if (preview.kind === "director") {
+    // Convite de diretor (decisão 19): só nome, e-mail e senha; entra direto na área interna.
+    return (
+      <AuthShell
+        title={`Cadastro · ${preview.partner_name}`}
+        description={`Convite para diretor, válido até ${formatDate(preview.expires_at)}. Crie seu acesso: você entra direto na área interna da Fortes Pay.`}
+      >
+        <MutationForm action={registerDirector} label="Criar acesso" pendingLabel="Criando…">
+          <input type="hidden" name="token" value={token} />
+          <Field
+            label="Seu nome"
+            name="name"
+            required
+            maxLength={120}
+            defaultValue={preview.partner_name}
+            autoComplete="name"
+          />
+          <AccountFields user={user} />
+        </MutationForm>
+      </AuthShell>
+    );
+  }
+  const kind = invitationKindLabels[preview.kind];
   return (
     <AuthShell
       title={`Cadastro · ${preview.partner_name}`}
@@ -101,29 +151,7 @@ export default async function InvitationPage({ params }: PageProps) {
           autoComplete="name"
         />
         <Field label="Telefone" name="contact_phone" type="tel" maxLength={40} autoComplete="tel" />
-        {user ? (
-          <p className="text-sm text-muted-foreground">Conta: {user.email}</p>
-        ) : (
-          <div className="fp-form-grid">
-            <Field
-              label="E-mail de acesso"
-              name="email"
-              type="email"
-              required
-              maxLength={254}
-              autoComplete="email"
-            />
-            <Field
-              label="Senha (mínimo de 8 caracteres)"
-              name="password"
-              type="password"
-              required
-              minLength={8}
-              maxLength={128}
-              autoComplete="new-password"
-            />
-          </div>
-        )}
+        <AccountFields user={user} />
       </MutationForm>
     </AuthShell>
   );

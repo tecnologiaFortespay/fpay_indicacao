@@ -24,19 +24,20 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 - Navegador **Chrome** (o seletor de mês do Firefox e do Safari é uma caixa de texto: digite AAAA-MM).
   Use janelas separadas (ou perfis) para o diretor e para cada parceiro: duas janelas anônimas
   do mesmo navegador dividem a mesma sessão.
-- Dois perfis: **diretor** (quem envia a planilha do BI usa o mesmo acesso) e **parceiro**. O login
-  de diretor é criado pela equipe técnica (`npm run bootstrap`). Cada parceiro precisa de um e-mail
-  diferente (ex.: `seunome+teresina@empresa.com.br`).
+- Dois perfis: **diretor** (quem envia a planilha do BI usa o mesmo acesso) e **parceiro**. O
+  primeiro login de diretor é criado pela equipe técnica (`npm run bootstrap`); os demais, por
+  convite em **Equipe** (bloco 12). Cada parceiro precisa de um e-mail diferente (ex.:
+  `seunome+teresina@empresa.com.br`).
 - Três planilhas do BI "Detalhamento Empresas" (Excel, como sai do Power BI): [M-2], [M-1] e [M0].
   Em cada uma, anote 4 CNPJs que você vai indicar (A, B, D, E) e o C. Cash-in deles. C e F são CNPJs
   válidos que **não** estão em nenhuma planilha (para F, use `88.999.000/1001-41`).
-- O e-mail do Supabase não é confiável: a troca de senha por e-mail (12.4, opcional) pode não
-  chegar. Os outros passos não dependem de e-mail.
+- O sistema não envia e-mail: convites e links de nova senha são gerados por um diretor, que copia
+  e envia (bloco 12). Nenhum passo depende de e-mail.
 
 ## Bloco 1 — Acesso
 
 1.1. Abrir / sem login → tela de login; /inicio, /parceiros, /fechamento levam ao login.
-1.2. Entrar como diretor → Visão geral; menu: Visão geral, Parceiros, Indicações, Importações, Fechamento do mês.
+1.2. Entrar como diretor → Visão geral; menu: Visão geral, Parceiros, Indicações, Importações, Fechamento do mês, Equipe.
 1.3. Entrar com a senha errada → "E-mail ou senha incorretos.", sem dizer qual dos dois está errado.
 
 ## Bloco 2 — Convite e aprovação (3 parceiros)
@@ -142,12 +143,15 @@ Exige a chave da IA no servidor (`/status` mostra `"ia":"ligada"`). Sem ela, as 
 11.3. **Faça no passo 7.1, antes de fechar [M-1]**: Fechamento → [M-1] preparado → "Analisar com IA" → resumo e alertas; recalcular depois mostra o aviso de revisão anterior ao cálculo.
 11.4. Parceiro → nenhuma tela mostra IA.
 
-## Bloco 12 — Nova senha pelo diretor
+## Bloco 12 — Nova senha e Equipe (sem e-mail)
 
 12.1. Diretor → Parceiros → ficha de um parceiro ativo → **Acesso ao sistema** → Gerar link de nova senha → o link aparece para copiar.
 12.2. Em outra janela, abrir o link → "Definir nova senha" com o nome do responsável e o e-mail → salvar → login mostra "Senha alterada" → entrar com a nova.
 12.3. Abrir o mesmo link de novo → "Link inválido ou expirado".
-12.4. (Opcional) Na tela de login, **Esqueci minha senha** com o e-mail de um parceiro de teste → e-mail com o link → Definir nova senha → entrar com a nova funciona. **Se o e-mail não chegar em 5 minutos, anote "e-mail não chegou"**: o caminho garantido é o link do diretor (12.1).
+12.4. Diretor → **Minha conta** (ao lado de Sair) → senha atual, nova senha e confirmação → **Alterar senha** → "Senha alterada". Em outra janela, entrar com a nova senha funciona; a antiga é recusada.
+12.5. Diretor → **Equipe** → a lista mostra os diretores com e-mail → **Convidar diretor** → nome → Gerar convite → o link aparece para copiar. Em outra janela, abrir o link → "Cadastro · (nome convidado)", convite para diretor → e-mail de acesso e senha → **Criar acesso** → entra direto na Visão geral, com o menu completo (inclusive Equipe). De volta à Equipe, o novo diretor está na lista e o convite aparece como "Cadastro feito". Parceiro que digita /equipe volta ao próprio painel.
+12.6. Diretor → Equipe → na linha de outro diretor → **Gerar link de nova senha** (na própria linha aparece "Você", sem botão). Em outra janela, abrir o link → Definir nova senha → entrar com a nova funciona.
+12.7. Tela de login → **Esqueci minha senha** → a página só explica: pedir o link a um diretor (parceiro: pela ficha; diretor: pela Equipe); não há campo de e-mail nem envio. "Voltar ao login" leva ao login.
 
 ## Bloco 13 — O parceiro entende o que rende
 
@@ -172,8 +176,7 @@ npm run bootstrap:local -- --email diretor@exemplo.com --role director --name "D
 npm run dev:local                # http://localhost:3000 contra o Supabase local
 ```
 
-No ambiente local, os e-mails de troca de senha chegam no Mailpit (http://127.0.0.1:54344). Os
-comandos `:local` ignoram o `.env.local`, que aponta para o projeto da Fortes Pay.
+Os comandos `:local` ignoram o `.env.local`, que aponta para o projeto da Fortes Pay.
 
 Execução automatizada: `npm run test:e2e` (zera o banco local, faz o build e roda este roteiro e os
 casos extras), com os meses relativos a hoje como na tabela acima.
