@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { referralExplanation, referralStage, statusChipClass } from "./stages";
+import {
+  conversionSentence,
+  conversionSummary,
+  referralConversion,
+  referralExplanation,
+  referralStage,
+  statusChipClass,
+} from "./stages";
 
 const base = {
   created_at: "2026-09-02T12:00:00Z",
@@ -35,6 +42,46 @@ describe("etapas da indicação", () => {
     expect(referralExplanation({ ...base, status: "referred" }, terms)).toMatch(
       /^Indicada em 02\/09\/2026\./,
     );
+  });
+
+  // Decisão 20 (09/11/2026): virou cliente = contrato fechado ou já pagou (inclusive cancelada).
+  it("separa quem virou cliente, quem está em andamento e quem foi perdida", () => {
+    expect(["signed", "active", "delinquent", "cancelled"].map(referralConversion)).toEqual([
+      "client",
+      "client",
+      "client",
+      "client",
+    ]);
+    expect(["referred", "negotiating"].map(referralConversion)).toEqual([
+      "in_progress",
+      "in_progress",
+    ]);
+    expect(referralConversion("lost")).toBe("lost");
+  });
+
+  it("resume as indicações em uma frase, no singular e no plural", () => {
+    const three = conversionSummary(["signed", "referred", "lost"]);
+    expect(three).toEqual({ total: 3, client: 1, in_progress: 1, lost: 1 });
+    expect(conversionSentence(three)).toBe(
+      "3 indicações · 1 virou cliente · 1 em andamento · 1 perdida",
+    );
+    expect(
+      conversionSentence(
+        conversionSummary([
+          "active",
+          "active",
+          "cancelled",
+          "negotiating",
+          "referred",
+          "lost",
+          "lost",
+        ]),
+      ),
+    ).toBe("7 indicações · 3 viraram cliente · 2 em andamento · 2 perdidas");
+    expect(conversionSentence(conversionSummary(["referred"]))).toBe(
+      "1 indicação · 0 viraram cliente · 1 em andamento · 0 perdidas",
+    );
+    expect(conversionSentence(conversionSummary([]))).toBe("Nenhuma indicação ainda");
   });
 
   it("dá cor pelo que acontece: verde rende, vermelho parou, tracejado encerrou", () => {

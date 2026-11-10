@@ -470,6 +470,17 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     ] as const) {
       expect(await rowText(dir, entry.company)).toContain(partner);
     }
+    // Busca por empresa e por CNPJ (item 4 da reunião de 09/11/2026): acha só a indicação certa.
+    await dir.getByLabel("Buscar por CNPJ ou empresa").fill(A.company.toLowerCase());
+    await dir.getByRole("button", { name: "Filtrar" }).click();
+    await expect(section(dir, "Lista").locator("tbody tr")).toHaveCount(1);
+    await expect(section(dir, "Lista").locator("tbody tr").first()).toContainText(A.company);
+    await dir.getByLabel("Buscar por CNPJ ou empresa").fill(B.cnpj);
+    await dir.getByRole("button", { name: "Filtrar" }).click();
+    await expect(section(dir, "Lista").locator("tbody tr")).toHaveCount(1);
+    await expect(section(dir, "Lista").locator("tbody tr").first()).toContainText(B.company);
+    await dir.goto("/indicacoes");
+    await expect(section(dir, "Lista").locator("tbody tr")).toHaveCount(5);
     const form = await openDisclosure(dir, "Registrar indicação em nome de um parceiro");
     await form.locator("select[name=partner_id]").selectOption({ label: "Unidade Natal" });
     await form.getByLabel("CNPJ do cliente").fill(A.cnpj);
@@ -503,6 +514,21 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     const rows = nat.locator("main tbody tr");
     await expect(rows).toHaveCount(1);
     await expect(rows.first()).toContainText(D.company);
+  });
+
+  // Item 3 da reunião de 09/11/2026 (decisão 20): sem nenhuma vida paga, o parceiro ainda vê
+  // quantas indicações viraram cliente (A, contrato fechado), quantas andam (B) e quantas perdeu (C).
+  await test.step("3.11 Teresina vê quantas viraram cliente, mesmo sem vida paga", async () => {
+    const sentence = "3 indicações · 1 virou cliente · 1 em andamento · 1 perdida";
+    await ter.goto("/indicacoes");
+    const summary = clean(await section(ter, "Resumo").innerText());
+    expect(summary).toContain(sentence);
+    expect(summary).toContain("1 Viraram cliente");
+    expect(summary).toContain("1 Em andamento");
+    expect(summary).toContain("1 Perdidas");
+    await ter.goto("/inicio");
+    await expect(ter.getByText(`Nenhuma vida paga em ${OCT_LABEL}.`)).toBeVisible();
+    await expect(ter.getByText(sentence).first()).toBeVisible();
   });
 
   await test.step("4.0 conferência antes de gravar: o que muda em cada indicação; nada gravado", async () => {
@@ -940,6 +966,28 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     const strip = clean(await dir.locator(".fp-stage-groups").innerText());
     for (const expected of ["Ativa 3", "Inadimplente 0", "Cancelada 1", "Perdida 1"]) {
       expect(strip).toContain(expected);
+    }
+  });
+
+  // Item 4 da reunião de 09/11/2026: a lista do diretor escolhe o mês das vidas.
+  await test.step("8.8 lista do diretor por mês: vidas de A em agosto e em setembro", async () => {
+    for (const [month, lives] of [
+      [AUG, "30"],
+      [SEP, "41"],
+    ] as const) {
+      await dir.goto(`/indicacoes?competency=${month}`);
+      await expect(dir.getByLabel("Mês", { exact: true })).toHaveValue(month);
+      await expect(
+        section(dir, "Lista").getByRole("columnheader", {
+          name: `Vidas em ${shortCompetencyLabel(month)}`,
+        }),
+      ).toBeVisible();
+      await expect(
+        section(dir, "Lista")
+          .getByRole("row", { name: new RegExp(A.company) })
+          .locator("td")
+          .nth(5),
+      ).toHaveText(lives);
     }
   });
 

@@ -16,6 +16,7 @@ import {
   currentCompetency,
   dateToCompetency,
   formatDate,
+  isCompetency,
   shortCompetencyLabel,
 } from "@/lib/competency";
 import { latestCompetency } from "@/lib/dashboard/queries";
@@ -31,7 +32,11 @@ import {
   type ReferralMonth,
   type ReferralRow,
 } from "@/lib/referrals/queries";
+import { matchesReferralSearch } from "@/lib/referrals/search";
 import {
+  conversionLabels,
+  conversionSentence,
+  conversionSummary,
   partnerStatusNames,
   referralExplanation,
   referralStage,
@@ -47,8 +52,16 @@ import { setReferralStatus } from "./actions";
 
 export const metadata: Metadata = { title: "Indicações" };
 
+type SearchParams = {
+  status?: string;
+  partner?: string;
+  q?: string;
+  competency?: string;
+  msg?: string;
+};
+
 type PageProps = {
-  searchParams: Promise<{ status?: string; partner?: string; msg?: string }>;
+  searchParams: Promise<SearchParams>;
 };
 
 const statusEntries = Object.entries(referralStatusLabels) as [ReferralStatus, string][];
@@ -80,12 +93,31 @@ async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
     stage,
     items: referrals.filter((referral) => referralStage(referral.status) === stage),
   }));
+  // Decisão 20: quantas viraram cliente, quantas andam e quantas se perderam, antes de qualquer vida.
+  const summary = conversionSummary(referrals.map((referral) => referral.status));
   return (
     <AppShell title="Minhas indicações">
       <PageIntro>
         Vale a primeira indicação de cada CNPJ. Uma indicação começa a render comissão quando o
         cliente começa a pagar a Fortes Pay.
       </PageIntro>
+
+      <SectionCard title="Resumo" subtitle={conversionSentence(summary)}>
+        <div className="fp-stage-counts">
+          <div>
+            <strong className="fp-num">{summary.client}</strong>
+            <span>{conversionLabels.client}</span>
+          </div>
+          <div>
+            <strong className="fp-num">{summary.in_progress}</strong>
+            <span>{conversionLabels.in_progress}</span>
+          </div>
+          <div>
+            <strong className="fp-num">{summary.lost}</strong>
+            <span>{conversionLabels.lost}</span>
+          </div>
+        </div>
+      </SectionCard>
 
       <section className="fp-panel" aria-label="Nova indicação">
         <FormDisclosure
@@ -226,40 +258,51 @@ function StatusForm({ referral, returnTo }: { referral: ReferralRow; returnTo: s
   );
 }
 
-async function DirectorReferrals({
-  params,
-}: {
-  params: { status?: string; partner?: string; msg?: string };
-}) {
+async function DirectorReferrals({ params }: { params: SearchParams }) {
   const status = statusEntries.some(([value]) => value === params.status)
     ? params.status
     : undefined;
   const partnerId = z.uuid().safeParse(params.partner).success ? params.partner : undefined;
-  const competency = await latestCompetency();
-  const [referrals, counts, options, months] = await Promise.all([
+  // Busca por CNPJ ou empresa (item 4 da reunião de 09/11/2026): filtra em memória a lista já lida.
+  const search = (params.q ?? "").trim().slice(0, 120);
+  // Mês das vidas: o escolhido no seletor ou, sem escolha, o mais recente com planilha.
+  const latest = await latestCompetency();
+  const competency = isCompetency(params.competency)
+    ? params.competency
+    : (latest ?? currentCompetency());
+  const [all, counts, options, months] = await Promise.all([
     listReferrals({ partnerId, status }),
     referralStatusCounts(),
     listPartnerOptions(),
-    competency
-      ? referralMonthValues(competency)
-      : Promise.resolve(new Map<string, ReferralMonth>()),
+    referralMonthValues(competency),
   ]);
-  const query = new URLSearchParams();
+  const referrals = search
+    ? all.filter((referral) => matchesReferralSearch(referral, search))
+    : all;
+  const filters: Record<string, string> = {};
   if (partnerId) {
-    query.set("partner", partnerId);
+    filters.partner = partnerId;
   }
   if (status) {
-    query.set("status", status);
+    filters.status = status;
+  }
+  if (search) {
+    filters.q = search;
+  }
+  const query = new URLSearchParams(filters);
+  if (isCompetency(params.competency)) {
+    query.set("competency", competency);
   }
   const returnTo = query.size > 0 ? `/indicacoes?${query}` : "/indicacoes";
+  const filtered = Boolean(status || partnerId || search);
   const partnerOptions: [string, string][] = [["", "Todos os parceiros"], ...options];
   const statusOptions: [string, string][] = [["", "Todas as situações"], ...statusEntries];
   return (
     <AppShell title="Indicações" flash={params.msg}>
-      <PageIntro>
+      <PageIntro month={{ value: competency, label: "Mês", keep: filters }}>
         Indicações de todos os parceiros. Só rende comissão a indicação <strong>Ativa</strong>{" "}
         (cliente pagando). Ativa e Inadimplente mudam sozinhas a cada envio da planilha do BI; as
-        outras situações você muda aqui.
+        outras situações você muda aqui. O mês escolhido define a coluna de vidas.
       </PageIntro>
 
       <SectionCard
@@ -293,12 +336,15 @@ async function DirectorReferrals({
       <SectionCard
         title={`Lista (${referrals.length})`}
         subtitle={
-          status || partnerId
-            ? "Filtrada. Use Todas/Todos para ver tudo."
+          filtered
+            ? "Filtrada. Limpe a busca e use Todas/Todos para ver tudo."
             : "Todas as indicações, das mais novas às mais antigas."
         }
       >
         <form className="fp-form-section fp-management-filters">
+          {isCompetency(params.competency) && (
+            <input type="hidden" name="competency" value={competency} />
+          )}
           <SelectField
             label="Parceiro"
             name="partner"
@@ -311,14 +357,21 @@ async function DirectorReferrals({
             options={statusOptions}
             defaultValue={status ?? ""}
           />
+          <Field
+            label="Buscar por CNPJ ou empresa"
+            name="q"
+            defaultValue={search}
+            maxLength={120}
+            placeholder="trecho do nome ou do CNPJ"
+          />
           <Button type="submit" variant="outline">
             Filtrar
           </Button>
         </form>
         {referrals.length === 0 ? (
           <EmptyState title="Nenhuma indicação encontrada">
-            {status || partnerId
-              ? "Nenhuma indicação com esse filtro."
+            {filtered
+              ? "Nenhuma indicação com esse filtro ou busca."
               : "Os parceiros registram as indicações pelo portal deles; você também pode registrar abaixo."}
           </EmptyState>
         ) : (
@@ -331,9 +384,7 @@ async function DirectorReferrals({
                   <th>Situação</th>
                   <th>Rende desde</th>
                   <th>Valor e prazo</th>
-                  <th className="fp-num">
-                    {competency ? `Vidas em ${shortCompetencyLabel(competency)}` : "Vidas"}
-                  </th>
+                  <th className="fp-num">Vidas em {shortCompetencyLabel(competency)}</th>
                   <th>Indicada em</th>
                   <th>Mudar situação</th>
                 </tr>

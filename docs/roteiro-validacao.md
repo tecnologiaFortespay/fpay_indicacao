@@ -59,11 +59,12 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 3.1. Teresina → Minhas indicações → **Nova indicação**: CNPJ A, empresa, vidas estimadas 40 → "Indicação registrada."; os campos ficam limpos; A aparece em **Ainda não rende** com "Indicada em dd/mm/aaaa. A Fortes Pay ainda vai falar com o cliente…".
 3.2. Teresina indica B e C. 3.3. Natal indica D. 3.4. Contador indica E.
 3.5. Natal tenta A → "CNPJ já indicado em dd/mm/aaaa." sem o nome de Teresina; Natal continua com "Ainda não rende (1)".
-3.6. Diretor → Indicações → Lista (5), cada uma com o parceiro. **Registrar indicação em nome de um parceiro**: A em nome de Natal → mensagem cita "por Unidade Teresina".
+3.6. Diretor → Indicações → Lista (5), cada uma com o parceiro. **Buscar por CNPJ ou empresa**: o nome de A → só A; o CNPJ de B (com ou sem pontuação) → só B; limpar → as 5 de novo. **Registrar indicação em nome de um parceiro**: A em nome de Natal → mensagem cita "por Unidade Teresina".
 3.7. Diretor muda A: Indicada → Em negociação → Fechada (aviso "Situação atualizada." a cada vez). O menu só mostra as mudanças permitidas (Cancelada não aparece antes de Ativa).
 3.8. Diretor marca C como Perdida.
 3.9. Teresina recarrega → A em Ainda não rende como **Contrato fechado** ("Começa a render no primeiro mês em que o cliente pagar"); C em **Encerradas (1)**. Nenhum botão de mudar situação.
 3.10. Natal → só D.
+3.11. Teresina → Minhas indicações → **Resumo**: "3 indicações · 1 virou cliente · 1 em andamento · 1 perdida" (virou cliente = contrato fechado ou já pagou, inclusive cancelada; em andamento = indicada ou em negociação; perdida = perdida). Meu painel, ainda sem nenhuma vida paga: a prévia diz "Nenhuma vida paga em [M0]." e repete o resumo, em vez de só "0".
 
 ## Bloco 4 — Importação ([M-2] e [M-1])
 
@@ -118,6 +119,7 @@ O mês em andamento pode ser enviado várias vezes; cada envio substitui o mês 
 8.5. Diretor muda D para Cancelada → Natal → [M0]: D não conta; [M-2] e [M-1] mostram o valor oficial, inalterados.
 8.6. Visão geral → Indicações por etapa: Ativa 3, Inadimplente 0, Cancelada 1, Perdida 1.
 8.7. (À mão, no mês seguinte) planilha final de [M0] enviada depois do dia 1º, sem B → B Inadimplente; o envio aparece como "mês completo". Coberto no teste de banco.
+8.8. Diretor → Indicações → seletor **Mês** = [M-2] → coluna "Vidas em [M-2]" com A = 30; [M-1] → A = 41. Sem mês escolhido, a lista mostra o mês mais recente com planilha.
 
 ## Bloco 9 — Isolamento
 
@@ -158,6 +160,7 @@ Exige a chave da IA no servidor (`/status` mostra `"ia":"ligada"`). Sem ela, as 
 13.1. Teresina → Meu painel: o aviso "Como funciona" explica os três passos (indica, rende quando o cliente paga, fecha no mês seguinte).
 13.2. Em Minhas indicações, cada indicação está numa etapa (Rendendo comissão, Ainda não rende, Encerradas) com uma frase do que está acontecendo e do que falta.
 13.3. Num mês fechado, o painel mostra o **valor oficial** (valor do mês, total, Pagar ou Acumulado, resposta dada); no mês em andamento, a **prévia**, com a regra do mês e a data da planilha.
+13.4. O parceiro sabe quantas indicações viraram cliente sem depender de vidas pagas: o **Resumo** de Minhas indicações e a prévia zerada do painel (passo 3.11).
 
 ## Bloco 14 — Mensagens e navegação
 

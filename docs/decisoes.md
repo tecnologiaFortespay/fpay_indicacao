@@ -125,3 +125,15 @@ valem sobre o que ele diz.
     de um ambiente novo e como último recurso. No banco, a migration
     `20261109000014_team_access.sql`: tipo `director` em `invitations`, funções `register_director`,
     `list_directors` e `change_my_password` (bcrypt, como o link); nenhuma tabela nova.
+
+## 09/11/2026 — reunião de apresentação com o cliente (seis ajustes, plano aprovado pelo Diego)
+
+20. **"Virou cliente" para o parceiro.** O parceiro com indicações e nenhuma vida paga via só "0"
+    e não sabia o andamento. Passa a ver um resumo em números, em Minhas indicações e na prévia
+    zerada do painel: "N indicações · X viraram cliente · Y em andamento · Z perdidas". Definição
+    do Diego (09/11/2026): **virou cliente** = Contrato fechado, Ativa, Inadimplente ou Cancelada
+    (chegou a ser cliente); **em andamento** = Indicada ou Em negociação; **perdida** = Perdida. É
+    só leitura das situações já existentes; nenhuma regra de cálculo muda. No mesmo lote, a lista
+    de indicações do diretor ganhou busca por CNPJ ou empresa e o seletor de mês das vidas (o
+    "relatório de quem indicou cada cliente" já era essa lista; o cadastro de indicadores é
+    Parceiros).

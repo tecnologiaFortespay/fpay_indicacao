@@ -43,6 +43,57 @@ export function referralStage(status: string): Stage {
   return stageOf[status as ReferralStatus] ?? "not_earning";
 }
 
+// Decisão 20 (09/11/2026): "virou cliente" = contrato fechado ou já pagou, inclusive cancelada
+// (chegou a ser cliente); em andamento = indicada ou em negociação; perdida = perdida.
+export type Conversion = "client" | "in_progress" | "lost";
+
+const conversionOf: Record<ReferralStatus, Conversion> = {
+  referred: "in_progress",
+  negotiating: "in_progress",
+  signed: "client",
+  active: "client",
+  delinquent: "client",
+  lost: "lost",
+  cancelled: "client",
+};
+
+export function referralConversion(status: string): Conversion {
+  return conversionOf[status as ReferralStatus] ?? "in_progress";
+}
+
+export const conversionLabels: Record<Conversion, string> = {
+  client: "Viraram cliente",
+  in_progress: "Em andamento",
+  lost: "Perdidas",
+};
+
+export type ConversionSummary = {
+  total: number;
+  client: number;
+  in_progress: number;
+  lost: number;
+};
+
+export function conversionSummary(statuses: string[]): ConversionSummary {
+  const summary: ConversionSummary = { total: statuses.length, client: 0, in_progress: 0, lost: 0 };
+  for (const status of statuses) {
+    summary[referralConversion(status)] += 1;
+  }
+  return summary;
+}
+
+// "3 indicações · 1 virou cliente · 1 em andamento · 1 perdida": o resumo que responde ao parceiro
+// quantas indicações viraram cliente, mesmo sem nenhuma vida paga.
+export function conversionSentence(summary: ConversionSummary): string {
+  if (summary.total === 0) {
+    return "Nenhuma indicação ainda";
+  }
+  const total = summary.total === 1 ? "1 indicação" : `${summary.total} indicações`;
+  const client = summary.client === 1 ? "1 virou cliente" : `${summary.client} viraram cliente`;
+  const lost = summary.lost === 1 ? "1 perdida" : `${summary.lost} perdidas`;
+  return `${total} · ${client} · ${summary.in_progress} em andamento · ${lost}`;
+}
+
 // Como o parceiro chama cada situação. "Fechada" vira "Contrato fechado" para não parecer que a
 // comissão já está fechada.
 export const partnerStatusNames: Record<ReferralStatus, string> = {

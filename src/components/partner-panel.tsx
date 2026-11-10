@@ -27,7 +27,13 @@ import {
 import { ruleInForce } from "@/lib/partners/queries";
 import { termLabel } from "@/lib/referrals/config";
 import { listReferrals, referralMonthValues, type ReferralRow } from "@/lib/referrals/queries";
-import { partnerStatusNames, referralStage, statusChipClass } from "@/lib/referrals/stages";
+import {
+  conversionSentence,
+  conversionSummary,
+  partnerStatusNames,
+  referralStage,
+  statusChipClass,
+} from "@/lib/referrals/stages";
 
 type PartnerPanelProps = {
   user: AuthorizedUser;
@@ -89,6 +95,10 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
   for (const referral of referrals) {
     counts[referralStage(referral.status)] += 1;
   }
+  // Decisão 20: o parceiro sem vida paga ainda vê quantas indicações viraram cliente.
+  const conversion = conversionSentence(
+    conversionSummary(referrals.map((referral) => referral.status)),
+  );
   const ruleText = rule
     ? `${formatCurrency(rule.value_per_life)} por vida · ${rule.term_months === null ? "sem prazo" : `prazo de ${rule.term_months} meses`}`
     : "sem regra neste mês";
@@ -178,7 +188,9 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
                 </div>
                 <p className="fp-kpi-value fp-num">{formatInteger(summary.lives)}</p>
                 <p className="fp-kpi-description">
-                  Vidas dos seus clientes que pagaram a Fortes Pay neste mês.
+                  {summary.lives === 0
+                    ? `Nenhuma vida paga em ${monthLabel}. ${conversion}.`
+                    : "Vidas dos seus clientes que pagaram a Fortes Pay neste mês."}
                 </p>
               </article>
               <article className="fp-kpi fp-kpi-preview">
@@ -244,7 +256,7 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
 
       <SectionCard
         title="Minhas indicações"
-        subtitle={`Clientes que rendem em ${monthLabel}.`}
+        subtitle={`Clientes que rendem em ${monthLabel}. ${conversion}.`}
         action={<Link href="/indicacoes">Ver todas →</Link>}
         footnote={
           delinquent.length > 0
