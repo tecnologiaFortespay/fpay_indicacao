@@ -64,7 +64,7 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 3.8. Diretor marca C como Perdida.
 3.9. Teresina recarrega → A em Ainda não rende como **Contrato fechado** ("Começa a render no primeiro mês em que o cliente pagar"); C em **Encerradas (1)**. Nenhum botão de mudar situação.
 3.10. Natal → só D.
-3.11. Teresina → Minhas indicações → **Resumo**: "3 indicações · 1 virou cliente · 1 em andamento · 1 perdida" (virou cliente = contrato fechado ou já pagou, inclusive cancelada; em andamento = indicada ou em negociação; perdida = perdida). Meu painel, ainda sem nenhuma vida paga: a prévia diz "Nenhuma vida paga em [M0]." e repete o resumo, em vez de só "0".
+3.11. Teresina → Minhas indicações → **Resumo**: "3 indicações · 1 virou cliente · 1 em andamento · 1 perdida" (virou cliente = contrato fechado ou já pagou, inclusive cancelada; em andamento = indicada ou em negociação; perdida = perdida). Meu painel, ainda sem nenhuma vida paga: a prévia diz "Nenhuma vida paga em [M0]." e repete o resumo, em vez de só "0"; como nenhuma planilha foi enviada, o rodapé diz "Ainda não houve envio da planilha de [M0]."
 
 ## Bloco 4 — Importação ([M-2] e [M-1])
 
@@ -81,9 +81,10 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 
 5.1. Diretor → Visão geral → [M-2]: Teresina (A+B × 1,50), Natal (D × 2,00), Contador (E × 1,50); total = soma; "Planilha do BI enviada em … por …".
 5.2. [M-1]: recalculado com as vidas de [M-1].
-5.3. Teresina → Meu painel → [M-2]: cartão "[M-2] · prévia" com "Sua regra no mês: R$ 1,50 por vida · sem prazo", vidas e valor previsto; Minhas indicações só com A e B; "Rendendo comissão" conta 2.
+5.3. Teresina → Meu painel → [M-2]: cartão "[M-2] · prévia" com "Sua regra no mês: R$ 1,50 por vida · sem prazo", vidas e valor previsto e "Prévia com a base do BI de …" (a data do último envio **de [M-2]**); Minhas indicações só com A e B; "Rendendo comissão" conta 2. Em Minhas indicações, a introdução diz de quando é a base do BI das vidas.
 5.4. Contador → Meu painel: "Sua regra no mês: R$ 1,50 por vida · prazo de 12 meses"; E com "12 meses: [M-2] a …".
-5.5. Diretor envia de novo [M-1] com A +8 vidas → Teresina recarrega: vidas e "Prévia com a base do BI de …" mudam.
+5.5. Diretor envia de novo [M-1] com A +8 vidas → Teresina recarrega: vidas e "Prévia com a base do BI de …" mudam (a página não se atualiza sozinha: é preciso recarregar).
+5.6. Teresina → Meu painel → **Últimos envios da planilha**: quatro envios ([M-2] duas vezes, [M-1] duas vezes), do mais novo ao mais antigo, cada um com a data/hora e o mês, marcado como "mês completo" (mês já terminado) — o parceiro sabe sozinho se o que espera já entrou.
 
 ## Bloco 6 — Fechamento de [M-2] (com acúmulo)
 
@@ -96,7 +97,7 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 6.7. Visão geral → "Saldo acumulado a pagar" = valor do Contador em [M-2], na linha dele e no total.
 6.8. Diretor reenvia [M-2] → linhas "Mês já fechado"; o fechamento não muda.
 6.9. Contador → Nova vigência a partir de [M-2] → recusada (mês fechado). A partir de [M0] → aceita.
-6.10. Teresina → Meus fechamentos → [M-2]: vidas, valor, saldo que vinha de antes 0, total, Pagar → **Confirmar valor** → "Resposta registrada…" e "Você confirmou em …".
+6.10. Teresina → Meu painel → [M-2] (fechado): o cartão "valor oficial" diz "Base do BI de [M-2]: último envio em … (mês completo)" — o reenvio de 6.8 não conta, porque nada entrou. Meus fechamentos → [M-2]: vidas, valor, saldo que vinha de antes 0, total, Pagar → **Confirmar valor** → "Resposta registrada…" e "Você confirmou em …".
 6.11. Natal → [M-2] mostra o ajuste -10 com o motivo. Contestar sem texto → "Explique o que não confere". Com texto → "Você contestou em …".
 6.12. Contador → [M-2]: "Acumulado para o próximo mês".
 6.13. Diretor → Fechamento → [M-2] → coluna "Resposta do parceiro": Teresina confirmou (data), Natal contestou (texto), Contador "aguardando".
@@ -115,7 +116,7 @@ O mês em andamento pode ser enviado várias vezes; cada envio substitui o mês 
 8.1. Diretor → Importações → [M0] → planilha de [M0] sem o CNPJ B → envio "[M0] (parcial)".
 8.2. Diretor → Indicações → A, B, D, E continuam Ativa.
 8.3. Teresina → Meu painel → [M0]: B "Rendendo" com 0 vidas; A com vidas × 1,80.
-8.4. Diretor → nova planilha parcial de [M0] com mais vidas em A, **em CSV** (como o Google Planilhas exporta) → a conferência mostra A com as vidas de hoje e as novas → confirmar → Teresina vê o novo número de A (substitui, não soma).
+8.4. Diretor → nova planilha parcial de [M0] com mais vidas em A, **em CSV** (como o Google Planilhas exporta) → a conferência mostra A com as vidas de hoje e as novas → confirmar → Teresina vê o novo número de A (substitui, não soma); em Últimos envios da planilha, o envio aparece primeiro, com [M0] marcado como "parcial".
 8.5. Diretor muda D para Cancelada → Natal → [M0]: D não conta; [M-2] e [M-1] mostram o valor oficial, inalterados.
 8.6. Visão geral → Indicações por etapa: Ativa 3, Inadimplente 0, Cancelada 1, Perdida 1.
 8.7. (À mão, no mês seguinte) planilha final de [M0] enviada depois do dia 1º, sem B → B Inadimplente; o envio aparece como "mês completo". Coberto no teste de banco.

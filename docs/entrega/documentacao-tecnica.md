@@ -96,17 +96,17 @@ só com aprovação.
 
 ### Funções SQL principais
 
-| Assunto    | Funções                                                                                                                     |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Perfil     | `is_director`, `my_partner_id`, `current_profile`, `current_role_name`                                                      |
-| Convite    | `create_invitation`, `invitation_preview`, `register_partner`, `register_director`, `confirm_invited_signup`                |
-| Equipe     | `list_directors`                                                                                                            |
-| Parceiro   | `approve_partner`, `reject_partner`, `save_partner`, `save_partner_rule`, `delete_partner_rule`                             |
-| Indicação  | `create_referral`, `set_referral_status`, `set_referral_config`, `valid_cnpj`                                               |
-| Importação | `import_lives`, `preview_import` (conferência: roda e desfaz), `last_import_at`, `latest_complete_competency`               |
-| Fechamento | `closing_blocker`, `prepare_closing`, `set_closing_adjustment`, `close_closing`, `respond_closing_item`, `set_payment_note` |
-| Senha      | `create_password_reset`, `password_reset_preview`, `reset_password_with_token`, `change_my_password`                        |
-| IA         | `start_ai_review`, `finish_ai_review`                                                                                       |
+| Assunto    | Funções                                                                                                                              |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Perfil     | `is_director`, `my_partner_id`, `current_profile`, `current_role_name`                                                               |
+| Convite    | `create_invitation`, `invitation_preview`, `register_partner`, `register_director`, `confirm_invited_signup`                         |
+| Equipe     | `list_directors`                                                                                                                     |
+| Parceiro   | `approve_partner`, `reject_partner`, `save_partner`, `save_partner_rule`, `delete_partner_rule`                                      |
+| Indicação  | `create_referral`, `set_referral_status`, `set_referral_config`, `valid_cnpj`                                                        |
+| Importação | `import_lives`, `preview_import` (conferência: roda e desfaz), `last_import_at(mês)`, `recent_imports`, `latest_complete_competency` |
+| Fechamento | `closing_blocker`, `prepare_closing`, `set_closing_adjustment`, `close_closing`, `respond_closing_item`, `set_payment_note`          |
+| Senha      | `create_password_reset`, `password_reset_preview`, `reset_password_with_token`, `change_my_password`                                 |
+| IA         | `start_ai_review`, `finish_ai_review`                                                                                                |
 
 Regras garantidas no banco (não só na tela):
 

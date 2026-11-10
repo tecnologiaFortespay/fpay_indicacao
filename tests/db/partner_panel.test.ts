@@ -6,6 +6,7 @@ let admin: Client;
 let director: Client;
 let natal: Client;
 let manaus: Client;
+let noProfile: Client;
 let natalId: string;
 let manausId: string;
 let natalItemId: string;
@@ -14,6 +15,7 @@ let manausItemId: string;
 const CNPJ_P = cnpjWithDigits("667778880001");
 const CNPJ_Q = cnpjWithDigits("778889990001");
 const APRIL = "2026-04-01";
+const MAY = "2026-05-01";
 
 async function activePartner(name: string): Promise<string> {
   return ok(
@@ -29,6 +31,7 @@ async function activePartner(name: string): Promise<string> {
 beforeAll(async () => {
   admin = adminClient();
   director = await userClient((await createUser(admin, "director")).email);
+  noProfile = await userClient((await createUser(admin, null)).email);
   await admin.from("monthly_lives").delete().in("cnpj", [CNPJ_P, CNPJ_Q]);
   await admin.from("referrals").delete().in("cnpj", [CNPJ_P, CNPJ_Q]);
   await admin.from("companies").delete().in("cnpj", [CNPJ_P, CNPJ_Q]);
@@ -104,6 +107,44 @@ describe("fatia 5 — painel do parceiro", () => {
     expect(typeof stamp).toBe("string");
     const batches = ok(await natal.from("import_batches").select("id"), "batches as natal");
     expect(batches).toEqual([]);
+  });
+
+  // Item 5 da reunião de 09/11/2026 (decisão 21): o carimbo é do mês escolhido, e o parceiro vê os
+  // últimos envios (só data e meses) sem ler import_batches.
+  it("carimbo por mês: o envio que cobriu o mês, nulo para mês sem envio, o global sem argumento", async () => {
+    const april = ok(await natal.rpc("last_import_at", { month: APRIL }), "april stamp");
+    expect(typeof april).toBe("string");
+    const none = await natal.rpc("last_import_at", { month: "2025-01-01" });
+    expect(none.error).toBeNull();
+    expect(none.data).toBeNull();
+    expect(ok(await natal.rpc("last_import_at"), "global before")).toBe(april);
+
+    ok(
+      await director.rpc("import_lives", {
+        batch: batch("maio.csv"),
+        rows: rows([[CNPJ_P, MAY, 5]]),
+      }),
+      "import may",
+    );
+    const may = ok(await natal.rpc("last_import_at", { month: MAY }), "may stamp");
+    expect(new Date(may).getTime()).toBeGreaterThan(new Date(april).getTime());
+    expect(ok(await natal.rpc("last_import_at", { month: APRIL }), "april again")).toBe(april);
+    expect(ok(await natal.rpc("last_import_at"), "global after")).toBe(may);
+  });
+
+  it("últimos envios: só data e meses, do mais novo ao mais antigo; conta sem perfil não lê", async () => {
+    const recent = ok(await natal.rpc("recent_imports"), "recent_imports") as {
+      created_at: string;
+      competencies: string[];
+    }[];
+    expect(recent).toHaveLength(2);
+    expect(recent[0].competencies).toEqual([MAY]);
+    expect(recent[1].competencies).toEqual([APRIL]);
+    expect(Object.keys(recent[0]).sort()).toEqual(["competencies", "created_at"]);
+    const one = ok(await natal.rpc("recent_imports", { how_many: 1 }), "one") as unknown[];
+    expect(one).toHaveLength(1);
+    const denied = await noProfile.rpc("recent_imports");
+    expect(denied.error?.code).toBe("42501");
   });
 
   it("antes de fechar, o parceiro não vê o item nem pode responder", async () => {

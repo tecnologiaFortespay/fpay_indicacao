@@ -143,8 +143,10 @@ export async function uploadImport(_previous: FormState, form: FormData): Promis
   if (result.error) {
     return { error: databaseError(result.error) };
   }
-  revalidatePath("/importacoes");
-  revalidatePath("/inicio");
+  // Todas as telas que mostram vidas ou a data da base (decisão 21).
+  for (const path of ["/importacoes", "/inicio", "/indicacoes", "/fechamento", "/fechamentos"]) {
+    revalidatePath(path);
+  }
   if (withAi) {
     const batchId = result.data;
     const reviewId = await startReview({ batch_id: batchId }).catch(() => null);

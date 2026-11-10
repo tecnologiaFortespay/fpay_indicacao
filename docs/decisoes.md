@@ -137,3 +137,12 @@ valem sobre o que ele diz.
     de indicações do diretor ganhou busca por CNPJ ou empresa e o seletor de mês das vidas (o
     "relatório de quem indicou cada cliente" já era essa lista; o cadastro de indicadores é
     Parceiros).
+21. **"Atualizado em" por mês e últimos envios para o parceiro.** Na reunião, a data pareceu não
+    mudar. Não havia defeito: a data mostrada era a do **último envio de qualquer mês**, aparecia
+    só no cartão de mês aberto, e uma aba já aberta não se atualiza sozinha (é preciso recarregar).
+    Agora o painel mostra a data do último envio **do mês escolhido** (ou "Ainda não houve envio da
+    planilha de <mês>"), também no cartão de mês fechado, e a lista **Últimos envios da planilha**
+    (data/hora, mês e "parcial" ou "mês completo"), para o parceiro saber sozinho se o que espera já
+    entrou; Minhas indicações diz de quando é a base das vidas. No banco, `last_import_at(mês)` e
+    `recent_imports` (só data e meses, sem arquivo nem autor; migration
+    `20261110000015_import_stamps.sql`). Nenhuma tabela nova; importação e cálculo intocados.

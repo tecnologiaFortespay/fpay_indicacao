@@ -358,7 +358,7 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "last_import_at":
-{ Args: Record<PropertyKey, never>; Returns: string
+{ Args: { "month"?: string }; Returns: string
                            },
 "latest_complete_competency":
 { Args: Record<PropertyKey, never>; Returns: string
@@ -388,6 +388,11 @@ isOneToOne: false
                            },
 "preview_import":
 { Args: { "batch": Json,"rows": Json }; Returns: Json
+                           },
+"recent_imports":
+{ Args: { "how_many"?: number }; Returns: {
+              "competencies": (string)[],"created_at": string
+            }[]
                            },
 "register_director":
 { Args: { "payload": Json,"secret": string }; Returns: undefined

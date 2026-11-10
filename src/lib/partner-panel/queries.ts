@@ -67,11 +67,31 @@ export function pendingBalanceOf(items: PartnerClosingItem[]): number {
   return Number(latest.total);
 }
 
-export async function lastImportAt(): Promise<string | null> {
+// Data do último envio da planilha: do mês informado (nulo = ainda não houve envio dele) ou, sem
+// mês, de qualquer mês. Decisão 21: o parceiro vê a data do mês que está olhando.
+export async function lastImportAt(competency?: string): Promise<string | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("last_import_at");
+  const { data, error } = await supabase.rpc(
+    "last_import_at",
+    competency ? { month: competencyToDate(competency) } : {},
+  );
   if (error) {
     return null;
   }
   return data;
+}
+
+export type RecentImport = { created_at: string; competencies: string[] };
+
+// Últimos envios (só data e meses; a função SQL não expõe arquivo nem autor ao parceiro).
+export async function recentImports(limit = 5): Promise<RecentImport[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("recent_imports", { how_many: limit });
+  if (error) {
+    return [];
+  }
+  return data.map((entry) => ({
+    created_at: entry.created_at,
+    competencies: entry.competencies.map(dateToCompetency),
+  }));
 }

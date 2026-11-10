@@ -529,6 +529,8 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await ter.goto("/inicio");
     await expect(ter.getByText(`Nenhuma vida paga em ${OCT_LABEL}.`)).toBeVisible();
     await expect(ter.getByText(sentence).first()).toBeVisible();
+    // Item 5: sem envio do mês, o painel diz isso em vez de mostrar a data de outro mês.
+    await expect(ter.getByText(`Ainda não houve envio da planilha de ${OCT_LABEL}.`)).toBeVisible();
   });
 
   await test.step("4.0 conferência antes de gravar: o que muda em cada indicação; nada gravado", async () => {
@@ -649,6 +651,9 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     expect(await rowText(ter, B.company)).toContain("20 R$ 1,50 R$ 30,00");
     await expect(ter.getByText(/Prévia com a base do BI de/)).toBeVisible();
     await expect(ter.getByText(D.company)).toHaveCount(0);
+    // Item 5: Minhas indicações também diz de quando é a base das vidas.
+    await ter.goto("/indicacoes");
+    await expect(ter.getByText(/base do BI de/)).toBeVisible();
   });
 
   await test.step("5.4 painel do contador mostra o prazo: 12 meses, ago/2026 a jul/2027", async () => {
@@ -674,6 +679,17 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await ter.reload();
     await expect(ter.locator(".fp-kpi-value").first()).toHaveText("63");
     expect(clean(await note.innerText())).not.toBe(before);
+  });
+
+  // Item 5 da reunião de 09/11/2026 (decisão 21): o parceiro vê os últimos envios, com o mês e se
+  // o envio foi parcial ou do mês completo. Até aqui: agosto (2×) e setembro (2×), todos completos.
+  await test.step("5.6 Teresina vê os últimos envios da planilha, com mês e parcial/completo", async () => {
+    await ter.goto("/inicio");
+    const rows = section(ter, "Últimos envios da planilha").locator("tbody tr");
+    await expect(rows).toHaveCount(4);
+    await expect(rows.first()).toContainText(SEP_LABEL);
+    await expect(rows.first()).toContainText("mês completo");
+    await expect(rows.nth(3)).toContainText(AUG_LABEL);
   });
 
   await test.step("6.1 outubro: preparar cálculo bloqueado, mês ainda não encerrado", async () => {
@@ -788,6 +804,11 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   });
 
   await test.step("6.10 Teresina confere agosto e confirma", async () => {
+    // Item 5: o mês fechado também diz de quando é a base do BI (o reenvio de 6.8 não conta: nada entrou).
+    await ter.goto(`/inicio?competency=${AUG}`);
+    expect(clean(await section(ter, `${AUG_LABEL} · valor oficial`).innerText())).toMatch(
+      /Base do BI de .*: último envio em .* \(mês completo\)\./,
+    );
     await ter.goto("/fechamentos");
     const card = section(ter, AUG_LABEL);
     expect(clean(await card.innerText())).toContain(
@@ -939,6 +960,10 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await ter.goto("/inicio");
     expect(await rowText(ter, A.company)).toContain("40 R$ 1,80 R$ 72,00");
     await expect(ter.locator(".fp-kpi-preview")).toContainText("R$ 72,00");
+    // Item 5: o envio do mês em andamento aparece como parcial na lista de últimos envios.
+    const latest = section(ter, "Últimos envios da planilha").locator("tbody tr").first();
+    await expect(latest).toContainText(OCT_LABEL);
+    await expect(latest).toContainText("parcial");
   });
 
   await test.step("8.5 D cancelada: não conta em outubro; agosto e setembro intactos", async () => {

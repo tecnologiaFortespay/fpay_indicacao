@@ -16,6 +16,7 @@ import {
   currentCompetency,
   dateToCompetency,
   formatDate,
+  formatDateTime,
   isCompetency,
   shortCompetencyLabel,
 } from "@/lib/competency";
@@ -23,6 +24,7 @@ import { latestCompetency } from "@/lib/dashboard/queries";
 import { glossary } from "@/lib/glossary";
 import { referralStatusLabels, type ReferralStatus } from "@/lib/labels";
 import { formatInteger } from "@/lib/money";
+import { lastImportAt } from "@/lib/partner-panel/queries";
 import { listPartnerOptions, ruleInForce } from "@/lib/partners/queries";
 import { referralConfigLabel } from "@/lib/referrals/config";
 import {
@@ -82,13 +84,20 @@ function sinceLabel(referral: ReferralRow): string {
 async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
   const partnerId = user.profile.partner?.id ?? "";
   const competency = await latestCompetency();
-  const [referrals, months, rule] = await Promise.all([
+  const [referrals, months, rule, updatedAt] = await Promise.all([
     listReferrals({ partnerId }),
     competency
       ? referralMonthValues(competency)
       : Promise.resolve(new Map<string, ReferralMonth>()),
     ruleInForce(partnerId, currentCompetency()),
+    competency ? lastImportAt(competency) : Promise.resolve(null),
   ]);
+  // Decisão 21: de quando é a base das vidas mostradas.
+  const stamp = competency
+    ? updatedAt
+      ? ` Vidas em ${competencyLabel(competency)}: base do BI de ${formatDateTime(updatedAt)}.`
+      : ` Ainda não houve envio da planilha de ${competencyLabel(competency)}.`
+    : "";
   const groups = stageOrder.map((stage) => ({
     stage,
     items: referrals.filter((referral) => referralStage(referral.status) === stage),
@@ -99,7 +108,7 @@ async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
     <AppShell title="Minhas indicações">
       <PageIntro>
         Vale a primeira indicação de cada CNPJ. Uma indicação começa a render comissão quando o
-        cliente começa a pagar a Fortes Pay.
+        cliente começa a pagar a Fortes Pay.{stamp}
       </PageIntro>
 
       <SectionCard title="Resumo" subtitle={conversionSentence(summary)}>

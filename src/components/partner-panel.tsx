@@ -8,6 +8,7 @@ import type { AuthorizedUser } from "@/lib/auth/session";
 import { formatCnpj } from "@/lib/cnpj";
 import {
   competencyLabel,
+  completesMonth,
   currentCompetency,
   currentDayOfMonth,
   dateToCompetency,
@@ -22,6 +23,7 @@ import {
   partnerClosingItems,
   partnerMonthSummary,
   pendingBalanceOf,
+  recentImports,
   type PartnerClosingItem,
 } from "@/lib/partner-panel/queries";
 import { ruleInForce } from "@/lib/partners/queries";
@@ -74,13 +76,14 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
   const partnerName = user.profile.partner?.name ?? "";
   const current = currentCompetency();
   const competency = isCompetency(requestedCompetency) ? requestedCompetency : current;
-  const [summary, referrals, months, closings, updatedAt, rule] = await Promise.all([
+  const [summary, referrals, months, closings, updatedAt, rule, recent] = await Promise.all([
     partnerMonthSummary(partnerId, competency),
     listReferrals({ partnerId }),
     referralMonthValues(competency),
     partnerClosingItems(partnerId),
-    lastImportAt(),
+    lastImportAt(competency),
     ruleInForce(partnerId, competency),
+    recentImports(),
   ]);
   const pending = pendingBalanceOf(closings);
   const latestClosing = closings[0] ?? null;
@@ -130,6 +133,11 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
           title={`${monthLabel} · valor oficial`}
           subtitle={`Fechado pela Fortes Pay${closedMonth.closed_at ? ` em ${formatDate(closedMonth.closed_at)}` : ""}.`}
           action={<Link href="/fechamentos">Ver em Meus fechamentos →</Link>}
+          footnote={
+            updatedAt
+              ? `Base do BI de ${monthLabel}: último envio em ${formatDateTime(updatedAt)} (${completesMonth(updatedAt, competency) ? "mês completo" : "parcial"}).`
+              : undefined
+          }
         >
           <PanelBody>
             <div className="fp-kpi-grid fp-kpi-grid-2">
@@ -169,12 +177,15 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
           title={`${monthLabel} · prévia`}
           subtitle={`Sua regra no mês: ${ruleText}.`}
           footnote={
-            <>
-              Prévia com a base do BI de{" "}
-              <strong>{updatedAt ? formatDateTime(updatedAt) : "—"}</strong>. A Fortes Pay atualiza
-              a base várias vezes por semana; o valor oficial sai no fechamento, depois que o mês
-              termina.
-            </>
+            updatedAt ? (
+              <>
+                Prévia com a base do BI de <strong>{formatDateTime(updatedAt)}</strong>, o último
+                envio de {monthLabel}. A Fortes Pay atualiza a base várias vezes por semana; o valor
+                oficial sai no fechamento, depois que o mês termina.
+              </>
+            ) : (
+              `Ainda não houve envio da planilha de ${monthLabel}. Quando a Fortes Pay enviar, as vidas e o valor previsto aparecem aqui.`
+            )
           }
         >
           <PanelBody>
@@ -207,6 +218,45 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
           </PanelBody>
         </SectionCard>
       )}
+
+      <SectionCard
+        title="Últimos envios da planilha"
+        subtitle="Cada envio substitui as vidas do mês. Envio do mês em andamento é parcial; o feito depois que o mês termina é o mês completo, que vale para o fechamento."
+      >
+        {recent.length === 0 ? (
+          <EmptyState title="Nenhum envio ainda">
+            A Fortes Pay ainda não enviou nenhuma planilha do BI.
+          </EmptyState>
+        ) : (
+          <div className="fp-table-wrap">
+            <table className="fp-table">
+              <thead>
+                <tr>
+                  <th>Enviada em</th>
+                  <th>Mês da planilha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recent.map((entry, index) => (
+                  <tr key={`${entry.created_at}-${index}`}>
+                    <td>{formatDateTime(entry.created_at)}</td>
+                    <td>
+                      {entry.competencies.length === 0
+                        ? "nada entrou (mês já fechado)"
+                        : entry.competencies
+                            .map(
+                              (month) =>
+                                `${competencyLabel(month)} (${completesMonth(entry.created_at, month) ? "mês completo" : "parcial"})`,
+                            )
+                            .join(", ")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SectionCard>
 
       <SectionCard
         title="Meses fechados (valor oficial)"
