@@ -38,6 +38,31 @@ export async function setReferralStatus(_previous: FormState, form: FormData): P
   redirect(withFlash(destination, "situacao_atualizada"));
 }
 
+// Vendedor da indicação (texto livre; em branco apaga). Só o diretor corrige depois do registro
+// (decisão 22). Login e comissão de vendedor continuam fase 2.
+export async function setReferralSeller(_previous: FormState, form: FormData): Promise<FormState> {
+  const user = await actionUser("director");
+  if (!user) {
+    return deniedState();
+  }
+  const id = formValue(form, "id");
+  if (!z.uuid().safeParse(id).success) {
+    return { error: "Indicação inválida." };
+  }
+  const supabase = await createClient();
+  const result = await supabase.rpc("set_referral_seller", {
+    target: id,
+    name: formValue(form, "seller_name"),
+  });
+  if (result.error) {
+    return { error: databaseError(result.error) };
+  }
+  revalidatePath("/indicacoes");
+  revalidatePath(`/indicacoes/${id}`);
+  revalidatePath("/parceiros/[id]", "page");
+  return { success: "Vendedor salvo." };
+}
+
 // Configuração própria da indicação (valor por vida e prazo). Em branco = regra do parceiro.
 export async function setReferralConfig(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");

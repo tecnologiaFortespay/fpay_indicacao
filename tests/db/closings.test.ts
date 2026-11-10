@@ -42,7 +42,9 @@ async function items(competency: string) {
   const list = ok(
     await director
       .from("closing_items")
-      .select("partner_id, lives, month_amount, adjustment, previous_balance, total, decision")
+      .select(
+        "partner_id, lives, month_amount, adjustment, previous_balance, total, decision, details",
+      )
       .eq("closing_id", closing.id)
       .in("partner_id", [natalId, teresinaId]),
     "items",
@@ -66,9 +68,9 @@ beforeAll(async () => {
   teresinaId = await activePartner(`Teresina fechamento ${Date.now()}`);
   const natalUser = await createUser(admin, "partner", natalId);
   natalClient = await userClient(natalUser.email);
-  for (const [partnerId, cnpj, value] of [
-    [natalId, CNPJ_N, "1.50"],
-    [teresinaId, CNPJ_T, "2.00"],
+  for (const [partnerId, cnpj, value, seller] of [
+    [natalId, CNPJ_N, "1.50", "Carla"],
+    [teresinaId, CNPJ_T, "2.00", ""],
   ] as const) {
     ok(
       await director.rpc("save_partner_rule", {
@@ -83,7 +85,12 @@ beforeAll(async () => {
     );
     ok(
       await director.rpc("create_referral", {
-        payload: { partner_id: partnerId, cnpj, company_name: `Empresa ${cnpj}` },
+        payload: {
+          partner_id: partnerId,
+          cnpj,
+          company_name: `Empresa ${cnpj}`,
+          seller_name: seller,
+        },
       }),
       "referral",
     );
@@ -170,6 +177,21 @@ describe("fatia 4 — fechamento mensal", () => {
       previous_balance: 0,
       total: 100,
     });
+    // Item 2 da reunião de 09/11/2026 (decisão 22): o retrato guarda os clientes do mês, com o
+    // vendedor; a soma dos clientes é o valor do parceiro, por construção.
+    expect(august.natal?.details).toEqual([
+      expect.objectContaining({
+        cnpj: CNPJ_N,
+        company_name: `Empresa ${CNPJ_N}`,
+        lives: 40,
+        value_per_life: 1.5,
+        amount: 60,
+        seller_name: "Carla",
+      }),
+    ]);
+    expect(august.teresina?.details).toEqual([
+      expect.objectContaining({ cnpj: CNPJ_T, lives: 50, value_per_life: 2, amount: 100 }),
+    ]);
     const natalItem = ok(
       await director
         .from("closing_items")
@@ -329,6 +351,32 @@ describe("fatia 4 — fechamento mensal", () => {
         },
       }),
       "future rule",
+    );
+  });
+
+  it("mês fechado: o detalhe por cliente não muda quando a indicação muda de valor", async () => {
+    const teresinaReferral = ok(
+      await director.from("referrals").select("id").eq("cnpj", CNPJ_T).single(),
+      "teresina referral",
+    );
+    done(
+      await director.rpc("set_referral_config", {
+        target: teresinaReferral.id,
+        payload: { value_per_life: "9.99", term_months: "" },
+      }),
+      "change value after close",
+    );
+    const august = await items(AUGUST);
+    expect(august.teresina?.details).toEqual([
+      expect.objectContaining({ cnpj: CNPJ_T, lives: 50, value_per_life: 2, amount: 100 }),
+    ]);
+    expect(august.teresina?.month_amount).toBe(100);
+    done(
+      await director.rpc("set_referral_config", {
+        target: teresinaReferral.id,
+        payload: { value_per_life: "", term_months: "" },
+      }),
+      "restore value",
     );
   });
 

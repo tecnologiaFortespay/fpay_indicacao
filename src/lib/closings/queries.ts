@@ -1,14 +1,43 @@
 import "server-only";
+import { z } from "zod";
 import { competencyToDate, currentCompetency, dateToCompetency } from "@/lib/competency";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
 
 export type Closing = Tables<"closings"> & { closed_by_name: string | null };
 
+// Um cliente do parceiro no mês, como prepare_closing gravou em closing_items.details (decisão 22).
+const clientSchema = z.object({
+  referral_id: z.string(),
+  cnpj: z.string(),
+  company_name: z.string(),
+  seller_name: z.string().nullable().optional(),
+  lives: z.number(),
+  value_per_life: z.number().nullable(),
+  amount: z.number(),
+});
+
+export type ClosingClient = z.infer<typeof clientSchema>;
+
 export type ClosingItem = Tables<"closing_items"> & {
   partner_name: string;
   decided_by_name: string | null;
+  clients: ClosingClient[];
 };
+
+// Detalhe ausente (fechamentos anteriores à migration 16) ou inválido vira lista vazia.
+function parseClients(details: unknown): ClosingClient[] {
+  const parsed = z.array(clientSchema).safeParse(details);
+  return parsed.success ? parsed.data : [];
+}
+
+// Vendedores distintos dos clientes do mês, para a linha do parceiro.
+export function sellerNames(item: ClosingItem): string[] {
+  const names = item.clients
+    .map((client) => client.seller_name)
+    .filter((name): name is string => typeof name === "string" && name !== "");
+  return Array.from(new Set(names));
+}
 
 export type ClosingDetail = {
   closing: Closing;
@@ -87,6 +116,7 @@ export async function getClosing(competency: string): Promise<ClosingDetail | nu
         ...item,
         partner_name: partners?.name ?? "—",
         decided_by_name: item.decided_by ? (names.get(item.decided_by) ?? null) : null,
+        clients: parseClients(item.details),
       };
     })
     .sort((a, b) => a.partner_name.localeCompare(b.partner_name, "pt-BR"));

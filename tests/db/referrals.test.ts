@@ -14,6 +14,7 @@ let manausId: string;
 const CNPJ_Y = cnpjWithDigits("114447770001");
 const CNPJ_Z = cnpjWithDigits("223334440001");
 const CNPJ_W = cnpjWithDigits("335556660001");
+const CNPJ_V = cnpjWithDigits("446667770001");
 // Mês anterior e mês corrente: o cancelamento feito hoje encerra a contagem a partir deste mês.
 const PREVIOUS = competencyToDate(addMonths(currentCompetency(), -1));
 const CURRENT = competencyToDate(currentCompetency());
@@ -53,7 +54,7 @@ beforeAll(async () => {
   manausId = await activePartner(`Unidade Manaus ${Date.now()}`);
   natal = await partnerClient(natalId);
   manaus = await partnerClient(manausId);
-  const cnpjs = [CNPJ_Y, CNPJ_Z, CNPJ_W];
+  const cnpjs = [CNPJ_Y, CNPJ_Z, CNPJ_W, CNPJ_V];
   await admin.from("monthly_lives").delete().in("cnpj", cnpjs);
   await admin.from("referrals").delete().in("cnpj", cnpjs);
   await admin.from("companies").delete().in("cnpj", cnpjs);
@@ -94,6 +95,40 @@ describe("fatia 3 — indicações com 7 situações e CNPJ único", () => {
       payload: { cnpj: CNPJ_Z, company_name: "Z" },
     });
     expect(denied.error?.code).toBe("42501");
+  });
+
+  // Item 1 da reunião de 09/11/2026 (decisão 22): o vendedor é um texto opcional na indicação,
+  // informado por quem registra; só o diretor corrige depois. Login e comissão continuam fase 2.
+  it("indicação guarda o vendedor (texto opcional); só o diretor corrige depois", async () => {
+    const id = ok(
+      await natal.rpc("create_referral", {
+        payload: { cnpj: CNPJ_V, company_name: "Empresa V", seller_name: "  Carla  " },
+      }),
+      "create with seller",
+    );
+    const seller = async () =>
+      ok(await natal.from("referrals").select("seller_name").eq("id", id).single(), "seller")
+        .seller_name;
+    expect(await seller()).toBe("Carla");
+    const long = await natal.rpc("create_referral", {
+      payload: {
+        cnpj: cnpjWithDigits("557778880001"),
+        company_name: "Empresa longa",
+        seller_name: "x".repeat(121),
+      },
+    });
+    expect(long.error?.details).toBe("Vendedor: use até 120 caracteres.");
+    const byPartner = await natal.rpc("set_referral_seller", { target: id, name: "Outro" });
+    expect(byPartner.error?.code).toBe("42501");
+    done(await director.rpc("set_referral_seller", { target: id, name: " Carla Souza " }), "set");
+    expect(await seller()).toBe("Carla Souza");
+    done(await director.rpc("set_referral_seller", { target: id, name: "" }), "clear");
+    expect(await seller()).toBeNull();
+    const missing = await director.rpc("set_referral_seller", {
+      target: "00000000-0000-0000-0000-000000000000",
+      name: "X",
+    });
+    expect(missing.error?.code).toBe("P0002");
   });
 
   it("vale a primeira: outro parceiro recebe só a data; parceiro não vê indicações alheias", async () => {

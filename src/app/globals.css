@@ -954,6 +954,19 @@
     gap: 12px;
     align-items: end;
   }
+  /* Linha "Ver clientes (n)" sob cada parceiro do fechamento: tabela aninhada dentro de <details>. */
+  .fp-row-clients > td {
+    padding: 0 0 6px;
+  }
+  .fp-row-clients .fp-disclosure {
+    border-top: 0;
+  }
+  .fp-row-clients .fp-disclosure > summary {
+    font-size: 13px;
+  }
+  .fp-row-clients .fp-table-wrap {
+    margin: 0 0 0 24px;
+  }
   .fp-disclosure {
     border-top: 1px solid var(--fp-line);
   }

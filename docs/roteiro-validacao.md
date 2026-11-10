@@ -56,15 +56,16 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 
 ## Bloco 3 — Indicações e etapas
 
-3.1. Teresina → Minhas indicações → **Nova indicação**: CNPJ A, empresa, vidas estimadas 40 → "Indicação registrada."; os campos ficam limpos; A aparece em **Ainda não rende** com "Indicada em dd/mm/aaaa. A Fortes Pay ainda vai falar com o cliente…".
+3.1. Teresina → Minhas indicações → **Nova indicação**: CNPJ A, empresa, vidas estimadas 40, **Vendedor** "Carla" (opcional: quem da unidade fez a indicação) → "Indicação registrada."; os campos ficam limpos; A aparece em **Ainda não rende** com "Indicada em dd/mm/aaaa. A Fortes Pay ainda vai falar com o cliente…" e "Vendedor: Carla".
 3.2. Teresina indica B e C. 3.3. Natal indica D. 3.4. Contador indica E.
 3.5. Natal tenta A → "CNPJ já indicado em dd/mm/aaaa." sem o nome de Teresina; Natal continua com "Ainda não rende (1)".
-3.6. Diretor → Indicações → Lista (5), cada uma com o parceiro. **Buscar por CNPJ ou empresa**: o nome de A → só A; o CNPJ de B (com ou sem pontuação) → só B; limpar → as 5 de novo. **Registrar indicação em nome de um parceiro**: A em nome de Natal → mensagem cita "por Unidade Teresina".
+3.6. Diretor → Indicações → Lista (5), cada uma com o parceiro (A com "Vendedor: Carla"). **Buscar por CNPJ ou empresa**: o nome de A → só A; o CNPJ de B (com ou sem pontuação) → só B; limpar → as 5 de novo. **Registrar indicação em nome de um parceiro**: A em nome de Natal → mensagem cita "por Unidade Teresina".
 3.7. Diretor muda A: Indicada → Em negociação → Fechada (aviso "Situação atualizada." a cada vez). O menu só mostra as mudanças permitidas (Cancelada não aparece antes de Ativa).
 3.8. Diretor marca C como Perdida.
 3.9. Teresina recarrega → A em Ainda não rende como **Contrato fechado** ("Começa a render no primeiro mês em que o cliente pagar"); C em **Encerradas (1)**. Nenhum botão de mudar situação.
 3.10. Natal → só D.
 3.11. Teresina → Minhas indicações → **Resumo**: "3 indicações · 1 virou cliente · 1 em andamento · 1 perdida" (virou cliente = contrato fechado ou já pagou, inclusive cancelada; em andamento = indicada ou em negociação; perdida = perdida). Meu painel, ainda sem nenhuma vida paga: a prévia diz "Nenhuma vida paga em [M0]." e repete o resumo, em vez de só "0"; como nenhuma planilha foi enviada, o rodapé diz "Ainda não houve envio da planilha de [M0]."
+3.12. Diretor → Indicações → B → ficha da indicação → **Vendedor** "Bruno" → **Salvar vendedor** → "Vendedor salvo."; a lista mostra "Vendedor: Bruno" em B. Só o diretor corrige o vendedor depois de registrado.
 
 ## Bloco 4 — Importação ([M-2] e [M-1])
 
@@ -90,7 +91,7 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 
 6.1. Diretor → Fechamento do mês → [M0] → etapa 1 "[M0] ainda não terminou"; sem botão Preparar cálculo.
 6.2. [M-1] com [M-2] aberto → etapa 2 "Feche [M-2] primeiro" e botão "Ir para [M-2]".
-6.3. [M-2] → etapa 1 concluída ("Planilha de [M-2] enviada em …, depois do fim do mês") → **Preparar cálculo** → tabela por parceiro: vidas, valor por vida, valor do mês, ajuste, saldo anterior (0), total.
+6.3. [M-2] → etapa 1 concluída ("Planilha de [M-2] enviada em …, depois do fim do mês") → **Preparar cálculo** → tabela por parceiro: vendedor(es) do mês, vidas, valor por vida, valor do mês, ajuste, saldo anterior (0), total. Sob cada parceiro, **Ver clientes (n)** abre os clientes do mês com vendedor, vidas, valor por vida e valor: Teresina = A (Carla, 30 × 1,50 = 45,00) + B (Bruno, 20 × 1,50 = 30,00) = 75,00.
 6.4. **Ajustar o valor de um parceiro**: Natal, -10,00, motivo → "Ajuste salvo."; total de Natal cai 10. Recalcular → o ajuste continua.
 6.5. **Fechar lote** sem marcar a conferência → "Confirme que conferiu…". Marcar Teresina e Natal, não marcar o Contador, marcar a conferência → "Lote fechado. Nada mais entra neste mês."; título "[M-2] · Fechado"; as três etapas concluídas.
 6.6. Teresina e Natal "Pagar"; Contador "Acumular".
@@ -131,7 +132,7 @@ O mês em andamento pode ser enviado várias vezes; cada envio substitui o mês 
 ## Bloco 10 — Valor e prazo da indicação e "como foi pago"
 
 10.1. Diretor → Indicações → abrir A → aviso "Rende desde [M-2]…"; **Valor e prazo desta indicação**: 2,50 e prazo 3 → "Valor e prazo da indicação salvos."; a lista mostra "R$ 2,50 por vida · 3 meses".
-10.2. Visão geral → [M0]: Teresina conta A × 2,50; o fechamento de [M-2] continua com o valor fechado.
+10.2. Visão geral → [M0]: Teresina conta A × 2,50; o fechamento de [M-2] continua com o valor fechado, inclusive em Ver clientes: A segue com 30 × 1,50 = 45,00 (o detalhe é o retrato do fechamento, não um recálculo).
 10.3. Teresina → Meu painel → [M0]: A com R$ 2,50 e prazo "3 meses: [M-2] a [M0]".
 10.4. Diretor apaga os dois campos de A → volta à regra do parceiro (1,80, sem prazo).
 10.5. Diretor → Fechamento → [M-2] → Como foi pago a Unidade Teresina: "PIX em 05/…" → Teresina → Meus fechamentos → [M-2] mostra "Como foi pago". Linhas acumuladas não têm esse campo.

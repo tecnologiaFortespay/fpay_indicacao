@@ -155,13 +155,16 @@ async function approve(director: Page, rule: { value: string; from: string; term
   return clean(await section(director, "Regra de remuneração").locator("tbody").innerText());
 }
 
-async function refer(page: Page, entry: Company, estimated?: string) {
+async function refer(page: Page, entry: Company, estimated?: string, seller?: string) {
   await page.goto("/indicacoes");
   const form = await openDisclosure(page, "Nova indicação");
   await form.getByLabel("CNPJ do cliente").fill(entry.cnpj);
   await form.getByLabel("Empresa", { exact: true }).fill(entry.company);
   if (estimated) {
     await form.getByLabel("Vidas estimadas").fill(estimated);
+  }
+  if (seller) {
+    await form.getByLabel("Vendedor", { exact: true }).fill(seller);
   }
   await submitIn(form, "Registrar indicação").click();
 }
@@ -423,8 +426,9 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(ter).toHaveURL(/\/inicio$/);
   });
 
-  await test.step("3.1 Teresina indica A: Indicada, com data", async () => {
-    await refer(ter, A, "40");
+  await test.step("3.1 Teresina indica A: Indicada, com data e vendedor", async () => {
+    // Item 1 da reunião de 09/11/2026 (decisão 22): quem indica informa o vendedor (opcional).
+    await refer(ter, A, "40", "Carla");
     await expect(
       ter.getByRole("status").filter({ hasText: "Indicação registrada." }),
     ).toBeVisible();
@@ -434,6 +438,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     const row = await rowText(ter, A.company);
     expect(row).toContain("Indicada");
     expect(row).toContain(today);
+    expect(row).toContain("Vendedor: Carla");
   });
 
   await test.step("3.2 a 3.4 Teresina indica B e C; Natal indica D; Contador indica E", async () => {
@@ -470,6 +475,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     ] as const) {
       expect(await rowText(dir, entry.company)).toContain(partner);
     }
+    expect(await rowText(dir, A.company)).toContain("Vendedor: Carla");
     // Busca por empresa e por CNPJ (item 4 da reunião de 09/11/2026): acha só a indicação certa.
     await dir.getByLabel("Buscar por CNPJ ou empresa").fill(A.company.toLowerCase());
     await dir.getByRole("button", { name: "Filtrar" }).click();
@@ -531,6 +537,18 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(ter.getByText(sentence).first()).toBeVisible();
     // Item 5: sem envio do mês, o painel diz isso em vez de mostrar a data de outro mês.
     await expect(ter.getByText(`Ainda não houve envio da planilha de ${OCT_LABEL}.`)).toBeVisible();
+  });
+
+  // Item 1 (decisão 22): só o diretor corrige o vendedor depois, na ficha da indicação.
+  await test.step("3.12 diretor corrige o vendedor de B na ficha da indicação", async () => {
+    await dir.goto("/indicacoes");
+    await dir.getByRole("link", { name: B.company, exact: true }).click();
+    await expect(dir).toHaveURL(/\/indicacoes\/[0-9a-f-]{36}$/);
+    await dir.getByLabel("Vendedor", { exact: true }).fill("Bruno");
+    await dir.getByRole("button", { name: "Salvar vendedor" }).click();
+    await expect(dir.getByRole("status").filter({ hasText: "Vendedor salvo." })).toBeVisible();
+    await dir.goto("/indicacoes");
+    expect(await rowText(dir, B.company)).toContain("Vendedor: Bruno");
   });
 
   await test.step("4.0 conferência antes de gravar: o que muda em cada indicação; nada gravado", async () => {
@@ -719,6 +737,19 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     expect(await rowText(dir, /^Unidade Natal/)).toMatch(
       /50 R\$ 2,00 R\$ 100,00 .*R\$ 0,00 R\$ 100,00$/,
     );
+    // Itens 1 e 2 (decisão 22): a linha do parceiro mostra os vendedores do mês; sob ela, os
+    // clientes com vidas, valor por vida, valor e vendedor; a soma é o valor do parceiro.
+    expect(await rowText(dir, /^Unidade Teresina/)).toContain("Carla");
+    const teresinaClients = dir
+      .locator("tr.fp-row-clients")
+      .filter({ hasText: "Ver clientes de Unidade Teresina (2)" });
+    await teresinaClients.locator("summary").click();
+    expect(
+      clean(await teresinaClients.getByRole("row", { name: new RegExp(A.company) }).innerText()),
+    ).toContain("Carla 30 R$ 1,50 R$ 45,00");
+    expect(
+      clean(await teresinaClients.getByRole("row", { name: new RegExp(B.company) }).innerText()),
+    ).toContain("Bruno 20 R$ 1,50 R$ 30,00");
     expect(await rowText(dir, /^Contador Fulano/)).toMatch(
       /10 R\$ 1,50 R\$ 15,00 .*R\$ 0,00 R\$ 15,00$/,
     );
@@ -851,7 +882,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
 
   await test.step("6.13 resposta do parceiro: confirmou com data, contestou com texto, sem resposta", async () => {
     await dir.goto(`/fechamento?competency=${AUG}`);
-    const response = (name: RegExp) => dir.getByRole("row", { name }).locator("td").nth(7);
+    const response = (name: RegExp) => dir.getByRole("row", { name }).locator("td").nth(8);
     await expect(response(/^Unidade Teresina/)).toHaveText(
       /^Confirmado em \d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}$/,
     );
@@ -917,10 +948,10 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
       );
     }
     const teresina = dir.getByRole("row", { name: /^Unidade Teresina/ }).locator("td");
-    await expect(teresina.nth(2)).toHaveText("R$ 75,00");
-    await expect(teresina.nth(6)).toContainText("Pagar");
-    await expect(teresina.nth(6)).toContainText(/\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}/);
-    await expect(teresina.nth(6)).toContainText("Diretor Roteiro");
+    await expect(teresina.nth(3)).toHaveText("R$ 75,00");
+    await expect(teresina.nth(7)).toContainText("Pagar");
+    await expect(teresina.nth(7)).toContainText(/\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}/);
+    await expect(teresina.nth(7)).toContainText("Diretor Roteiro");
   });
 
   await test.step("7.4 Teresina em outubro: A a 1,80; setembro continua 1,50", async () => {
@@ -1116,8 +1147,16 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
       dir
         .getByRole("row", { name: /^Unidade Teresina/ })
         .locator("td")
-        .nth(5),
+        .nth(6),
     ).toHaveText("R$ 75,00");
+    // Item 2: o detalhe por cliente do mês fechado é o retrato do fechamento, não um recálculo.
+    const clients = dir
+      .locator("tr.fp-row-clients")
+      .filter({ hasText: "Ver clientes de Unidade Teresina (2)" });
+    await clients.locator("summary").click();
+    expect(
+      clean(await clients.getByRole("row", { name: new RegExp(A.company) }).innerText()),
+    ).toContain("30 R$ 1,50 R$ 45,00");
   });
 
   await test.step("10.3 Teresina vê o valor e o prazo próprios de A", async () => {

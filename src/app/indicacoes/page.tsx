@@ -151,6 +151,12 @@ async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
                 min={0}
                 hint="Quantos funcionários a empresa tem, se souber."
               />
+              <Field
+                label="Vendedor"
+                name="seller_name"
+                maxLength={120}
+                hint="Quem da sua equipe fez a indicação, se houver."
+              />
             </div>
           </MutationForm>
         </FormDisclosure>
@@ -200,6 +206,9 @@ async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
                           <td>
                             {referral.company_name}
                             <small className="fp-num">{formatCnpj(referral.cnpj)}</small>
+                            {referral.seller_name && (
+                              <small>Vendedor: {referral.seller_name}</small>
+                            )}
                           </td>
                           <td>
                             <span className={statusChipClass(referral.status)}>
@@ -406,6 +415,7 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
                       <td>
                         <Link href={`/indicacoes/${referral.id}`}>{referral.company_name}</Link>
                         <small className="fp-num">{formatCnpj(referral.cnpj)}</small>
+                        {referral.seller_name && <small>Vendedor: {referral.seller_name}</small>}
                       </td>
                       <td>{referral.partner_name}</td>
                       <td>
@@ -452,6 +462,12 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
               />
               <Field label="Empresa" name="company_name" required maxLength={240} />
               <Field label="Vidas estimadas" name="estimated_lives" type="number" min={0} />
+              <Field
+                label="Vendedor"
+                name="seller_name"
+                maxLength={120}
+                hint="Quem da equipe do parceiro fez a indicação, se houver."
+              />
               <Field
                 label={glossary.referralValue.label}
                 name="value_per_life"

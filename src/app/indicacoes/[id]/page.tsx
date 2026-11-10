@@ -31,7 +31,7 @@ import {
   statusChipClass,
 } from "@/lib/referrals/stages";
 import { allowedTransitions } from "@/lib/referrals/transitions";
-import { setReferralConfig, setReferralStatus } from "../actions";
+import { setReferralConfig, setReferralSeller, setReferralStatus } from "../actions";
 
 export const metadata: Metadata = { title: "Indicação" };
 
@@ -100,6 +100,7 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
             "Vidas estimadas",
             referral.estimated_lives === null ? "—" : formatInteger(referral.estimated_lives),
           ],
+          ["Vendedor", referral.seller_name ?? "—"],
         ]}
       />
 
@@ -152,6 +153,23 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
                 hint={glossary.referralTerm.hint}
               />
             </div>
+          </MutationForm>
+        </PanelBody>
+      </SectionCard>
+
+      <SectionCard
+        title="Vendedor da indicação"
+        subtitle="Quem da equipe do parceiro fez esta indicação. Texto livre; em branco apaga. Aparece nas listas e no fechamento; login e comissão de vendedor ficam para a fase 2."
+      >
+        <PanelBody>
+          <MutationForm action={setReferralSeller} label="Salvar vendedor" resetOnSuccess={false}>
+            <input type="hidden" name="id" value={referral.id} />
+            <Field
+              label="Vendedor"
+              name="seller_name"
+              maxLength={120}
+              defaultValue={referral.seller_name ?? ""}
+            />
           </MutationForm>
         </PanelBody>
       </SectionCard>

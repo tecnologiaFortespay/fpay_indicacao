@@ -14,7 +14,14 @@ import { Stepper, type Step } from "@/components/stepper";
 import { aiConfigured } from "@/lib/ai/claude";
 import { latestReview } from "@/lib/ai/reviews";
 import { requireRole } from "@/lib/auth/session";
-import { closingChecks, getClosing, listClosings, type ClosingItem } from "@/lib/closings/queries";
+import {
+  closingChecks,
+  getClosing,
+  listClosings,
+  sellerNames,
+  type ClosingItem,
+} from "@/lib/closings/queries";
+import { formatCnpj } from "@/lib/cnpj";
 import {
   competencyLabel,
   currentCompetency,
@@ -161,6 +168,7 @@ export default async function ClosingPage({ searchParams }: PageProps) {
               <thead>
                 <tr>
                   <th>Parceiro</th>
+                  <th>Vendedor(es)</th>
                   <th className="fp-num">Vidas</th>
                   {!closed && <th className="fp-num">Valor por vida</th>}
                   <th className="fp-num">Valor do mês</th>
@@ -172,11 +180,12 @@ export default async function ClosingPage({ searchParams }: PageProps) {
                 </tr>
               </thead>
               <tbody>
-                {detail.items.map((item) => (
+                {detail.items.flatMap((item) => [
                   <tr key={item.id}>
                     <td>
                       <strong>{item.partner_name}</strong>
                     </td>
+                    <td>{sellerNames(item).join(", ") || "—"}</td>
                     <td className="fp-num">{formatInteger(item.lives)}</td>
                     {!closed && (
                       <td className="fp-num">
@@ -206,12 +215,56 @@ export default async function ClosingPage({ searchParams }: PageProps) {
                       </td>
                     )}
                     {closed && <td>{responseText(item)}</td>}
-                  </tr>
-                ))}
+                  </tr>,
+                  // Item 2 (decisão 22): os clientes do mês como gravados no fechamento; a soma
+                  // é o valor do parceiro. Linha omitida quando o parceiro não teve cliente no mês.
+                  item.clients.length === 0 ? null : (
+                    <tr key={`${item.id}-clients`} className="fp-row-clients">
+                      <td colSpan={closed ? 9 : 8}>
+                        <details className="fp-disclosure">
+                          <summary>
+                            Ver clientes de {item.partner_name} ({item.clients.length})
+                          </summary>
+                          <div className="fp-table-wrap">
+                            <table className="fp-table">
+                              <thead>
+                                <tr>
+                                  <th>Empresa</th>
+                                  <th>CNPJ</th>
+                                  <th>Vendedor</th>
+                                  <th className="fp-num">Vidas</th>
+                                  <th className="fp-num">Valor por vida</th>
+                                  <th className="fp-num">Valor</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {item.clients.map((client) => (
+                                  <tr key={client.referral_id}>
+                                    <td>{client.company_name}</td>
+                                    <td className="fp-num">{formatCnpj(client.cnpj)}</td>
+                                    <td>{client.seller_name || "—"}</td>
+                                    <td className="fp-num">{formatInteger(client.lives)}</td>
+                                    <td className="fp-num">
+                                      {client.value_per_life === null
+                                        ? "sem regra"
+                                        : formatCurrency(client.value_per_life)}
+                                    </td>
+                                    <td className="fp-num">{formatCurrency(client.amount)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </details>
+                      </td>
+                    </tr>
+                  ),
+                ])}
               </tbody>
               <tfoot>
                 <tr>
                   <td>Total</td>
+                  <td />
                   <td />
                   {!closed && <td />}
                   <td className="fp-num">{formatCurrency(detail.totals.month_amount)}</td>

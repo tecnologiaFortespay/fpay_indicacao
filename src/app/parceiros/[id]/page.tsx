@@ -310,6 +310,7 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
                     <td>
                       <Link href={`/indicacoes/${referral.id}`}>{referral.company_name}</Link>
                       <small className="fp-num">{formatCnpj(referral.cnpj)}</small>
+                      {referral.seller_name && <small>Vendedor: {referral.seller_name}</small>}
                     </td>
                     <td>
                       <span className={statusChipClass(referral.status)}>
@@ -352,6 +353,12 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
               />
               <Field label="Empresa" name="company_name" required maxLength={240} />
               <Field label="Vidas estimadas" name="estimated_lives" type="number" min={0} />
+              <Field
+                label="Vendedor"
+                name="seller_name"
+                maxLength={120}
+                hint="Quem da equipe do parceiro fez a indicação, se houver."
+              />
               <Field
                 label={glossary.referralValue.label}
                 name="value_per_life"

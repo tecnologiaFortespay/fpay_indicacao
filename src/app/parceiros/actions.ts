@@ -119,6 +119,7 @@ export async function createReferral(_previous: FormState, form: FormData): Prom
     cnpj: formValue(form, "cnpj"),
     company_name: formValue(form, "company_name"),
     estimated_lives: formValue(form, "estimated_lives"),
+    seller_name: formValue(form, "seller_name"),
     value_per_life: valuePerLife,
     term_months: formValue(form, "term_months"),
   };

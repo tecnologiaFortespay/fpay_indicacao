@@ -146,3 +146,14 @@ valem sobre o que ele diz.
     entrou; Minhas indicações diz de quando é a base das vidas. No banco, `last_import_at(mês)` e
     `recent_imports` (só data e meses, sem arquivo nem autor; migration
     `20261110000015_import_stamps.sql`). Nenhuma tabela nova; importação e cálculo intocados.
+22. **Vendedor na indicação e fechamento em dois níveis.** (1) Não existia vendedor no sistema; o
+    único nome por parceiro era o Responsável. Decisão do Diego (09/11/2026): o vendedor é **de cada
+    indicação**, como `docs/requisitos.md` L48 já previa — um texto opcional, informado por quem
+    registra a indicação (parceiro ou diretor) e corrigido só pelo diretor na ficha da indicação.
+    Login e comissão de vendedor continuam fase 2 (sem `sellers`). (2) No fechamento, cada linha de
+    parceiro passa a abrir "Ver clientes (n)": os clientes do mês com vidas, valor por vida, valor e
+    vendedor; a linha do parceiro mostra os vendedores do mês. O detalhe é **gravado junto do
+    cálculo** (coluna `closing_items.details`, preenchida por `prepare_closing` no mesmo insert), por
+    isso a soma dos clientes é sempre o valor do parceiro e o mês fechado continua lendo o que foi
+    gravado, mesmo que a indicação mude de valor ou situação depois (decisão 8). O cálculo em si não
+    muda. Migration `20261110000016_sellers_and_closing_details.sql`; nenhuma tabela nova.

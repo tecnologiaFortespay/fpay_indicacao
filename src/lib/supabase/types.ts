@@ -51,14 +51,14 @@ isOneToOne: false
                   ]
                 },"closing_items": {
                   Row: {
-                    "adjustment": number,"adjustment_note": string | null,"closing_id": string,"decided_at": string | null,"decided_by": string | null,"decision": string | null,"id": string,"lives": number,"month_amount": number,"partner_id": string,"partner_note": string | null,"partner_response": string | null,"partner_response_at": string | null,"payment_note": string | null,"previous_balance": number,"total": number | null,"value_per_life": number | null
+                    "adjustment": number,"adjustment_note": string | null,"closing_id": string,"decided_at": string | null,"decided_by": string | null,"decision": string | null,"details": NonNullable<Json>,"id": string,"lives": number,"month_amount": number,"partner_id": string,"partner_note": string | null,"partner_response": string | null,"partner_response_at": string | null,"payment_note": string | null,"previous_balance": number,"total": number | null,"value_per_life": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "adjustment"?: number,"adjustment_note"?: string | null,"closing_id": string,"decided_at"?: string | null,"decided_by"?: string | null,"decision"?: string | null,"id"?: string,"lives"?: number,"month_amount"?: number,"partner_id": string,"partner_note"?: string | null,"partner_response"?: string | null,"partner_response_at"?: string | null,"payment_note"?: string | null,"previous_balance"?: number,"total"?: never,"value_per_life"?: number | null
+                    "adjustment"?: number,"adjustment_note"?: string | null,"closing_id": string,"decided_at"?: string | null,"decided_by"?: string | null,"decision"?: string | null,"details"?: NonNullable<Json>,"id"?: string,"lives"?: number,"month_amount"?: number,"partner_id": string,"partner_note"?: string | null,"partner_response"?: string | null,"partner_response_at"?: string | null,"payment_note"?: string | null,"previous_balance"?: number,"total"?: never,"value_per_life"?: number | null
                   }
                   Update: {
-                    "adjustment"?: number,"adjustment_note"?: string | null,"closing_id"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision"?: string | null,"id"?: string,"lives"?: number,"month_amount"?: number,"partner_id"?: string,"partner_note"?: string | null,"partner_response"?: string | null,"partner_response_at"?: string | null,"payment_note"?: string | null,"previous_balance"?: number,"total"?: never,"value_per_life"?: number | null
+                    "adjustment"?: number,"adjustment_note"?: string | null,"closing_id"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision"?: string | null,"details"?: NonNullable<Json>,"id"?: string,"lives"?: number,"month_amount"?: number,"partner_id"?: string,"partner_note"?: string | null,"partner_response"?: string | null,"partner_response_at"?: string | null,"payment_note"?: string | null,"previous_balance"?: number,"total"?: never,"value_per_life"?: number | null
                   }
                   Relationships: [
                     {
@@ -239,14 +239,14 @@ isOneToOne: false
                   ]
                 },"referrals": {
                   Row: {
-                    "activated_competency": string | null,"cnpj": string,"company_name": string,"created_at": string,"created_by": string | null,"estimated_lives": number | null,"id": string,"partner_id": string,"status": string,"status_changed_at": string,"term_months": number | null,"value_per_life": number | null
+                    "activated_competency": string | null,"cnpj": string,"company_name": string,"created_at": string,"created_by": string | null,"estimated_lives": number | null,"id": string,"partner_id": string,"seller_name": string | null,"status": string,"status_changed_at": string,"term_months": number | null,"value_per_life": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "activated_competency"?: string | null,"cnpj": string,"company_name": string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"id"?: string,"partner_id": string,"status"?: string,"status_changed_at"?: string,"term_months"?: number | null,"value_per_life"?: number | null
+                    "activated_competency"?: string | null,"cnpj": string,"company_name": string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"id"?: string,"partner_id": string,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string,"term_months"?: number | null,"value_per_life"?: number | null
                   }
                   Update: {
-                    "activated_competency"?: string | null,"cnpj"?: string,"company_name"?: string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"id"?: string,"partner_id"?: string,"status"?: string,"status_changed_at"?: string,"term_months"?: number | null,"value_per_life"?: number | null
+                    "activated_competency"?: string | null,"cnpj"?: string,"company_name"?: string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"id"?: string,"partner_id"?: string,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string,"term_months"?: number | null,"value_per_life"?: number | null
                   }
                   Relationships: [
                     {
@@ -423,6 +423,9 @@ isOneToOne: false
                            },
 "set_referral_config":
 { Args: { "payload": Json,"target": string }; Returns: undefined
+                           },
+"set_referral_seller":
+{ Args: { "name": string,"target": string }; Returns: undefined
                            },
 "set_referral_status":
 { Args: { "new_status": string,"target": string }; Returns: undefined

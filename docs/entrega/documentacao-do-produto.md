@@ -114,9 +114,12 @@ O sistema não envia e-mail. Quando o parceiro esquece a senha, o diretor abre a
 
 ### Registro
 
-- O parceiro registra em **Minhas indicações → Nova indicação**: CNPJ do cliente, nome da empresa
-  e, se souber, quantas vidas a empresa tem (estimativa).
-- O diretor também pode registrar uma indicação em nome de um parceiro.
+- O parceiro registra em **Minhas indicações → Nova indicação**: CNPJ do cliente, nome da empresa,
+  se souber, quantas vidas a empresa tem (estimativa) e, se houver, o **Vendedor** (quem da equipe
+  fez a indicação; texto livre, opcional).
+- O diretor também pode registrar uma indicação em nome de um parceiro e corrigir o vendedor na
+  ficha da indicação. O vendedor aparece junto da empresa nas listas e no fechamento; login e
+  comissão de vendedor ficam para a fase 2.
 - **Vale a primeira indicação de cada CNPJ.** Se outro parceiro tentar o mesmo CNPJ, o sistema
   recusa com "CNPJ já indicado em dd/mm/aaaa", sem mostrar quem indicou. Só o diretor vê o nome.
 - O CNPJ é conferido (dígitos verificadores) e aceita o formato alfanumérico novo.
@@ -239,8 +242,11 @@ mostra três etapas e diz o que falta em cada uma:
 
 ### Preparar e revisar
 
-A tabela mostra, por parceiro: vidas, valor do mês, ajuste, **saldo anterior** (o que vinha
-acumulado) e total. Antes de fechar, o diretor pode:
+A tabela mostra, por parceiro: vendedor(es) do mês, vidas, valor do mês, ajuste, **saldo
+anterior** (o que vinha acumulado) e total. Sob cada parceiro, **Ver clientes (n)** abre os
+clientes daquele mês, cada um com vendedor, vidas, valor por vida e valor; a soma dos clientes é o
+valor do parceiro. Esse detalhe é gravado no momento do cálculo e fica igual depois de fechado,
+mesmo que a indicação mude de valor ou de situação. Antes de fechar, o diretor pode:
 
 - **Ajustar o valor de um parceiro** (a mais ou a menos), sempre com motivo. O parceiro vê o ajuste
   e o motivo.

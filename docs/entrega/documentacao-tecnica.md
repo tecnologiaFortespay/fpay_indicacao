@@ -73,20 +73,20 @@ só com aprovação.
 
 ### Tabelas
 
-| Tabela           | Guarda                                                                                                                               |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `profiles`       | um por usuário do Auth: perfil (`director` ou `partner`), parceiro, nome; hash do link de nova senha                                 |
-| `partners`       | parceiros: tipo (unidade/externo), contato, situação (pendente, ativo, recusado), motivo da recusa, aprovação                        |
-| `partner_rules`  | vigências da regra: valor por vida, vale a partir de (mês), prazo em meses                                                           |
-| `invitations`    | convites: hash do token, nome, tipo, validade, uso                                                                                   |
-| `companies`      | empresas indicadas (CNPJ, nome, grupo, primeiro mês visto)                                                                           |
-| `referrals`      | indicações: parceiro, CNPJ, situação, primeiro mês pago, vidas estimadas, valor e prazo próprios                                     |
-| `import_batches` | cada envio da planilha: arquivo, hash, meses, contagens (lidas, importadas, fora, ignoradas), quem enviou                            |
-| `import_rows`    | linhas ignoradas ou mescladas de cada envio, com o motivo                                                                            |
-| `monthly_lives`  | vidas pagas por CNPJ e mês (substituídas a cada envio do mês)                                                                        |
-| `closings`       | fechamento por mês: em preparação ou fechado, quem preparou e quem fechou                                                            |
-| `closing_items`  | linha do fechamento por parceiro: vidas, valor, ajuste e motivo, saldo anterior, total, decisão, resposta do parceiro, como foi pago |
-| `ai_reviews`     | análises da IA (de um envio ou de um fechamento): situação, resumo, alertas, erro                                                    |
+| Tabela           | Guarda                                                                                                                                                                                                                                         |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `profiles`       | um por usuário do Auth: perfil (`director` ou `partner`), parceiro, nome; hash do link de nova senha                                                                                                                                           |
+| `partners`       | parceiros: tipo (unidade/externo), contato, situação (pendente, ativo, recusado), motivo da recusa, aprovação                                                                                                                                  |
+| `partner_rules`  | vigências da regra: valor por vida, vale a partir de (mês), prazo em meses                                                                                                                                                                     |
+| `invitations`    | convites: hash do token, nome, tipo, validade, uso                                                                                                                                                                                             |
+| `companies`      | empresas indicadas (CNPJ, nome, grupo, primeiro mês visto)                                                                                                                                                                                     |
+| `referrals`      | indicações: parceiro, CNPJ, situação, primeiro mês pago, vidas estimadas, valor e prazo próprios, vendedor (texto)                                                                                                                             |
+| `import_batches` | cada envio da planilha: arquivo, hash, meses, contagens (lidas, importadas, fora, ignoradas), quem enviou                                                                                                                                      |
+| `import_rows`    | linhas ignoradas ou mescladas de cada envio, com o motivo                                                                                                                                                                                      |
+| `monthly_lives`  | vidas pagas por CNPJ e mês (substituídas a cada envio do mês)                                                                                                                                                                                  |
+| `closings`       | fechamento por mês: em preparação ou fechado, quem preparou e quem fechou                                                                                                                                                                      |
+| `closing_items`  | linha do fechamento por parceiro: vidas, valor, ajuste e motivo, saldo anterior, total, decisão, resposta do parceiro, como foi pago, e `details` (jsonb: os clientes do mês com vidas, valor por vida, valor e vendedor, gravados no cálculo) |
+| `ai_reviews`     | análises da IA (de um envio ou de um fechamento): situação, resumo, alertas, erro                                                                                                                                                              |
 
 ### Views de cálculo
 
@@ -102,7 +102,7 @@ só com aprovação.
 | Convite    | `create_invitation`, `invitation_preview`, `register_partner`, `register_director`, `confirm_invited_signup`                         |
 | Equipe     | `list_directors`                                                                                                                     |
 | Parceiro   | `approve_partner`, `reject_partner`, `save_partner`, `save_partner_rule`, `delete_partner_rule`                                      |
-| Indicação  | `create_referral`, `set_referral_status`, `set_referral_config`, `valid_cnpj`                                                        |
+| Indicação  | `create_referral`, `set_referral_status`, `set_referral_config`, `set_referral_seller`, `valid_cnpj`                                 |
 | Importação | `import_lives`, `preview_import` (conferência: roda e desfaz), `last_import_at(mês)`, `recent_imports`, `latest_complete_competency` |
 | Fechamento | `closing_blocker`, `prepare_closing`, `set_closing_adjustment`, `close_closing`, `respond_closing_item`, `set_payment_note`          |
 | Senha      | `create_password_reset`, `password_reset_preview`, `reset_password_with_token`, `change_my_password`                                 |
