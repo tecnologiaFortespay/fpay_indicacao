@@ -157,3 +157,20 @@ valem sobre o que ele diz.
     isso a soma dos clientes é sempre o valor do parceiro e o mês fechado continua lendo o que foi
     gravado, mesmo que a indicação mude de valor ou situação depois (decisão 8). O cálculo em si não
     muda. Migration `20261110000016_sellers_and_closing_details.sql`; nenhuma tabela nova.
+23. **Regra por parceiro ou por cliente, com vigências; a regra do parceiro é a da data da
+    indicação.** Até aqui a vigência do parceiro valia por mês para todos os clientes dele
+    (`requisitos.md` L83). Decisão do Diego (09/11/2026): a vigência nova vale **para quem for
+    indicado a partir dela**; indicações anteriores seguem a regra anterior. Interpretação do Claude
+    (10/11/2026, **a confirmar com o Diego**): a comparação é por **mês**, porque "Vale a partir de"
+    já é um mês. Para cada indicação e mês vale a vigência mais recente do parceiro que (a) já vale
+    no mês e (b) já existia no mês em que a indicação foi feita; se nenhuma existia, a primeira que
+    passou a valer. Uma vigência nova nunca muda um mês anterior a ela (meses fechados continuam
+    travados). A indicação pode ter **vigências próprias** (valor e/ou prazo), por mês, na mesma
+    tabela (`partner_rules.referral_id`) e com as mesmas regras (só a mais recente muda; mês fechado
+    trava): elas substituem o valor único de antes (`referrals.value_per_life`/`term_months`, migrado
+    para uma vigência a partir do primeiro mês que contou, sem mudar totais) e também o item
+    "histórico da configuração" de `depois.md`. O "valor por vida" do parceiro num mês passa a
+    significar a regra para indicações novas naquele mês; o valor do mês continua a soma por
+    indicação. Sobrepõe a decisão 2 e o L83. Migration `20261110000017_rules_by_referral_date.sql`;
+    nenhuma tabela nova. No roteiro os valores não mudam, porque todas as indicações são feitas em
+    [M0]; o teste de banco prova o caso da indicação anterior.

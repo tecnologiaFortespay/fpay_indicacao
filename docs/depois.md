@@ -9,7 +9,6 @@ Regra 4 da seção 11: nada fora do documento entra sem decisão explícita.
 - Envio automático do link de convite por e-mail (hoje o diretor copia o link e envia como preferir).
 - Registro da data em que a Fortes Pay pagou a nota e do comprovante (a tabela `payments` da proposta inicial saiu do MVP; o fechamento já registra pago/acumulado, data, quem decidiu e o texto livre "como foi pago").
 - Meio de pagamento estruturado do parceiro (PIX, banco, cartão): saiu em 28/10/2026 por decisão do Diego (docs/decisoes.md).
-- Histórico de mudanças da configuração de uma indicação (hoje a configuração vale para todos os meses abertos; os fechados guardam o valor do fechamento).
 - Exportar o fechamento em CSV/PDF.
 - Edição do próprio cadastro pelo parceiro (hoje só o diretor edita).
 - Vários logins para o mesmo parceiro.

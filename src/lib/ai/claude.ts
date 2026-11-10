@@ -31,7 +31,7 @@ export function aiConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY?.trim());
 }
 
-const SYSTEM = `Você apoia o diretor da Fortes Pay no programa de indicação. Parceiros (unidades e indicadores externos) indicam empresas clientes, identificadas pelo CNPJ. A comissão do mês é: vidas pagas no mês (coluna "C. Cash-in" do BI) × valor por vida da indicação ou, sem valor próprio, da regra do parceiro.
+const SYSTEM = `Você apoia o diretor da Fortes Pay no programa de indicação. Parceiros (unidades e indicadores externos) indicam empresas clientes, identificadas pelo CNPJ. A comissão do mês é: vidas pagas no mês (coluna "C. Cash-in" do BI) × valor por vida da indicação ou, sem valor próprio, da regra do parceiro de quando a indicação foi feita (uma regra nova do parceiro vale só para indicações feitas a partir dela).
 
 O sistema já calculou todos os números. Não recalcule nem invente valores: use só os do material. Seu papel é apontar ao diretor o que merece atenção e explicar por quê, em português do Brasil, com frases curtas e sem jargão técnico.
 

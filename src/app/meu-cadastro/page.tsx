@@ -40,7 +40,7 @@ export default async function MyRegistrationPage() {
       />
       <SectionCard
         title="Minha regra de remuneração"
-        subtitle="Definida pela Fortes Pay. Vale para as indicações sem valor próprio."
+        subtitle="Definida pela Fortes Pay. Cada indicação segue a regra de quando foi feita, salvo valor e prazo próprios combinados com a Fortes Pay."
         footnote="Uma regra nova vale do mês dela em diante; meses já fechados não mudam. Uma indicação pode ter valor e prazo próprios, combinados com a Fortes Pay: eles aparecem em Meu painel. Para corrigir algum dado, fale com a Fortes Pay."
       >
         {rule && (

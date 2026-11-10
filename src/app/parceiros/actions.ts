@@ -60,8 +60,14 @@ export async function savePartnerRule(_previous: FormState, form: FormData): Pro
   if (!z.uuid().safeParse(partnerId).success) {
     return { error: "Parceiro inválido." };
   }
-  const valuePerLife = parseMoneyInput(formValue(form, "value_per_life"));
-  if (valuePerLife === null) {
+  // Com referral_id, é uma vigência própria da indicação (decisão 23): valor em branco = o do parceiro.
+  const referralId = formValue(form, "referral_id");
+  if (referralId !== "" && !z.uuid().safeParse(referralId).success) {
+    return { error: "Indicação inválida." };
+  }
+  const rawValue = formValue(form, "value_per_life").trim();
+  const valuePerLife = rawValue === "" ? "" : parseMoneyInput(rawValue);
+  if (valuePerLife === null || (valuePerLife === "" && referralId === "")) {
     return { error: "Informe o valor por vida, por exemplo 1,50." };
   }
   const validFrom = formValue(form, "valid_from");
@@ -71,6 +77,7 @@ export async function savePartnerRule(_previous: FormState, form: FormData): Pro
   const payload = {
     id: formValue(form, "id"),
     partner_id: partnerId,
+    referral_id: referralId,
     value_per_life: valuePerLife,
     valid_from: competencyToDate(validFrom),
     term_months: formValue(form, "term_months"),
@@ -81,6 +88,11 @@ export async function savePartnerRule(_previous: FormState, form: FormData): Pro
     return { error: databaseError(result.error) };
   }
   revalidatePartner(partnerId);
+  if (referralId !== "") {
+    revalidatePath("/indicacoes");
+    revalidatePath(`/indicacoes/${referralId}`);
+    return { success: "Vigência da indicação salva." };
+  }
   return { success: "Regra salva." };
 }
 
@@ -91,6 +103,7 @@ export async function deletePartnerRule(_previous: FormState, form: FormData): P
   }
   const id = formValue(form, "id");
   const partnerId = formValue(form, "partner_id");
+  const referralId = formValue(form, "referral_id");
   if (!z.uuid().safeParse(id).success || !z.uuid().safeParse(partnerId).success) {
     return { error: "Regra inválida." };
   }
@@ -100,6 +113,11 @@ export async function deletePartnerRule(_previous: FormState, form: FormData): P
     return { error: databaseError(result.error) };
   }
   revalidatePartner(partnerId);
+  if (z.uuid().safeParse(referralId).success) {
+    revalidatePath("/indicacoes");
+    revalidatePath(`/indicacoes/${referralId}`);
+    redirect(withFlash(`/indicacoes/${referralId}`, "vigencia_removida"));
+  }
   redirect(withFlash(`/parceiros/${partnerId}`, "vigencia_removida"));
 }
 

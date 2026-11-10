@@ -118,15 +118,15 @@ const referralRowSchema = z.object({
   company_name: z.string(),
   status: z.string(),
   activated_competency: z.string().nullable(),
-  term_months: z.number().nullable(),
   partners: z.object({ name: z.string() }).nullable(),
 });
 
+// O prazo vem da view do mês (vigência própria ou do parceiro, decisão 23), não da indicação.
 async function referralRows() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("referrals")
-    .select("id, cnpj, company_name, status, activated_competency, term_months, partners(name)");
+    .select("id, cnpj, company_name, status, activated_competency, partners(name)");
   if (error) {
     throw new Error("Não foi possível consultar as indicações.");
   }
@@ -230,7 +230,7 @@ export async function runClosingReview(reviewId: string, competency: string): Pr
         lives: month?.lives ?? 0,
         lives_previous_month: previousRows.get(referral.id)?.lives ?? 0,
         value_per_life: month?.value_per_life ?? null,
-        term: termLabel(month?.term_months ?? referral.term_months, referral.activated_competency),
+        term: termLabel(month?.term_months ?? null, referral.activated_competency),
       };
     });
     const material = closingMaterial({

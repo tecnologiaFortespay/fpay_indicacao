@@ -11,6 +11,7 @@ import { KeyValueStrip } from "@/components/key-value-strip";
 import { MutationForm } from "@/components/mutation-form";
 import { Notice } from "@/components/notice";
 import { PartnerForm } from "@/components/partner-form";
+import { RulesCard } from "@/components/rules-card";
 import { PanelBody, SectionCard } from "@/components/section-card";
 import { requireRole } from "@/lib/auth/session";
 import { lastClosedCompetency } from "@/lib/closings/queries";
@@ -30,18 +31,13 @@ import {
   listPartnerMonthAmounts,
   listPartnerReferrals,
   listPartnerRules,
+  listReferralRules,
   partnerLogin,
   type Partner,
-  type PartnerRule,
 } from "@/lib/partners/queries";
-import { currentRule, referralConfigLabel, ruleSentence } from "@/lib/referrals/config";
+import { ownRuleOf, referralConfigLabel } from "@/lib/referrals/config";
 import { statusChipClass } from "@/lib/referrals/stages";
-import {
-  createPasswordReset,
-  createReferral,
-  deletePartnerRule,
-  savePartnerRule,
-} from "../actions";
+import { createPasswordReset, createReferral } from "../actions";
 
 export const metadata: Metadata = { title: "Parceiro" };
 
@@ -117,57 +113,6 @@ function PendingPartner({ partner, flash }: { partner: Partner; flash?: string }
   );
 }
 
-// Só a vigência mais recente muda, e só enquanto nenhum mês fechado a usa; as anteriores são histórico.
-function EditLatestRule({ rule, partnerId }: { rule: PartnerRule; partnerId: string }) {
-  return (
-    <FormDisclosure
-      label={`Editar a vigência de ${shortCompetencyLabel(dateToCompetency(rule.valid_from))}`}
-      description="Corrige a vigência mais recente. Para mudar o valor a partir de um mês, prefira criar uma nova vigência."
-    >
-      <MutationForm action={savePartnerRule} label="Salvar alteração" resetOnSuccess={false}>
-        <input type="hidden" name="id" value={rule.id} />
-        <input type="hidden" name="partner_id" value={partnerId} />
-        <div className="fp-form-grid fp-form-grid-3">
-          <Field
-            label={glossary.valuePerLife.label}
-            name="value_per_life"
-            required
-            inputMode="decimal"
-            defaultValue={String(rule.value_per_life).replace(".", ",")}
-          />
-          <Field
-            label={glossary.validFrom.label}
-            name="valid_from"
-            type="month"
-            required
-            defaultValue={dateToCompetency(rule.valid_from)}
-          />
-          <Field
-            label={glossary.termMonths.label}
-            name="term_months"
-            type="number"
-            min={1}
-            max={120}
-            defaultValue={rule.term_months === null ? "" : String(rule.term_months)}
-            hint={glossary.termMonths.hint}
-          />
-        </div>
-      </MutationForm>
-      <div className="mt-4">
-        <MutationForm
-          action={deletePartnerRule}
-          label="Remover esta vigência"
-          pendingLabel="Removendo…"
-          variant="outline"
-        >
-          <input type="hidden" name="id" value={rule.id} />
-          <input type="hidden" name="partner_id" value={partnerId} />
-        </MutationForm>
-      </div>
-    </FormDisclosure>
-  );
-}
-
 export default async function PartnerDetailPage({ params, searchParams }: PageProps) {
   await requireRole("director");
   const { id } = await params;
@@ -190,98 +135,22 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
     partnerLogin(id),
   ]);
   const today = currentCompetency();
-  const latest = rules[0];
-  const latestEditable =
-    latest !== undefined &&
-    (lockedThrough === null || dateToCompetency(latest.valid_from) > lockedThrough);
-  const rule = currentRule(rules, today);
+  const ownRules = await listReferralRules(referrals.map((referral) => referral.id));
   return (
     <AppShell title={partner.name} flash={msg}>
       <BackLink />
       <PartnerFacts partner={partner} />
 
-      <SectionCard
+      <RulesCard
         title="Regra de remuneração"
-        subtitle="Quanto este parceiro recebe por vida paga. Vale para as indicações sem valor próprio."
-        footnote="Uma vigência nova vale do mês dela em diante; as anteriores ficam como histórico. Só a mais recente pode ser editada, e só enquanto nenhum mês fechado a usa."
-      >
-        <PanelBody>
-          <p className="fp-sentence">
-            {rule ? (
-              <>
-                Hoje: <strong>{ruleSentence(rule, today)}</strong>
-              </>
-            ) : (
-              "Sem regra cadastrada: as vidas deste parceiro contam com valor zero até existir uma vigência."
-            )}
-          </p>
-        </PanelBody>
-        {rules.length > 0 && (
-          <div className="fp-table-wrap">
-            <table className="fp-table">
-              <thead>
-                <tr>
-                  <th>Vale a partir de</th>
-                  <th className="fp-num">Valor por vida</th>
-                  <th>Prazo</th>
-                  <th>Pode mudar?</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rules.map((item) => (
-                  <tr key={item.id}>
-                    <td>{competencyLabel(dateToCompetency(item.valid_from))}</td>
-                    <td className="fp-num">{formatCurrency(item.value_per_life)}</td>
-                    <td>{item.term_months === null ? "sem prazo" : `${item.term_months} meses`}</td>
-                    <td>
-                      {item.id !== latest?.id
-                        ? "não, histórico"
-                        : latestEditable
-                          ? "sim, é a mais recente"
-                          : "não, já usada em mês fechado"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {latest && latestEditable && <EditLatestRule rule={latest} partnerId={partner.id} />}
-        <FormDisclosure
-          label="Nova vigência"
-          description="Use quando o valor ou o prazo mudar a partir de um mês. Os meses anteriores continuam com a regra antiga."
-        >
-          <MutationForm action={savePartnerRule} label="Salvar nova vigência">
-            <input type="hidden" name="partner_id" value={partner.id} />
-            <div className="fp-form-grid fp-form-grid-3">
-              <Field
-                label={glossary.valuePerLife.label}
-                name="value_per_life"
-                required
-                placeholder="1,50"
-                inputMode="decimal"
-                hint={glossary.valuePerLife.hint}
-              />
-              <Field
-                label={glossary.validFrom.label}
-                name="valid_from"
-                type="month"
-                required
-                defaultValue={today}
-                hint={glossary.validFrom.hint}
-              />
-              <Field
-                label={glossary.termMonths.label}
-                name="term_months"
-                type="number"
-                min={1}
-                max={120}
-                hint={glossary.termMonths.hint}
-              />
-            </div>
-          </MutationForm>
-        </FormDisclosure>
-      </SectionCard>
+        subtitle="Quanto este parceiro recebe por vida paga, para as indicações feitas a partir de cada vigência. Indicações com valor próprio usam o delas."
+        footnote="Uma vigência nova vale do mês dela em diante, para quem for indicado a partir dele; indicações anteriores seguem a regra de quando foram feitas. Só a mais recente pode ser editada, e só enquanto nenhum mês fechado a usa."
+        rules={rules}
+        partnerId={partner.id}
+        today={today}
+        lockedThrough={lockedThrough}
+        emptyText="Sem regra cadastrada: as vidas deste parceiro contam com valor zero até existir uma vigência."
+      />
 
       <SectionCard
         title={`Indicações deste parceiro (${referrals.length})`}
@@ -324,7 +193,15 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
                         ? shortCompetencyLabel(dateToCompetency(referral.activated_competency))
                         : "—"}
                     </td>
-                    <td>{referralConfigLabel(referral.value_per_life, referral.term_months)}</td>
+                    <td>
+                      {(() => {
+                        const own = ownRuleOf(ownRules, referral.id, today);
+                        return referralConfigLabel(
+                          own?.value_per_life ?? null,
+                          own?.term_months ?? null,
+                        );
+                      })()}
+                    </td>
                     <td className="fp-num">
                       {referral.estimated_lives === null
                         ? "—"
@@ -383,7 +260,7 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
       <SectionCard
         title="Vidas e valores por mês"
         subtitle="Últimos 12 meses com vidas nas planilhas do BI."
-        footnote="O valor soma cada indicação com o valor por vida dela: o próprio, quando configurado, ou o da regra do parceiro no mês. Meses fechados: o valor oficial está em Fechamento do mês."
+        footnote="O valor soma cada indicação com o valor por vida dela: a vigência própria, quando houver, ou a regra do parceiro de quando a indicação foi feita. Meses fechados: o valor oficial está em Fechamento do mês."
       >
         {amounts.length === 0 ? (
           <EmptyState title="Nenhuma vida paga ainda">

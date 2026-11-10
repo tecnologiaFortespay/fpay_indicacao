@@ -185,14 +185,14 @@ isOneToOne: false
                   ]
                 },"partner_rules": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"id": string,"partner_id": string,"term_months": number | null,"valid_from": string,"value_per_life": number
+                    "created_at": string,"created_by": string | null,"id": string,"partner_id": string,"referral_id": string | null,"term_months": number | null,"valid_from": string,"value_per_life": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"partner_id": string,"term_months"?: number | null,"valid_from": string,"value_per_life": number
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"partner_id": string,"referral_id"?: string | null,"term_months"?: number | null,"valid_from": string,"value_per_life"?: number | null
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"partner_id"?: string,"term_months"?: number | null,"valid_from"?: string,"value_per_life"?: number
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"partner_id"?: string,"referral_id"?: string | null,"term_months"?: number | null,"valid_from"?: string,"value_per_life"?: number | null
                   }
                   Relationships: [
                     {
@@ -200,6 +200,18 @@ isOneToOne: false
       columns: ["partner_id"]
 isOneToOne: false
       referencedRelation: "partners"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "partner_rules_referral_id_fkey"
+      columns: ["referral_id"]
+isOneToOne: false
+      referencedRelation: "referral_month_lives"
+      referencedColumns: ["referral_id"]
+    },{
+      foreignKeyName: "partner_rules_referral_id_fkey"
+      columns: ["referral_id"]
+isOneToOne: false
+      referencedRelation: "referrals"
       referencedColumns: ["id"]
     }
                   ]
@@ -239,14 +251,14 @@ isOneToOne: false
                   ]
                 },"referrals": {
                   Row: {
-                    "activated_competency": string | null,"cnpj": string,"company_name": string,"created_at": string,"created_by": string | null,"estimated_lives": number | null,"id": string,"partner_id": string,"seller_name": string | null,"status": string,"status_changed_at": string,"term_months": number | null,"value_per_life": number | null
+                    "activated_competency": string | null,"cnpj": string,"company_name": string,"created_at": string,"created_by": string | null,"estimated_lives": number | null,"id": string,"partner_id": string,"seller_name": string | null,"status": string,"status_changed_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "activated_competency"?: string | null,"cnpj": string,"company_name": string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"id"?: string,"partner_id": string,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string,"term_months"?: number | null,"value_per_life"?: number | null
+                    "activated_competency"?: string | null,"cnpj": string,"company_name": string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"id"?: string,"partner_id": string,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string
                   }
                   Update: {
-                    "activated_competency"?: string | null,"cnpj"?: string,"company_name"?: string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"id"?: string,"partner_id"?: string,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string,"term_months"?: number | null,"value_per_life"?: number | null
+                    "activated_competency"?: string | null,"cnpj"?: string,"company_name"?: string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"id"?: string,"partner_id"?: string,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string
                   }
                   Relationships: [
                     {
@@ -420,9 +432,6 @@ isOneToOne: false
                            },
 "set_payment_note":
 { Args: { "note": string,"target": string }; Returns: undefined
-                           },
-"set_referral_config":
-{ Args: { "payload": Json,"target": string }; Returns: undefined
                            },
 "set_referral_seller":
 { Args: { "name": string,"target": string }; Returns: undefined

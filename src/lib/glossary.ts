@@ -6,7 +6,11 @@ export const glossary = {
   },
   validFrom: {
     label: "Vale a partir de",
-    hint: "Mês em que esta regra começa. Meses já fechados não mudam.",
+    hint: "Mês em que esta regra começa, para quem for indicado a partir dele. Indicações anteriores seguem a regra de quando foram feitas. Meses já fechados não mudam.",
+  },
+  referralValidFrom: {
+    label: "Vale a partir de",
+    hint: "Mês a partir do qual esta indicação usa este valor e prazo. Meses já fechados não mudam.",
   },
   termMonths: {
     label: "Prazo (meses)",

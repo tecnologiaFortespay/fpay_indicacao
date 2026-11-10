@@ -51,10 +51,10 @@ export async function partnerLogin(partnerId: string): Promise<{ user_id: string
   return data;
 }
 
-// Todas as vigências de todos os parceiros (diretor), para mostrar a regra de hoje na lista.
+// Todas as vigências de parceiro (referral_id nulo) de todos os parceiros, para a regra de hoje na lista.
 export async function listAllRules(): Promise<PartnerRule[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("partner_rules").select("*");
+  const { data, error } = await supabase.from("partner_rules").select("*").is("referral_id", null);
   if (error) {
     throw new Error("Não foi possível consultar as regras dos parceiros.");
   }
@@ -67,6 +67,7 @@ export async function listPartnerRules(partnerId: string): Promise<PartnerRule[]
     .from("partner_rules")
     .select("*")
     .eq("partner_id", partnerId)
+    .is("referral_id", null)
     .order("valid_from", { ascending: false });
   if (error) {
     throw new Error("Não foi possível consultar as regras.");
@@ -74,13 +75,40 @@ export async function listPartnerRules(partnerId: string): Promise<PartnerRule[]
   return data;
 }
 
+// Vigências próprias das indicações informadas, da mais nova para a mais antiga, por indicação
+// (decisão 23). Lidas sob a RLS de quem pede: o parceiro só vê as das próprias indicações.
+export async function listReferralRules(
+  referralIds: string[],
+): Promise<Map<string, PartnerRule[]>> {
+  const rules = new Map<string, PartnerRule[]>();
+  if (referralIds.length === 0) {
+    return rules;
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("partner_rules")
+    .select("*")
+    .in("referral_id", referralIds)
+    .order("valid_from", { ascending: false });
+  if (error) {
+    throw new Error("Não foi possível consultar as vigências das indicações.");
+  }
+  for (const rule of data) {
+    if (rule.referral_id) {
+      rules.set(rule.referral_id, [...(rules.get(rule.referral_id) ?? []), rule]);
+    }
+  }
+  return rules;
+}
+
 export type RuleInForce = {
-  value_per_life: number;
+  value_per_life: number | null;
   term_months: number | null;
   valid_from: string;
 };
 
-// Regra do parceiro vigente no mês (maior vigência que começa até o mês), lida sob a RLS de quem pede.
+// Regra do parceiro para indicações feitas no mês (maior vigência que começa até o mês), lida sob a
+// RLS de quem pede. Cada indicação segue a regra de quando foi feita (decisão 23).
 export async function ruleInForce(
   partnerId: string,
   competency: string,
@@ -90,6 +118,7 @@ export async function ruleInForce(
     .from("partner_rules")
     .select("value_per_life, term_months, valid_from")
     .eq("partner_id", partnerId)
+    .is("referral_id", null)
     .lte("valid_from", `${competency}-01`)
     .order("valid_from", { ascending: false })
     .limit(1)

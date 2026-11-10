@@ -8,8 +8,10 @@ import { Field, SelectField } from "@/components/fields";
 import { KeyValueStrip } from "@/components/key-value-strip";
 import { MutationForm } from "@/components/mutation-form";
 import { Notice } from "@/components/notice";
+import { RulesCard } from "@/components/rules-card";
 import { PanelBody, SectionCard } from "@/components/section-card";
 import { requireRole } from "@/lib/auth/session";
+import { lastClosedCompetency } from "@/lib/closings/queries";
 import { formatCnpj } from "@/lib/cnpj";
 import {
   competencyLabel,
@@ -18,11 +20,10 @@ import {
   formatDate,
   shortCompetencyLabel,
 } from "@/lib/competency";
-import { glossary } from "@/lib/glossary";
 import { referralStatusLabels, type ReferralStatus } from "@/lib/labels";
 import { formatCurrency, formatInteger } from "@/lib/money";
-import { ruleInForce } from "@/lib/partners/queries";
-import { referralConfigLabel, termLabel } from "@/lib/referrals/config";
+import { listReferralRules, ruleInForce } from "@/lib/partners/queries";
+import { currentRule, effectiveTerms, termLabel } from "@/lib/referrals/config";
 import { getReferral, referralMonths } from "@/lib/referrals/queries";
 import {
   referralExplanation,
@@ -31,7 +32,7 @@ import {
   statusChipClass,
 } from "@/lib/referrals/stages";
 import { allowedTransitions } from "@/lib/referrals/transitions";
-import { setReferralConfig, setReferralSeller, setReferralStatus } from "../actions";
+import { setReferralSeller, setReferralStatus } from "../actions";
 
 export const metadata: Metadata = { title: "Indicação" };
 
@@ -48,20 +49,27 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
   if (!referral) {
     notFound();
   }
-  const [rule, months] = await Promise.all([
-    ruleInForce(referral.partner_id, currentCompetency()),
+  const today = currentCompetency();
+  const [rule, months, lockedThrough, rulesByReferral] = await Promise.all([
+    ruleInForce(referral.partner_id, today),
     referralMonths(id),
+    lastClosedCompetency(),
+    listReferralRules([id]),
   ]);
+  const ownRules = rulesByReferral.get(id) ?? [];
   const status = referralStatusLabels[referral.status as ReferralStatus] ?? referral.status;
   const transitions = allowedTransitions(referral.status).map(
     (value) => [value, referralStatusLabels[value]] as [string, string],
   );
-  const partnerRule = rule
-    ? `${formatCurrency(rule.value_per_life)} por vida · ${rule.term_months === null ? "sem prazo" : `prazo de ${rule.term_months} meses`}`
-    : "sem regra neste mês";
-  const effectiveValue = referral.value_per_life ?? rule?.value_per_life ?? null;
-  const effectiveTerm = referral.term_months ?? rule?.term_months ?? null;
-  const ownConfig = referral.value_per_life !== null || referral.term_months !== null;
+  const partnerRule =
+    rule && rule.value_per_life !== null
+      ? `${formatCurrency(rule.value_per_life)} por vida · ${rule.term_months === null ? "sem prazo" : `prazo de ${rule.term_months} meses`}`
+      : "sem regra neste mês";
+  // Decisão 23: a vigência própria em vigor manda; em branco, a regra do parceiro.
+  const { valuePerLife: effectiveValue, termMonths: effectiveTerm } = effectiveTerms(
+    currentRule(ownRules, today),
+    rule,
+  );
   const stage = referralStage(referral.status);
   return (
     <AppShell title={referral.company_name} flash={msg}>
@@ -111,51 +119,17 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
         {referralExplanation(referral, { valuePerLife: effectiveValue, termMonths: effectiveTerm })}
       </Notice>
 
-      <SectionCard
+      <RulesCard
         title="Valor e prazo desta indicação"
-        subtitle={
-          ownConfig
-            ? `Hoje: ${referralConfigLabel(referral.value_per_life, referral.term_months)} (combinado só para esta indicação).`
-            : `Hoje: regra do parceiro (${partnerRule}).`
-        }
-        footnote="Deixe em branco para seguir a regra do parceiro. O prazo conta a partir do primeiro mês pago. Meses já fechados não mudam."
-      >
-        <PanelBody>
-          <MutationForm
-            action={setReferralConfig}
-            label="Salvar valor e prazo"
-            resetOnSuccess={false}
-          >
-            <input type="hidden" name="id" value={referral.id} />
-            <div className="fp-form-grid">
-              <Field
-                label={glossary.referralValue.label}
-                name="value_per_life"
-                inputMode="decimal"
-                placeholder={
-                  rule ? `regra: ${String(rule.value_per_life).replace(".", ",")}` : "1,50"
-                }
-                defaultValue={
-                  referral.value_per_life === null
-                    ? ""
-                    : Number(referral.value_per_life).toFixed(2).replace(".", ",")
-                }
-                hint={glossary.referralValue.hint}
-              />
-              <Field
-                label={glossary.referralTerm.label}
-                name="term_months"
-                type="number"
-                min={1}
-                max={120}
-                placeholder="regra do parceiro"
-                defaultValue={referral.term_months === null ? "" : String(referral.term_months)}
-                hint={glossary.referralTerm.hint}
-              />
-            </div>
-          </MutationForm>
-        </PanelBody>
-      </SectionCard>
+        subtitle="Vigências próprias desta indicação, combinadas com a Fortes Pay. Valor em branco usa o do parceiro; sem vigência própria, vale a regra do parceiro de quando a indicação foi feita."
+        footnote="Uma vigência nova vale do mês dela em diante; os meses anteriores continuam como estavam e meses já fechados não mudam. O prazo conta a partir do primeiro mês pago."
+        rules={ownRules}
+        partnerId={referral.partner_id}
+        referralId={referral.id}
+        today={today}
+        lockedThrough={lockedThrough}
+        emptyText={`Hoje: regra do parceiro (${partnerRule}).`}
+      />
 
       <SectionCard
         title="Vendedor da indicação"

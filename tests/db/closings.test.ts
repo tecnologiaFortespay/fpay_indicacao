@@ -354,30 +354,39 @@ describe("fatia 4 — fechamento mensal", () => {
     );
   });
 
-  it("mês fechado: o detalhe por cliente não muda quando a indicação muda de valor", async () => {
+  it("mês fechado: vigência própria nele é recusada; o detalhe gravado não muda com vigência nova", async () => {
     const teresinaReferral = ok(
       await director.from("referrals").select("id").eq("cnpj", CNPJ_T).single(),
       "teresina referral",
     );
-    done(
-      await director.rpc("set_referral_config", {
-        target: teresinaReferral.id,
-        payload: { value_per_life: "9.99", term_months: "" },
+    const locked = await director.rpc("save_partner_rule", {
+      payload: {
+        partner_id: teresinaId,
+        referral_id: teresinaReferral.id,
+        value_per_life: "9.99",
+        valid_from: AUGUST,
+        term_months: "",
+      },
+    });
+    expect(locked.error?.message).toBe("RULE_LOCKED");
+    const ownRule = ok(
+      await director.rpc("save_partner_rule", {
+        payload: {
+          partner_id: teresinaId,
+          referral_id: teresinaReferral.id,
+          value_per_life: "9.99",
+          valid_from: OCTOBER,
+          term_months: "",
+        },
       }),
-      "change value after close",
+      "own rule from the open month",
     );
     const august = await items(AUGUST);
     expect(august.teresina?.details).toEqual([
       expect.objectContaining({ cnpj: CNPJ_T, lives: 50, value_per_life: 2, amount: 100 }),
     ]);
     expect(august.teresina?.month_amount).toBe(100);
-    done(
-      await director.rpc("set_referral_config", {
-        target: teresinaReferral.id,
-        payload: { value_per_life: "", term_months: "" },
-      }),
-      "restore value",
-    );
+    done(await director.rpc("delete_partner_rule", { target: ownRule }), "remove own rule");
   });
 
   it("setembro carrega o saldo de Natal; pagar Natal zera o pendente", async () => {

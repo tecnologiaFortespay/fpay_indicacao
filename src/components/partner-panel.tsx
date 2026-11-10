@@ -26,8 +26,8 @@ import {
   recentImports,
   type PartnerClosingItem,
 } from "@/lib/partner-panel/queries";
-import { ruleInForce } from "@/lib/partners/queries";
-import { termLabel } from "@/lib/referrals/config";
+import { listReferralRules, ruleInForce } from "@/lib/partners/queries";
+import { effectiveTerms, ownRuleOf, termLabel } from "@/lib/referrals/config";
 import { listReferrals, referralMonthValues, type ReferralRow } from "@/lib/referrals/queries";
 import {
   conversionSentence,
@@ -76,14 +76,15 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
   const partnerName = user.profile.partner?.name ?? "";
   const current = currentCompetency();
   const competency = isCompetency(requestedCompetency) ? requestedCompetency : current;
-  const [summary, referrals, months, closings, updatedAt, rule, recent] = await Promise.all([
+  const referrals = await listReferrals({ partnerId });
+  const [summary, months, closings, updatedAt, rule, recent, ownRules] = await Promise.all([
     partnerMonthSummary(partnerId, competency),
-    listReferrals({ partnerId }),
     referralMonthValues(competency),
     partnerClosingItems(partnerId),
     lastImportAt(competency),
     ruleInForce(partnerId, competency),
     recentImports(),
+    listReferralRules(referrals.map((referral) => referral.id)),
   ]);
   const pending = pendingBalanceOf(closings);
   const latestClosing = closings[0] ?? null;
@@ -102,9 +103,10 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
   const conversion = conversionSentence(
     conversionSummary(referrals.map((referral) => referral.status)),
   );
-  const ruleText = rule
-    ? `${formatCurrency(rule.value_per_life)} por vida · ${rule.term_months === null ? "sem prazo" : `prazo de ${rule.term_months} meses`}`
-    : "sem regra neste mês";
+  const ruleText =
+    rule && rule.value_per_life !== null
+      ? `${formatCurrency(rule.value_per_life)} por vida · ${rule.term_months === null ? "sem prazo" : `prazo de ${rule.term_months} meses`}`
+      : "sem regra neste mês";
   return (
     <AppShell title="Meu painel">
       <PageIntro month={{ value: competency }}>
@@ -175,7 +177,7 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
       ) : (
         <SectionCard
           title={`${monthLabel} · prévia`}
-          subtitle={`Sua regra no mês: ${ruleText}.`}
+          subtitle={`Regra para quem você indicar em ${monthLabel}: ${ruleText}. Cada indicação segue a regra de quando foi feita.`}
           footnote={
             updatedAt ? (
               <>
@@ -311,7 +313,7 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
         footnote={
           delinquent.length > 0
             ? `${delinquent.length} cliente(s) sem pagamento no último mês completo: vale uma conversa para não perder a comissão.`
-            : "O valor por vida e o prazo são os da indicação, quando a Fortes Pay definiu, ou os da sua regra no mês."
+            : "O valor por vida e o prazo são os da indicação, quando a Fortes Pay definiu, ou os da sua regra de quando a indicação foi feita."
         }
       >
         <div className="fp-stage-counts">
@@ -349,12 +351,10 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
               <tbody>
                 {rows.map((referral) => {
                   const month = months.get(referral.id);
-                  const valuePerLife =
-                    month?.value_per_life ??
-                    referral.value_per_life ??
-                    rule?.value_per_life ??
-                    null;
-                  const term = referral.term_months ?? rule?.term_months ?? null;
+                  // Sem vidas no mês: vigência própria da indicação em vigor, senão a regra do parceiro.
+                  const terms = effectiveTerms(ownRuleOf(ownRules, referral.id, competency), rule);
+                  const valuePerLife = month?.value_per_life ?? terms.valuePerLife;
+                  const term = month?.term_months ?? terms.termMonths;
                   return (
                     <tr key={referral.id}>
                       <td>

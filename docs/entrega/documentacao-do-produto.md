@@ -31,21 +31,21 @@ só os próprios dados: nenhum parceiro vê outro parceiro nem as indicações d
 
 ## 3. Palavras do sistema
 
-| Termo                         | O que significa                                                                                                     |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Parceiro**                  | Quem indica clientes: uma **Unidade** ou um **Parceiro externo**. Tem um login.                                     |
-| **Indicação**                 | Uma empresa (CNPJ) que o parceiro indicou à Fortes Pay.                                                             |
-| **Vidas pagas**               | Quantidade da coluna "C. Cash-in" da planilha do BI para aquele CNPJ no mês (confirmado em 09/11/2026).             |
-| **Valor por vida (R$)**       | Quanto o parceiro recebe por vida paga. Ex.: R$ 1,50.                                                               |
-| **Regra de remuneração**      | Valor por vida + **Vale a partir de** (mês em que começa) + **Prazo (meses)**. Cada parceiro tem a sua.             |
-| **Vigência**                  | Cada versão da regra do parceiro. Uma vigência nova vale do mês dela em diante; as anteriores ficam como histórico. |
-| **Prazo (meses)**             | Por quantos meses cada cliente rende, contados do primeiro mês pago. Em branco = sem prazo.                         |
-| **Prévia**                    | Valor do mês em andamento, calculado com a última planilha enviada. Pode mudar até o fechamento.                    |
-| **Valor oficial**             | Valor de um mês fechado. Não muda mais.                                                                             |
-| **Fechamento (lote)**         | Ato do diretor que encerra um mês: decide quem recebe e quem acumula.                                               |
-| **Pagar / Acumular**          | Decisão do fechamento para cada parceiro: receber agora ou juntar com o próximo mês.                                |
-| **Saldo acumulado a receber** | Valor que ficou para o próximo fechamento porque o parceiro não foi marcado para receber.                           |
-| **Ajuste**                    | Valor a mais ou a menos que o diretor aplica a um parceiro no fechamento, sempre com motivo.                        |
+| Termo                         | O que significa                                                                                                                                                                                   |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Parceiro**                  | Quem indica clientes: uma **Unidade** ou um **Parceiro externo**. Tem um login.                                                                                                                   |
+| **Indicação**                 | Uma empresa (CNPJ) que o parceiro indicou à Fortes Pay.                                                                                                                                           |
+| **Vidas pagas**               | Quantidade da coluna "C. Cash-in" da planilha do BI para aquele CNPJ no mês (confirmado em 09/11/2026).                                                                                           |
+| **Valor por vida (R$)**       | Quanto o parceiro recebe por vida paga. Ex.: R$ 1,50.                                                                                                                                             |
+| **Regra de remuneração**      | Valor por vida + **Vale a partir de** (mês em que começa) + **Prazo (meses)**. Cada parceiro tem a sua.                                                                                           |
+| **Vigência**                  | Cada versão da regra (do parceiro ou de uma indicação). Uma vigência nova vale do mês dela em diante; a do parceiro, só para quem for indicado a partir dele. As anteriores ficam como histórico. |
+| **Prazo (meses)**             | Por quantos meses cada cliente rende, contados do primeiro mês pago. Em branco = sem prazo.                                                                                                       |
+| **Prévia**                    | Valor do mês em andamento, calculado com a última planilha enviada. Pode mudar até o fechamento.                                                                                                  |
+| **Valor oficial**             | Valor de um mês fechado. Não muda mais.                                                                                                                                                           |
+| **Fechamento (lote)**         | Ato do diretor que encerra um mês: decide quem recebe e quem acumula.                                                                                                                             |
+| **Pagar / Acumular**          | Decisão do fechamento para cada parceiro: receber agora ou juntar com o próximo mês.                                                                                                              |
+| **Saldo acumulado a receber** | Valor que ficou para o próximo fechamento porque o parceiro não foi marcado para receber.                                                                                                         |
+| **Ajuste**                    | Valor a mais ou a menos que o diretor aplica a um parceiro no fechamento, sempre com motivo.                                                                                                      |
 
 ## 4. O caminho completo, em uma página
 
@@ -90,7 +90,10 @@ só os próprios dados: nenhum parceiro vê outro parceiro nem as indicações d
 - A ficha do parceiro mostra a regra de hoje numa frase, por exemplo: "Hoje: R$ 1,80 por vida ·
   sem prazo · vale desde nov/2026".
 - Para mudar o valor, o diretor cria uma **Nova vigência** a partir de um mês. Os meses anteriores
-  continuam com o valor antigo.
+  continuam com o valor antigo, e a vigência nova vale **só para quem for indicado a partir daquele
+  mês**: indicações anteriores seguem a regra de quando foram feitas (decisão 23). O "valor por
+  vida" do parceiro mostrado num mês é a regra para indicações novas; o valor do mês é a soma de
+  cada indicação com a regra dela.
 - Só a vigência mais recente pode ser editada ou removida, e só enquanto nenhum mês fechado a usa.
   Não dá para criar vigência num mês já fechado.
 - O **prazo** serve para quem recebe por tempo limitado (por exemplo, contador com 12 meses): cada
@@ -159,8 +162,11 @@ Ativa e Inadimplente nunca são escolhidas à mão: mudam sozinhas com a planilh
 ### Valor e prazo próprios de uma indicação
 
 Na indicação, o diretor pode definir **valor por vida** e **prazo** só para ela (por exemplo, um
-cliente estratégico a R$ 3,00 por 6 meses). Em branco, vale a regra do parceiro no mês. A mudança
-vale para os meses abertos; os meses fechados guardam o valor do fechamento.
+cliente estratégico a R$ 3,00 por 6 meses), como **vigências próprias**: cada uma vale a partir de
+um mês, só a mais recente pode ser editada ou removida, e mês fechado não muda. Sem vigência
+própria (ou com o valor em branco), vale a regra do parceiro de quando a indicação foi feita. O
+valor e o prazo informados ao registrar a indicação em nome do parceiro viram a primeira vigência
+dela, a partir do mês atual.
 
 ## 7. A planilha do BI
 

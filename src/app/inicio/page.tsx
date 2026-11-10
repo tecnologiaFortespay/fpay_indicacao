@@ -123,7 +123,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         title={`Parceiros · ${monthLabel}`}
         subtitle="Clique num parceiro para ver a regra, as indicações e os meses."
         action={<Link href="/parceiros">Todos os parceiros →</Link>}
-        footnote="Conta só as indicações que rendem (Ativas) e respeita o prazo de cada uma. Valor por vida é a regra do parceiro no mês; indicações com valor próprio entram no valor do mês com o delas."
+        footnote="Conta só as indicações que rendem (Ativas) e respeita o prazo de cada uma. Valor por vida é a regra do parceiro para indicações novas no mês; cada indicação entra no valor do mês com a regra dela (a de quando foi feita, ou a própria)."
       >
         {overview.rows.length === 0 ? (
           <EmptyState title="Nenhum parceiro ativo ainda">

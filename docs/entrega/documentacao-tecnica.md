@@ -77,10 +77,10 @@ só com aprovação.
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `profiles`       | um por usuário do Auth: perfil (`director` ou `partner`), parceiro, nome; hash do link de nova senha                                                                                                                                           |
 | `partners`       | parceiros: tipo (unidade/externo), contato, situação (pendente, ativo, recusado), motivo da recusa, aprovação                                                                                                                                  |
-| `partner_rules`  | vigências da regra: valor por vida, vale a partir de (mês), prazo em meses                                                                                                                                                                     |
+| `partner_rules`  | vigências da regra: valor por vida, vale a partir de (mês), prazo em meses; `referral_id` nulo = vigência do parceiro (vale para indicações feitas a partir do mês), preenchido = vigência própria da indicação (vale por mês)                 |
 | `invitations`    | convites: hash do token, nome, tipo, validade, uso                                                                                                                                                                                             |
 | `companies`      | empresas indicadas (CNPJ, nome, grupo, primeiro mês visto)                                                                                                                                                                                     |
-| `referrals`      | indicações: parceiro, CNPJ, situação, primeiro mês pago, vidas estimadas, valor e prazo próprios, vendedor (texto)                                                                                                                             |
+| `referrals`      | indicações: parceiro, CNPJ, situação, primeiro mês pago, vidas estimadas, vendedor (texto); valor e prazo próprios são vigências em `partner_rules`                                                                                            |
 | `import_batches` | cada envio da planilha: arquivo, hash, meses, contagens (lidas, importadas, fora, ignoradas), quem enviou                                                                                                                                      |
 | `import_rows`    | linhas ignoradas ou mescladas de cada envio, com o motivo                                                                                                                                                                                      |
 | `monthly_lives`  | vidas pagas por CNPJ e mês (substituídas a cada envio do mês)                                                                                                                                                                                  |
@@ -96,23 +96,27 @@ só com aprovação.
 
 ### Funções SQL principais
 
-| Assunto    | Funções                                                                                                                              |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Perfil     | `is_director`, `my_partner_id`, `current_profile`, `current_role_name`                                                               |
-| Convite    | `create_invitation`, `invitation_preview`, `register_partner`, `register_director`, `confirm_invited_signup`                         |
-| Equipe     | `list_directors`                                                                                                                     |
-| Parceiro   | `approve_partner`, `reject_partner`, `save_partner`, `save_partner_rule`, `delete_partner_rule`                                      |
-| Indicação  | `create_referral`, `set_referral_status`, `set_referral_config`, `set_referral_seller`, `valid_cnpj`                                 |
-| Importação | `import_lives`, `preview_import` (conferência: roda e desfaz), `last_import_at(mês)`, `recent_imports`, `latest_complete_competency` |
-| Fechamento | `closing_blocker`, `prepare_closing`, `set_closing_adjustment`, `close_closing`, `respond_closing_item`, `set_payment_note`          |
-| Senha      | `create_password_reset`, `password_reset_preview`, `reset_password_with_token`, `change_my_password`                                 |
-| IA         | `start_ai_review`, `finish_ai_review`                                                                                                |
+| Assunto    | Funções                                                                                                                                                         |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Perfil     | `is_director`, `my_partner_id`, `current_profile`, `current_role_name`                                                                                          |
+| Convite    | `create_invitation`, `invitation_preview`, `register_partner`, `register_director`, `confirm_invited_signup`                                                    |
+| Equipe     | `list_directors`                                                                                                                                                |
+| Parceiro   | `approve_partner`, `reject_partner`, `save_partner`, `save_partner_rule`, `delete_partner_rule`                                                                 |
+| Indicação  | `create_referral`, `set_referral_status`, `set_referral_seller`, `valid_cnpj` (vigências próprias: `save_partner_rule`/`delete_partner_rule` com `referral_id`) |
+| Importação | `import_lives`, `preview_import` (conferência: roda e desfaz), `last_import_at(mês)`, `recent_imports`, `latest_complete_competency`                            |
+| Fechamento | `closing_blocker`, `prepare_closing`, `set_closing_adjustment`, `close_closing`, `respond_closing_item`, `set_payment_note`                                     |
+| Senha      | `create_password_reset`, `password_reset_preview`, `reset_password_with_token`, `change_my_password`                                                            |
+| IA         | `start_ai_review`, `finish_ai_review`                                                                                                                           |
 
 Regras garantidas no banco (não só na tela):
 
 - **RLS ligada nas 12 tabelas.** Parceiro lê só o que é dele; diretor lê tudo.
 - **Mês fechado é imutável.** O trigger `protect_partner_rules` impede criar, editar ou apagar
   vigência usada por mês fechado; `import_lives` ignora linhas de mês fechado.
+- **Regra pela data da indicação** (`referral_month_lives`, decisão 23): para cada indicação e mês,
+  vale a vigência própria da indicação em vigor no mês ou, sem ela, a vigência do parceiro mais
+  recente que já valia no mês e já existia no mês em que a indicação foi feita (se nenhuma existia,
+  a primeira que passou a valer). Uma vigência nova nunca muda um mês anterior a ela.
 - **Fechamentos em ordem** (`closing_blocker`): o mês precisa ter terminado (fuso de Fortaleza),
   ter um envio feito depois do fim do mês e não ter mês anterior aberto com envio.
 - **Envio parcial × mês completo** (`latest_complete_competency`): só um envio do mês já terminado

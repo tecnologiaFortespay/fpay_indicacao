@@ -209,7 +209,7 @@ describe("fatia 1 — importação e cálculo vidas × valor vigente", () => {
     ]);
   });
 
-  it("vigência nova vale só a partir do mês dela", async () => {
+  it("vigência nova vale só a partir do mês dela e só para quem for indicado a partir dele", async () => {
     ok(
       await director.rpc("save_partner_rule", {
         payload: {
@@ -221,9 +221,12 @@ describe("fatia 1 — importação e cálculo vidas × valor vigente", () => {
       }),
       "save_partner_rule (october)",
     );
+    // Decisão 23: a indicação foi feita antes de outubro de 2099, então segue a 1,50 também em
+    // outubro (52 × 1,50 = 78). O "valor por vida" do parceiro no mês é a regra para indicações
+    // novas (2,00).
     expect(await amounts(director, natalId)).toEqual([
       { competency: "2099-09-01", lives: 50, value_per_life: 1.5, amount: 75 },
-      { competency: "2099-10-01", lives: 52, value_per_life: 2, amount: 104 },
+      { competency: "2099-10-01", lives: 52, value_per_life: 2, amount: 78 },
     ]);
     const duplicate = await director.rpc("save_partner_rule", {
       payload: {

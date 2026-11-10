@@ -82,8 +82,8 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 
 5.1. Diretor → Visão geral → [M-2]: Teresina (A+B × 1,50), Natal (D × 2,00), Contador (E × 1,50); total = soma; "Planilha do BI enviada em … por …".
 5.2. [M-1]: recalculado com as vidas de [M-1].
-5.3. Teresina → Meu painel → [M-2]: cartão "[M-2] · prévia" com "Sua regra no mês: R$ 1,50 por vida · sem prazo", vidas e valor previsto e "Prévia com a base do BI de …" (a data do último envio **de [M-2]**); Minhas indicações só com A e B; "Rendendo comissão" conta 2. Em Minhas indicações, a introdução diz de quando é a base do BI das vidas.
-5.4. Contador → Meu painel: "Sua regra no mês: R$ 1,50 por vida · prazo de 12 meses"; E com "12 meses: [M-2] a …".
+5.3. Teresina → Meu painel → [M-2]: cartão "[M-2] · prévia" com "Regra para quem você indicar em [M-2]: R$ 1,50 por vida · sem prazo", vidas e valor previsto e "Prévia com a base do BI de …" (a data do último envio **de [M-2]**); Minhas indicações só com A e B; "Rendendo comissão" conta 2. Em Minhas indicações, a introdução diz de quando é a base do BI das vidas.
+5.4. Contador → Meu painel: "Regra para quem você indicar em [M0]: R$ 1,50 por vida · prazo de 12 meses"; E com "12 meses: [M-2] a …".
 5.5. Diretor envia de novo [M-1] com A +8 vidas → Teresina recarrega: vidas e "Prévia com a base do BI de …" mudam (a página não se atualiza sozinha: é preciso recarregar).
 5.6. Teresina → Meu painel → **Últimos envios da planilha**: quatro envios ([M-2] duas vezes, [M-1] duas vezes), do mais novo ao mais antigo, cada um com a data/hora e o mês, marcado como "mês completo" (mês já terminado) — o parceiro sabe sozinho se o que espera já entrou.
 
@@ -108,7 +108,7 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 7.1. Diretor → Fechamento → [M-1] → Preparar cálculo → Contador: saldo anterior = valor de [M-2] + valor de [M-1] = total.
 7.2. Marcar os três → conferir → fechar → Contador "Pagar" com o total acumulado; Visão geral → saldo acumulado a pagar 0.
 7.3. Ainda em Fechamento do mês, seção **Fechamentos registrados**: [M-2] e [M-1] com preparo, fechamento e quem fechou. Abrir [M-2]: cada linha guarda valor do mês, ajuste, saldo anterior, total, decisão, data e quem decidiu.
-7.4. Teresina → Meu painel → [M0]: regra 1,80; [M-1] mostra "[M-1] · valor oficial".
+7.4. Teresina → Meu painel → [M0]: "Regra para quem você indicar em [M0]: R$ 1,80 por vida"; A, indicada em [M0], conta 1,80 em [M0]; [M-1] mostra "[M-1] · valor oficial" e A continua a 1,50 lá. Uma indicação feita antes de [M0] continuaria a 1,50 também em [M0] (decisão 23; coberto no teste de banco).
 
 ## Bloco 8 — [M0] em andamento (envios parciais)
 
@@ -131,10 +131,10 @@ O mês em andamento pode ser enviado várias vezes; cada envio substitui o mês 
 
 ## Bloco 10 — Valor e prazo da indicação e "como foi pago"
 
-10.1. Diretor → Indicações → abrir A → aviso "Rende desde [M-2]…"; **Valor e prazo desta indicação**: 2,50 e prazo 3 → "Valor e prazo da indicação salvos."; a lista mostra "R$ 2,50 por vida · 3 meses".
+10.1. Diretor → Indicações → abrir A → aviso "Rende desde [M-2]…"; **Valor e prazo desta indicação** → **Nova vigência**: valor 2,50, prazo 3, a partir de [M0] → "Vigência da indicação salva."; a lista mostra "R$ 2,50 por vida · 3 meses".
 10.2. Visão geral → [M0]: Teresina conta A × 2,50; o fechamento de [M-2] continua com o valor fechado, inclusive em Ver clientes: A segue com 30 × 1,50 = 45,00 (o detalhe é o retrato do fechamento, não um recálculo).
 10.3. Teresina → Meu painel → [M0]: A com R$ 2,50 e prazo "3 meses: [M-2] a [M0]".
-10.4. Diretor apaga os dois campos de A → volta à regra do parceiro (1,80, sem prazo).
+10.4. Diretor → ficha de A → **Editar a vigência de [M0]** → **Remover esta vigência** → "Vigência removida."; A volta à regra do parceiro (1,80, sem prazo).
 10.5. Diretor → Fechamento → [M-2] → Como foi pago a Unidade Teresina: "PIX em 05/…" → Teresina → Meus fechamentos → [M-2] mostra "Como foi pago". Linhas acumuladas não têm esse campo.
 10.6. Diretor → Indicações → Registrar indicação em nome de Natal, CNPJ F, valor 3,00, prazo 6 → a lista mostra "R$ 3,00 por vida · 6 meses".
 

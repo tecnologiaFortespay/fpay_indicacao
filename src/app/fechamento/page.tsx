@@ -160,7 +160,7 @@ export default async function ClosingPage({ searchParams }: PageProps) {
           footnote={
             closed
               ? undefined
-              : "Valor por vida é a regra do parceiro no mês; indicações com valor próprio entram no valor do mês com o delas. Saldo anterior é o que ficou acumulado no mês passado."
+              : "Valor por vida é a regra do parceiro para indicações novas no mês; cada indicação entra no valor do mês com a regra dela (a de quando foi feita, ou a própria). Ver clientes mostra uma a uma. Saldo anterior é o que ficou acumulado no mês passado."
           }
         >
           <div className="fp-table-wrap">

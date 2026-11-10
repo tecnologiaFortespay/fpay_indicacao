@@ -25,8 +25,8 @@ import { glossary } from "@/lib/glossary";
 import { referralStatusLabels, type ReferralStatus } from "@/lib/labels";
 import { formatInteger } from "@/lib/money";
 import { lastImportAt } from "@/lib/partner-panel/queries";
-import { listPartnerOptions, ruleInForce } from "@/lib/partners/queries";
-import { referralConfigLabel } from "@/lib/referrals/config";
+import { listPartnerOptions, listReferralRules, ruleInForce } from "@/lib/partners/queries";
+import { effectiveTerms, ownRuleOf, referralConfigLabel } from "@/lib/referrals/config";
 import {
   listReferrals,
   referralMonthValues,
@@ -92,6 +92,9 @@ async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
     ruleInForce(partnerId, currentCompetency()),
     competency ? lastImportAt(competency) : Promise.resolve(null),
   ]);
+  // Vigências próprias das indicações (decisão 23), para explicar valor e prazo sem vidas no mês.
+  const ownRules = await listReferralRules(referrals.map((referral) => referral.id));
+  const today = currentCompetency();
   // Decisão 21: de quando é a base das vidas mostradas.
   const stamp = competency
     ? updatedAt
@@ -201,6 +204,7 @@ async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
                   <tbody>
                     {items.map((referral) => {
                       const month = months.get(referral.id);
+                      const terms = effectiveTerms(ownRuleOf(ownRules, referral.id, today), rule);
                       return (
                         <tr key={referral.id}>
                           <td>
@@ -218,12 +222,8 @@ async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
                           </td>
                           <td>
                             {referralExplanation(referral, {
-                              valuePerLife:
-                                month?.value_per_life ??
-                                referral.value_per_life ??
-                                rule?.value_per_life ??
-                                null,
-                              termMonths: referral.term_months ?? rule?.term_months ?? null,
+                              valuePerLife: month?.value_per_life ?? terms.valuePerLife,
+                              termMonths: month?.term_months ?? terms.termMonths,
                             })}
                           </td>
                           {stage === "earning" && (
@@ -297,6 +297,8 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
   const referrals = search
     ? all.filter((referral) => matchesReferralSearch(referral, search))
     : all;
+  const ownRules = await listReferralRules(referrals.map((referral) => referral.id));
+  const today = currentCompetency();
   const filters: Record<string, string> = {};
   if (partnerId) {
     filters.partner = partnerId;
@@ -410,6 +412,7 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
               <tbody>
                 {referrals.map((referral) => {
                   const month = months.get(referral.id);
+                  const own = ownRuleOf(ownRules, referral.id, today);
                   return (
                     <tr key={referral.id}>
                       <td>
@@ -425,7 +428,9 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
                         </span>
                       </td>
                       <td>{sinceLabel(referral)}</td>
-                      <td>{referralConfigLabel(referral.value_per_life, referral.term_months)}</td>
+                      <td>
+                        {referralConfigLabel(own?.value_per_life ?? null, own?.term_months ?? null)}
+                      </td>
                       <td className="fp-num">{month ? formatInteger(month.lives) : "—"}</td>
                       <td>{formatDate(referral.created_at)}</td>
                       <td>

@@ -60,14 +60,19 @@ export async function referralStatusCounts(): Promise<StatusCounts> {
   return counts;
 }
 
-// Vidas, valor por vida efetivo e valor de cada indicação no mês (view referral_month_lives, sob RLS).
-export type ReferralMonth = { lives: number; value_per_life: number | null; amount: number };
+// Vidas, valor por vida efetivo, prazo e valor de cada indicação no mês (view referral_month_lives, sob RLS).
+export type ReferralMonth = {
+  lives: number;
+  value_per_life: number | null;
+  term_months: number | null;
+  amount: number;
+};
 
 export async function referralMonthValues(competency: string): Promise<Map<string, ReferralMonth>> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("referral_month_lives")
-    .select("referral_id, lives, value_per_life, amount")
+    .select("referral_id, lives, value_per_life, term_months, amount")
     .eq("competency", competencyToDate(competency));
   if (error) {
     throw new Error("Não foi possível consultar as vidas do mês.");
@@ -78,6 +83,7 @@ export async function referralMonthValues(competency: string): Promise<Map<strin
       values.set(row.referral_id, {
         lives: row.lives ?? 0,
         value_per_life: row.value_per_life,
+        term_months: row.term_months,
         amount: row.amount ?? 0,
       });
     }
@@ -111,7 +117,7 @@ export async function referralMonths(id: string): Promise<ReferralMonthRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("referral_month_lives")
-    .select("competency, lives, value_per_life, amount")
+    .select("competency, lives, value_per_life, term_months, amount")
     .eq("referral_id", id)
     .order("competency", { ascending: false })
     .limit(24);
@@ -122,6 +128,7 @@ export async function referralMonths(id: string): Promise<ReferralMonthRow[]> {
     competency: row.competency ?? "",
     lives: row.lives ?? 0,
     value_per_life: row.value_per_life,
+    term_months: row.term_months,
     amount: row.amount ?? 0,
   }));
 }

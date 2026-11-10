@@ -36,9 +36,11 @@ npm run dev               # http://localhost:3000
 São dois perfis: diretor e parceiro. O primeiro diretor é criado pelo script acima; os demais (quem
 envia a planilha do BI também usa esse perfil) entram por convite em **Equipe**, um login por pessoa.
 Parceiros entram só por convite: o diretor gera o link em **Parceiros → Convites**, a unidade preenche
-o cadastro, e o diretor aprova informando a regra do parceiro (valor por vida, vigência, prazo). Cada
-indicação pode ter valor por vida e prazo próprios, definidos pelo diretor em **Indicações**; em
-branco vale a regra do parceiro. Cada pessoa troca a própria senha em **Minha conta**.
+o cadastro, e o diretor aprova informando a regra do parceiro (valor por vida, vigência, prazo). Uma
+vigência nova do parceiro vale para quem for indicado a partir do mês dela; indicações anteriores
+seguem a regra de quando foram feitas. Cada indicação pode ter vigências próprias de valor e prazo,
+definidas pelo diretor em **Indicações**; sem elas vale a regra do parceiro. Cada pessoa troca a
+própria senha em **Minha conta**.
 
 Para seguir o roteiro de validação à mão contra o Supabase local, mesmo com o `.env.local` apontando
 para o projeto real: `npm run db:clean`, `npm run bootstrap:local` e `npm run dev:local`

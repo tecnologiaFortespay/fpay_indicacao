@@ -7,7 +7,6 @@ import { databaseError, formValue } from "@/lib/actions";
 import { actionUser, deniedState } from "@/lib/auth/session";
 import type { FormState } from "@/lib/auth/validation";
 import { withFlash } from "@/lib/flash";
-import { parseMoneyInput } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 
 export async function setReferralStatus(_previous: FormState, form: FormData): Promise<FormState> {
@@ -63,34 +62,5 @@ export async function setReferralSeller(_previous: FormState, form: FormData): P
   return { success: "Vendedor salvo." };
 }
 
-// Configuração própria da indicação (valor por vida e prazo). Em branco = regra do parceiro.
-export async function setReferralConfig(_previous: FormState, form: FormData): Promise<FormState> {
-  const user = await actionUser("director");
-  if (!user) {
-    return deniedState();
-  }
-  const id = formValue(form, "id");
-  if (!z.uuid().safeParse(id).success) {
-    return { error: "Indicação inválida." };
-  }
-  const rawValue = formValue(form, "value_per_life").trim();
-  const valuePerLife = rawValue === "" ? "" : parseMoneyInput(rawValue);
-  if (valuePerLife === null) {
-    return {
-      error: "Informe o valor por vida como 1,50, ou deixe em branco para usar o do parceiro.",
-    };
-  }
-  const supabase = await createClient();
-  const result = await supabase.rpc("set_referral_config", {
-    target: id,
-    payload: { value_per_life: valuePerLife, term_months: formValue(form, "term_months") },
-  });
-  if (result.error) {
-    return { error: databaseError(result.error) };
-  }
-  revalidatePath("/indicacoes");
-  revalidatePath(`/indicacoes/${id}`);
-  revalidatePath("/parceiros/[id]", "page");
-  revalidatePath("/inicio");
-  return { success: "Valor e prazo da indicação salvos." };
-}
+// Valor e prazo próprios da indicação são vigências (decisão 23): savePartnerRule/deletePartnerRule
+// em src/app/parceiros/actions.ts, com referral_id.

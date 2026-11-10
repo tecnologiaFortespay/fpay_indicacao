@@ -660,7 +660,9 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   await test.step("5.3 painel de Teresina em agosto: só A e B", async () => {
     await ter.goto(`/inicio?competency=${AUG}`);
     const month = clean(await section(ter, `${AUG_LABEL} · prévia`).innerText());
-    expect(month).toContain("Sua regra no mês: R$ 1,50 por vida · sem prazo.");
+    expect(month).toContain(
+      `Regra para quem você indicar em ${AUG_LABEL}: R$ 1,50 por vida · sem prazo.`,
+    );
     expect(month).toContain("Vidas pagas no mês inteiro 50");
     expect(month).toContain("Valor previsto prévia R$ 75,00");
     const rows = section(ter, /Minhas indicações/).locator("tbody tr");
@@ -677,7 +679,9 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   await test.step("5.4 painel do contador mostra o prazo: 12 meses, ago/2026 a jul/2027", async () => {
     await con.goto("/inicio");
     await expect(
-      con.getByText(/^Sua regra no mês: R\$\s1,50 por vida · prazo de 12 meses\.$/),
+      con.getByText(
+        /^Regra para quem você indicar em .*: R\$\s1,50 por vida · prazo de 12 meses\./,
+      ),
     ).toBeVisible();
     expect(await rowText(con, E.company)).toContain(
       `12 meses: ${shortCompetencyLabel(AUG)} a ${shortCompetencyLabel(addMonths(AUG, 11))}`,
@@ -957,7 +961,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   await test.step("7.4 Teresina em outubro: A a 1,80; setembro continua 1,50", async () => {
     await ter.goto(`/inicio?competency=${OCT}`);
     await expect(
-      ter.getByText(/^Sua regra no mês: R\$\s1,80 por vida · sem prazo\.$/),
+      ter.getByText(/^Regra para quem você indicar em .*: R\$\s1,80 por vida · sem prazo\./),
     ).toBeVisible();
     expect(await rowText(ter, A.company)).toContain("0 R$ 1,80 R$ 0,00");
     await ter.goto(`/inicio?competency=${SEP}`);
@@ -1078,7 +1082,15 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
           term_months: "",
         },
       }),
-      client.rpc("set_referral_config", { target: ids.teresina, payload: {} }),
+      client.rpc("save_partner_rule", {
+        payload: {
+          partner_id: ids.teresina,
+          referral_id: ids.teresina,
+          value_per_life: "9.99",
+          valid_from: `${NOV}-01`,
+          term_months: "",
+        },
+      }),
       client.rpc("set_payment_note", { target: ids.teresina, note: "x" }),
     ]);
     for (const call of calls) {
@@ -1129,11 +1141,13 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
       `1º mês pago ${shortCompetencyLabel(AUG)}`,
     );
     await expect(dir.locator(".fp-notice").filter({ hasText: /Rende desde / })).toBeVisible();
-    await dir.getByLabel("Valor por vida desta indicação (R$)").fill("2,50");
-    await dir.getByLabel("Prazo desta indicação (meses)").fill("3");
-    await dir.getByRole("button", { name: "Salvar valor e prazo" }).click();
+    // Decisão 23: valor e prazo próprios são uma vigência da indicação, a partir de um mês.
+    const form = await openDisclosure(dir, "Nova vigência");
+    await form.getByLabel("Valor por vida (R$)").fill("2,50");
+    await form.getByLabel("Prazo (meses)").fill("3");
+    await submitIn(form, "Salvar nova vigência").click();
     await expect(
-      dir.getByRole("status").filter({ hasText: "Valor e prazo da indicação salvos." }),
+      dir.getByRole("status").filter({ hasText: "Vigência da indicação salva." }),
     ).toBeVisible();
     await dir.goto("/indicacoes");
     expect(await rowText(dir, A.company)).toContain("R$ 2,50 por vida · 3 meses");
@@ -1166,17 +1180,14 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     );
   });
 
-  await test.step("10.4 sem configuração, A volta à regra do parceiro", async () => {
+  await test.step("10.4 sem vigência própria, A volta à regra do parceiro", async () => {
     await dir.goto("/indicacoes");
     await dir.getByRole("link", { name: A.company }).click();
     await expect(dir).toHaveURL(/\/indicacoes\/[0-9a-f-]{36}$/);
     await expect(dir.getByRole("heading", { name: "Valor e prazo desta indicação" })).toBeVisible();
-    await dir.getByLabel("Valor por vida desta indicação (R$)").fill("");
-    await dir.getByLabel("Prazo desta indicação (meses)").fill("");
-    await dir.getByRole("button", { name: "Salvar valor e prazo" }).click();
-    await expect(
-      dir.getByRole("status").filter({ hasText: "Valor e prazo da indicação salvos." }),
-    ).toBeVisible();
+    const edit = await openDisclosure(dir, /^Editar a vigência de /);
+    await submitIn(edit, "Remover esta vigência").click();
+    await expect(dir.getByRole("status").filter({ hasText: "Vigência removida." })).toBeVisible();
     await ter.goto("/inicio");
     expect(await rowText(ter, A.company)).toContain("40 R$ 1,80 R$ 72,00 sem prazo");
   });
