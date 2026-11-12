@@ -23,7 +23,7 @@ import {
 import { referralStatusLabels, type ReferralStatus } from "@/lib/labels";
 import { formatCurrency, formatInteger } from "@/lib/money";
 import { listReferralRules, ruleInForce } from "@/lib/partners/queries";
-import { currentRule, effectiveTerms, termLabel } from "@/lib/referrals/config";
+import { effectiveTerms, ruleInMonth, termLabel } from "@/lib/referrals/config";
 import { getReferral, referralMonths } from "@/lib/referrals/queries";
 import {
   referralExplanation,
@@ -67,7 +67,7 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
       : "sem regra neste mês";
   // Decisão 23: a vigência própria em vigor manda; em branco, a regra do parceiro.
   const { valuePerLife: effectiveValue, termMonths: effectiveTerm } = effectiveTerms(
-    currentRule(ownRules, today),
+    ruleInMonth(ownRules, today),
     rule,
   );
   const stage = referralStage(referral.status);

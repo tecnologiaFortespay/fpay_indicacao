@@ -94,7 +94,20 @@ describe("closingMaterial", () => {
           total: 100,
         },
       ],
-      previous: new Map([["Natal", { lives: 50, month_amount: 90, total: 90, decision: "pay" }]]),
+      previous: new Map([
+        [
+          "Natal",
+          {
+            lives: 50,
+            month_amount: 100,
+            adjustment: -10,
+            adjustment_note: "Desconto combinado",
+            previous_balance: 0,
+            total: 90,
+            decision: "pay",
+          },
+        ],
+      ]),
       referrals: [
         {
           cnpj: "12345678000110",
@@ -113,7 +126,17 @@ describe("closingMaterial", () => {
       parceiro: "Natal",
       ajuste: -10,
       motivo_do_ajuste: null,
-      mes_anterior: { vidas: 50, total: 90, decisao: "pago" },
+      // O mês anterior leva o ajuste e o motivo: sem eles a IA via valor do mês ≠ total e
+      // apontava "diferença não explicada".
+      mes_anterior: {
+        vidas: 50,
+        valor_do_mes: 100,
+        ajuste: -10,
+        motivo_do_ajuste: "Desconto combinado",
+        saldo_anterior_acumulado: 0,
+        total: 90,
+        decisao: "pago",
+      },
       indicacoes: [{ empresa: "Empresa A", situacao: "Ativa", vidas: 55, prazo: "sem prazo" }],
     });
   });

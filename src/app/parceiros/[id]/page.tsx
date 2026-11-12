@@ -35,7 +35,7 @@ import {
   partnerLogin,
   type Partner,
 } from "@/lib/partners/queries";
-import { ownRuleOf, referralConfigLabel } from "@/lib/referrals/config";
+import { referralRuleSummary } from "@/lib/referrals/config";
 import { statusChipClass } from "@/lib/referrals/stages";
 import { createPasswordReset, createReferral } from "../actions";
 
@@ -168,7 +168,7 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
                   <th>Empresa</th>
                   <th>Situação</th>
                   <th>Rende desde</th>
-                  <th>Valor e prazo</th>
+                  <th>Valor e prazo hoje</th>
                   <th className="fp-num">Vidas estimadas</th>
                   <th>Indicada em</th>
                 </tr>
@@ -195,10 +195,12 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
                     </td>
                     <td>
                       {(() => {
-                        const own = ownRuleOf(ownRules, referral.id, today);
-                        return referralConfigLabel(
-                          own?.value_per_life ?? null,
-                          own?.term_months ?? null,
+                        const terms = referralRuleSummary(ownRules.get(referral.id) ?? [], today);
+                        return (
+                          <>
+                            {terms.label}
+                            {terms.note && <small>{terms.note}</small>}
+                          </>
                         );
                       })()}
                     </td>

@@ -45,13 +45,42 @@ export function currentRule<T extends RuleLike>(rules: T[], today: string): T | 
   return sorted.find((rule) => dateToCompetency(rule.valid_from) <= today) ?? sorted.at(-1) ?? null;
 }
 
+// Vigência em vigor no mês: a mais recente que já começou. Diferente de currentRule, não devolve
+// uma vigência futura: antes do início dela o cálculo (view referral_month_lives) não a usa.
+export function ruleInMonth<T extends RuleLike>(rules: T[], competency: string): T | null {
+  const sorted = [...rules].sort((a, b) => b.valid_from.localeCompare(a.valid_from));
+  return sorted.find((rule) => dateToCompetency(rule.valid_from) <= competency) ?? null;
+}
+
 // Vigência própria da indicação em vigor no mês, se houver (decisão 23).
 export function ownRuleOf<T extends RuleLike>(
   rulesByReferral: Map<string, T[]>,
   referralId: string,
   competency: string,
 ): T | null {
-  return currentRule(rulesByReferral.get(referralId) ?? [], competency);
+  return ruleInMonth(rulesByReferral.get(referralId) ?? [], competency);
+}
+
+// Coluna "Valor e prazo" das listas: o que vale para a indicação no mês e, em letra menor, desde
+// quando vale ou o que muda na próxima vigência ("a partir de nov/2026: R$ 2,50 por vida").
+export function referralRuleSummary(
+  ownRules: RuleLike[],
+  competency: string,
+): { label: string; note: string | null } {
+  const own = ruleInMonth(ownRules, competency);
+  const next = [...ownRules]
+    .sort((a, b) => a.valid_from.localeCompare(b.valid_from))
+    .find((rule) => dateToCompetency(rule.valid_from) > competency);
+  const label = referralConfigLabel(own?.value_per_life ?? null, own?.term_months ?? null);
+  if (next) {
+    const start = shortCompetencyLabel(dateToCompetency(next.valid_from));
+    const change = referralConfigLabel(next.value_per_life, next.term_months);
+    return { label, note: `a partir de ${start}: ${change}` };
+  }
+  return {
+    label,
+    note: own ? `desde ${shortCompetencyLabel(dateToCompetency(own.valid_from))}` : null,
+  };
 }
 
 export type EffectiveTerms = { valuePerLife: number | null; termMonths: number | null };

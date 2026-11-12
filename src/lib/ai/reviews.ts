@@ -218,6 +218,9 @@ export async function runClosingReview(reviewId: string, competency: string): Pr
         {
           lives: item.lives,
           month_amount: Number(item.month_amount),
+          adjustment: Number(item.adjustment),
+          adjustment_note: item.adjustment_note,
+          previous_balance: Number(item.previous_balance),
           total: Number(item.total),
           decision: item.decision,
         },

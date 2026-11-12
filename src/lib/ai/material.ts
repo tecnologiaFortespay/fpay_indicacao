@@ -143,6 +143,9 @@ export type ClosingPartnerFact = {
 export type PreviousClosingFact = {
   lives: number;
   month_amount: number;
+  adjustment: number;
+  adjustment_note: string | null;
+  previous_balance: number;
   total: number;
   decision: string | null;
 };
@@ -194,6 +197,10 @@ export function closingMaterial(input: {
           ? {
               vidas: previous.lives,
               valor_do_mes: previous.month_amount,
+              // Sem ajuste e saldo, valor do mês ≠ total parecia "diferença não explicada".
+              ajuste: previous.adjustment,
+              motivo_do_ajuste: previous.adjustment_note,
+              saldo_anterior_acumulado: previous.previous_balance,
               total: previous.total,
               decisao:
                 previous.decision === "pay"
@@ -228,5 +235,7 @@ Aponte, quando houver:
 - ajuste sem motivo, ou motivo que não explica o valor;
 - prazo de indicação terminando neste mês ou no próximo;
 - parceiro sem regra vigente (valor por vida vazio).
+
+Em cada parceiro, total = valor do mês + ajuste + saldo anterior acumulado. O bloco "mes_anterior" é só comparação: aquele mês já foi conferido, então não aponte ajuste nem diferença dele.
 
 A decisão de pagar ou acumular é do diretor: não decida por ele nem recomende pagar ou acumular.`;

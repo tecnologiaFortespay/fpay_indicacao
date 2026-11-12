@@ -26,7 +26,7 @@ import { referralStatusLabels, type ReferralStatus } from "@/lib/labels";
 import { formatInteger } from "@/lib/money";
 import { lastImportAt } from "@/lib/partner-panel/queries";
 import { listPartnerOptions, listReferralRules, ruleInForce } from "@/lib/partners/queries";
-import { effectiveTerms, ownRuleOf, referralConfigLabel } from "@/lib/referrals/config";
+import { effectiveTerms, ownRuleOf, referralRuleSummary } from "@/lib/referrals/config";
 import {
   listReferrals,
   referralMonthValues,
@@ -298,7 +298,6 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
     ? all.filter((referral) => matchesReferralSearch(referral, search))
     : all;
   const ownRules = await listReferralRules(referrals.map((referral) => referral.id));
-  const today = currentCompetency();
   const filters: Record<string, string> = {};
   if (partnerId) {
     filters.partner = partnerId;
@@ -322,7 +321,8 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
       <PageIntro month={{ value: competency, label: "Mês", keep: filters }}>
         Indicações de todos os parceiros. Só rende comissão a indicação <strong>Ativa</strong>{" "}
         (cliente pagando). Ativa e Inadimplente mudam sozinhas a cada envio da planilha do BI; as
-        outras situações você muda aqui. O mês escolhido define a coluna de vidas.
+        outras situações você muda aqui. O mês escolhido define as colunas de valor e prazo e de
+        vidas.
       </PageIntro>
 
       <SectionCard
@@ -403,7 +403,7 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
                   <th>Parceiro</th>
                   <th>Situação</th>
                   <th>Rende desde</th>
-                  <th>Valor e prazo</th>
+                  <th>Valor e prazo em {shortCompetencyLabel(competency)}</th>
                   <th className="fp-num">Vidas em {shortCompetencyLabel(competency)}</th>
                   <th>Indicada em</th>
                   <th>Mudar situação</th>
@@ -412,7 +412,8 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
               <tbody>
                 {referrals.map((referral) => {
                   const month = months.get(referral.id);
-                  const own = ownRuleOf(ownRules, referral.id, today);
+                  // Valor e prazo do mês escolhido, o mesmo da coluna de vidas (não o de hoje).
+                  const terms = referralRuleSummary(ownRules.get(referral.id) ?? [], competency);
                   return (
                     <tr key={referral.id}>
                       <td>
@@ -429,7 +430,8 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
                       </td>
                       <td>{sinceLabel(referral)}</td>
                       <td>
-                        {referralConfigLabel(own?.value_per_life ?? null, own?.term_months ?? null)}
+                        {terms.label}
+                        {terms.note && <small>{terms.note}</small>}
                       </td>
                       <td className="fp-num">{month ? formatInteger(month.lives) : "—"}</td>
                       <td>{formatDate(referral.created_at)}</td>
