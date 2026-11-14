@@ -174,3 +174,17 @@ valem sobre o que ele diz.
     indicação. Sobrepõe a decisão 2 e o L83. Migration `20261110000017_rules_by_referral_date.sql`;
     nenhuma tabela nova. No roteiro os valores não mudam, porque todas as indicações são feitas em
     [M0]; o teste de banco prova o caso da indicação anterior.
+24. **O primeiro pagamento informado pelo BI ("Prim cashin") escolhe a regra e conta o prazo.**
+    Apontamento da área (14/11/2026) ao carregar as indicações antigas de Teresina: o parceiro tem
+    R$ 1,00 com 12 meses desde junho de 2024 e R$ 2,00 sem prazo desde outubro de 2026; as
+    indicações foram cadastradas agora, então todas caíram nos R$ 2,00 (a regra era escolhida só
+    pela data do cadastro, decisão 23) e o prazo contava do primeiro mês com planilha na
+    plataforma. Agora a importação lê a coluna "Prim cashin" e guarda o mês em
+    `referrals.first_cashin`. Interpretação do Claude (**a confirmar com o Diego e o Denis**): a
+    regra do parceiro é escolhida pelo **mês mais antigo entre o da indicação e o do primeiro
+    pagamento**, de modo que a decisão 23 continua valendo para indicações novas (indicada em
+    setembro, paga em novembro: regra de setembro) e a carga de clientes antigos segue a regra da
+    época. O primeiro mês pago da indicação (de onde o prazo conta) nunca fica depois do "Prim
+    cashin". Consequência: empresa que já pagava há mais tempo que o prazo da regra não rende.
+    Vale a partir do próximo envio da planilha de cada mês aberto; meses fechados não mudam.
+    Migration `20261114000018_first_cashin.sql`; nenhuma tabela nova.

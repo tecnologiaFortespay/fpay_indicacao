@@ -251,14 +251,14 @@ isOneToOne: false
                   ]
                 },"referrals": {
                   Row: {
-                    "activated_competency": string | null,"cnpj": string,"company_name": string,"created_at": string,"created_by": string | null,"estimated_lives": number | null,"id": string,"partner_id": string,"seller_name": string | null,"status": string,"status_changed_at": string
+                    "activated_competency": string | null,"cnpj": string,"company_name": string,"created_at": string,"created_by": string | null,"estimated_lives": number | null,"first_cashin": string | null,"id": string,"partner_id": string,"seller_name": string | null,"status": string,"status_changed_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "activated_competency"?: string | null,"cnpj": string,"company_name": string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"id"?: string,"partner_id": string,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string
+                    "activated_competency"?: string | null,"cnpj": string,"company_name": string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"first_cashin"?: string | null,"id"?: string,"partner_id": string,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string
                   }
                   Update: {
-                    "activated_competency"?: string | null,"cnpj"?: string,"company_name"?: string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"id"?: string,"partner_id"?: string,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string
+                    "activated_competency"?: string | null,"cnpj"?: string,"company_name"?: string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"first_cashin"?: string | null,"id"?: string,"partner_id"?: string,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string
                   }
                   Relationships: [
                     {

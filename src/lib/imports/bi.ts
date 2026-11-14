@@ -13,6 +13,9 @@ export type ImportRow = {
   lives: number;
   company_name: string;
   group_name: string | null;
+  // First month the company paid Fortes Pay ("Prim cashin"), "YYYY-MM-01"; null when the export
+  // does not bring it.
+  first_cashin: string | null;
 };
 
 export type ImportIssue = {
@@ -42,6 +45,7 @@ export const BI_COLUMNS = {
   lives: ["c. cash-in", "c cash-in", "contas cash-in", "vidas"],
   company: ["nome_empresa", "nome empresa", "empresa", "razao social"],
   group: ["grupo empresarial", "grupo"],
+  firstCashin: ["prim cashin", "prim. cashin", "prim cash-in", "prim. cash-in"],
 };
 
 const MONTH_NAMES = [
@@ -68,6 +72,7 @@ type ColumnMap = {
   lives: number;
   company: number | null;
   group: number | null;
+  firstCashin: number | null;
 };
 
 function findColumn(header: string[], names: string[]): number | null {
@@ -96,6 +101,7 @@ export function mapColumns(rawHeader: string[]): ColumnMap {
     lives,
     company: findColumn(header, BI_COLUMNS.company),
     group: findColumn(header, BI_COLUMNS.group),
+    firstCashin: findColumn(header, BI_COLUMNS.firstCashin),
   };
 }
 
@@ -138,6 +144,46 @@ export function parseLives(value: string): number | null {
     return null;
   }
   return Number(text);
+}
+
+function monthDate(year: number, month: number): string | null {
+  if (year < 1990 || year > 2200 || month < 1 || month > 12) {
+    return null;
+  }
+  return `${year}-${String(month).padStart(2, "0")}-01`;
+}
+
+// "Prim cashin" (first month the company paid) → "YYYY-MM-01". The .xlsx brings an Excel serial
+// date ("44497.66" = 28/10/2021); the CSV brings the month as the BI shows it ("mar./ 26"). Also
+// accepts "03/2026", "28/10/2021" and "2021-10-28". Blank or unreadable → null: the column is
+// optional and never rejects a row.
+export function parseFirstCashin(value: string): string | null {
+  const text = normalizeText(value);
+  if (text === "") {
+    return null;
+  }
+  if (/^\d{5}([.,]\d+)?$/.test(text)) {
+    // Excel serial: days since 30/12/1899.
+    const days = Math.floor(Number(text.replace(",", ".")));
+    const date = new Date(Date.UTC(1899, 11, 30) + days * 86_400_000);
+    return monthDate(date.getUTCFullYear(), date.getUTCMonth() + 1);
+  }
+  const iso = text.match(/^(\d{4})-(\d{1,2})(-\d{1,2})?/);
+  if (iso) {
+    return monthDate(Number(iso[1]), Number(iso[2]));
+  }
+  const numeric = text.match(/^(?:\d{1,2}\/)?(\d{1,2})\/(\d{4}|\d{2})$/);
+  if (numeric) {
+    const year = Number(numeric[2]);
+    return monthDate(year < 100 ? 2000 + year : year, Number(numeric[1]));
+  }
+  const named = text.match(/^([a-z]{3,9})\.?\s*(?:\/|-|de)?\s*(\d{4}|\d{2})$/);
+  if (named) {
+    const month = MONTH_NAMES.findIndex((name) => name.startsWith(named[1]!.slice(0, 3))) + 1;
+    const year = Number(named[2]);
+    return monthDate(year < 100 ? 2000 + year : year, month);
+  }
+  return null;
 }
 
 function cell(cells: string[], index: number | null): string {
@@ -208,6 +254,7 @@ export function parseBiExport(sheet: string[][], competency: string): ParsedExpo
     }
     const companyName = (companyText || currentCompany).slice(0, 240) || formatCnpj(cnpj);
     const groupName = (groupText || currentGroup).slice(0, 240) || null;
+    const firstCashin = parseFirstCashin(cell(cells, columns.firstCashin));
     const existing = rowsByCnpj.get(cnpj);
     if (!existing) {
       rowsByCnpj.set(cnpj, {
@@ -217,8 +264,13 @@ export function parseBiExport(sheet: string[][], competency: string): ParsedExpo
         lives,
         company_name: companyName,
         group_name: groupName,
+        first_cashin: firstCashin,
       });
       continue;
+    }
+    // Repeated CNPJ: the earliest first payment stands.
+    if (firstCashin && (!existing.first_cashin || firstCashin < existing.first_cashin)) {
+      existing.first_cashin = firstCashin;
     }
     if (existing.lives === lives && existing.company_name === companyName) {
       issues.push({

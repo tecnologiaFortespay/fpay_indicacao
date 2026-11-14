@@ -82,5 +82,8 @@ formato está em `tests/bi-export.ts`.
 - No arquivo de exemplo, 4 das 1.220 linhas trazem um CPF com zeros à esquerda no lugar do CNPJ
   (pessoa física/MEI no BI); são ignoradas com o motivo "CNPJ inválido.", como deve ser, já que a
   plataforma só trata CNPJ.
-- `Prim cashin` (mês do primeiro cash-in da empresa, no CSV como `mar./ 26`) não é usada; serviria para o alerta
-  "cliente já pagava antes da indicação" (docs/depois.md).
+- `Prim cashin` (mês do primeiro cash-in da empresa; no CSV como `mar./ 26`, no .xlsx como data do
+  Excel) é lida desde 14/11/2026 (decisão 24): fica guardada na indicação, escolhe a regra do
+  parceiro quando a empresa já pagava antes da indicação e é de onde o prazo conta. Em branco ou
+  ilegível, a linha entra do mesmo jeito e nada muda. O alerta "cliente já pagava antes da
+  indicação" (docs/depois.md) continua não feito.

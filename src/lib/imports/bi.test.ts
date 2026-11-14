@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { biExport, biExportCsv } from "../../../tests/bi-export";
-import { BiFormatError, parseBiExport, parseFilters, parseLives } from "./bi";
+import { BiFormatError, parseBiExport, parseFilters, parseFirstCashin, parseLives } from "./bi";
 import { readImportSheet, validateImportFile } from "./file";
 import { readFirstSheet, WorkbookError } from "./xlsx";
 
@@ -29,6 +29,7 @@ describe("parseBiExport", () => {
         lives: 48,
         company_name: "Empresa A",
         group_name: "Grupo X",
+        first_cashin: null,
       },
       {
         line_number: 7,
@@ -37,6 +38,7 @@ describe("parseBiExport", () => {
         lives: 10,
         company_name: "Empresa B",
         group_name: "Empresa B",
+        first_cashin: null,
       },
     ]);
     expect(result.rows_read).toBe(2);
@@ -108,6 +110,49 @@ describe("parseBiExport", () => {
     expect(() => readFirstSheet(new TextEncoder().encode("cnpj;vidas\n1;2"))).toThrow(
       WorkbookError,
     );
+  });
+});
+
+describe("Prim cashin (primeiro mês pago da empresa)", () => {
+  it("lê a data do Excel, o mês do CSV e outros formatos; em branco ou ilegível vira null", () => {
+    expect(parseFirstCashin("44497.660049733793")).toBe("2021-10-01");
+    expect(parseFirstCashin("mar./ 26")).toBe("2026-03-01");
+    expect(parseFirstCashin("set/2025")).toBe("2025-09-01");
+    expect(parseFirstCashin("Junho de 2024")).toBe("2024-06-01");
+    expect(parseFirstCashin("06/2024")).toBe("2024-06-01");
+    expect(parseFirstCashin("28/10/2021")).toBe("2021-10-01");
+    expect(parseFirstCashin("2021-10-28T00:00:00")).toBe("2021-10-01");
+    expect(parseFirstCashin("")).toBeNull();
+    expect(parseFirstCashin("Total")).toBeNull();
+    expect(parseFirstCashin("13/2026")).toBeNull();
+  });
+
+  it("vem em cada linha do .xlsx e do CSV; CNPJ repetido fica com o mês mais antigo", () => {
+    const sheet = parse(
+      biExport(
+        [
+          { company: "Empresa A", cnpj: CNPJ_A, lives: 5, firstCashin: 45000 },
+          { company: "Empresa A filial", cnpj: CNPJ_A, lives: 3, firstCashin: 44497.66 },
+          { company: "Empresa B", cnpj: CNPJ_B, lives: 10 },
+        ],
+        "2026-10",
+      ),
+    );
+    expect(sheet.rows.map((row) => [row.cnpj, row.first_cashin])).toEqual([
+      [CNPJ_A, "2021-10-01"],
+      [CNPJ_B, null],
+    ]);
+    const csv = parseBiExport(
+      readImportSheet(
+        "export.csv",
+        biExportCsv(
+          [{ company: "Empresa A", cnpj: CNPJ_A, lives: 5, firstCashin: "mar./ 26" }],
+          "2026-10",
+        ),
+      ),
+      OCTOBER,
+    );
+    expect(csv.rows[0]?.first_cashin).toBe("2026-03-01");
   });
 });
 

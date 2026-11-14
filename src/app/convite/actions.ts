@@ -11,6 +11,25 @@ import { createClient } from "@/lib/supabase/server";
 
 const accountSchema = z.object({ email: emailSchema, password: passwordSchema });
 
+// Cadastro do parceiro: cidade, UF e telefone são obrigatórios (pedido do Denis, 14/11/2026).
+// Devolve a mensagem do primeiro campo que falta, se houver.
+function missingPartnerField(payload: {
+  city: string;
+  state: string;
+  contact_phone: string;
+}): string | null {
+  if (payload.city.trim() === "") {
+    return "Informe a cidade.";
+  }
+  if (!/^[A-Za-z]{2}$/.test(payload.state.trim())) {
+    return "Informe a UF com duas letras.";
+  }
+  if (payload.contact_phone.trim() === "") {
+    return "Informe o telefone.";
+  }
+  return null;
+}
+
 type Client = Awaited<ReturnType<typeof createClient>>;
 
 // Garante uma conta conectada para usar o convite: quem já está conectado (sem cadastro) segue com
@@ -33,6 +52,9 @@ async function ensureInvitedAccount(
   });
   if (!account.success) {
     return account.error.issues[0].message;
+  }
+  if (form.get("confirmation") !== account.data.password) {
+    return "As senhas precisam ser iguais.";
   }
   const signUp = await supabase.auth.signUp({
     email: account.data.email,
@@ -78,6 +100,11 @@ export async function registerPartner(_previous: FormState, form: FormData): Pro
     contact_name: formValue(form, "contact_name"),
     contact_phone: formValue(form, "contact_phone"),
   };
+  // Antes de criar a conta: campo faltando não pode deixar uma conta sem cadastro para trás.
+  const missing = missingPartnerField(payload);
+  if (missing) {
+    return { error: missing };
+  }
   const supabase = await createClient();
   const problem = await ensureInvitedAccount(supabase, token, form, payload.contact_name);
   if (problem) {

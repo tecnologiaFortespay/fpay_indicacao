@@ -40,6 +40,15 @@ function AccountFields({ user }: { user: SessionUser | null }) {
         maxLength={128}
         autoComplete="new-password"
       />
+      <Field
+        label="Confirmar senha"
+        name="confirmation"
+        type="password"
+        required
+        minLength={8}
+        maxLength={128}
+        autoComplete="new-password"
+      />
     </div>
   );
 }
@@ -140,8 +149,8 @@ export default async function InvitationPage({ params }: PageProps) {
           defaultValue={preview.partner_name}
         />
         <div className="fp-form-grid">
-          <Field label="Cidade" name="city" maxLength={120} />
-          <Field label="UF" name="state" maxLength={2} placeholder="CE" />
+          <Field label="Cidade" name="city" required maxLength={120} />
+          <Field label="UF" name="state" required minLength={2} maxLength={2} placeholder="CE" />
         </div>
         <Field
           label="Nome do responsável"
@@ -150,7 +159,14 @@ export default async function InvitationPage({ params }: PageProps) {
           maxLength={160}
           autoComplete="name"
         />
-        <Field label="Telefone" name="contact_phone" type="tel" maxLength={40} autoComplete="tel" />
+        <Field
+          label="Telefone"
+          name="contact_phone"
+          type="tel"
+          required
+          maxLength={40}
+          autoComplete="tel"
+        />
         <AccountFields user={user} />
       </MutationForm>
     </AuthShell>

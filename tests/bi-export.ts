@@ -9,6 +9,9 @@ export type ExportRow = {
   company: string;
   lives: number | string;
   group?: string;
+  // "Prim cashin": Excel serial date in the .xlsx (44497.66), text in the CSV ("mar./ 26").
+  // Left out, the cell is blank and the platform keeps the first month it saw the company pay.
+  firstCashin?: number | string;
 };
 
 export type ExportOptions = {
@@ -79,8 +82,8 @@ function footer(months: string[]): string | null {
 }
 
 // Numeric columns other than "C. Cash-in" carry plausible values; the parser ignores them.
-function measures(lives: number | string): Cell[] {
-  return [1, 44497.660049733793, 1000.5, 1, 1000.5, 10, lives, 81.7, 1, 5000.25, 3, 100, 0, null];
+function measures(lives: number | string, firstCashin: number | string | null = null): Cell[] {
+  return [1, firstCashin, 1000.5, 1, 1000.5, 10, lives, 81.7, 1, 5000.25, 3, 100, 0, null];
 }
 
 function sheetRows(rows: ExportRow[], months: string[], header: string[]): Cell[][] {
@@ -93,7 +96,7 @@ function sheetRows(rows: ExportRow[], months: string[], header: string[]): Cell[
       out.push([group, "Total", null, ...measures(8)]);
     }
     out.push([group, row.company, "Total", ...measures(8)]);
-    out.push([group, row.company, row.cnpj, ...measures(row.lives)]);
+    out.push([group, row.company, row.cnpj, ...measures(row.lives, row.firstCashin ?? null)]);
   }
   const filters = footer(months);
   if (filters) {
@@ -212,10 +215,10 @@ function csvLives(lives: number | string): string {
 }
 
 // Measures as Google Sheets shows them: "1.000", "R$ 5.906", "R$ 41,60"; "C. Cash-in" in the 10th column.
-function csvMeasures(lives: number | string): string[] {
+function csvMeasures(lives: number | string, firstCashin = ""): string[] {
   return [
     "1",
-    "mar./ 26",
+    firstCashin,
     "R$ 1.000",
     "1",
     "R$ 1.000",
@@ -262,7 +265,7 @@ export function biExportCsv(rows: ExportRow[], month: string | null, options: Cs
       out.push([group, "Total", "", ...csvMeasures(8)]);
     }
     out.push(["", row.company, "Total", ...csvMeasures(8)]);
-    out.push(["", "", row.cnpj, ...csvMeasures(row.lives)]);
+    out.push(["", "", row.cnpj, ...csvMeasures(row.lives, String(row.firstCashin ?? ""))]);
   }
   out.push(["Total", "", "", ...csvMeasures(99)]);
   out.push(["", "", "", ...blank]);

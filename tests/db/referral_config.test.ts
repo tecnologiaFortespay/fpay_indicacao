@@ -27,10 +27,12 @@ const TERM = cnpjWithDigits("990001112001");
 const OWN = cnpjWithDigits("101112131001");
 const EARLY = cnpjWithDigits("121314151001");
 const LATE = cnpjWithDigits("131415161001");
-const ALL = [PLAIN, CUSTOM, TERM, OWN, EARLY, LATE];
+const BACK = cnpjWithDigits("141516171001");
+const ALL = [PLAIN, CUSTOM, TERM, OWN, EARLY, LATE, BACK];
 const AUG = "2098-08-01";
 const SEP = "2098-09-01";
 const OCT = "2098-10-01";
+const NOV = "2098-11-01";
 
 async function months(referralId: string) {
   return ok(
@@ -386,5 +388,94 @@ describe("vigências do parceiro", () => {
     // PLAIN 15 + CUSTOM 25 + EARLY 15 + LATE 18 (TERM só conta agosto, prazo de 1 mês).
     expect(amounts).toEqual({ competency: SEP, value_per_life: 1.8, amount: 73 });
     done(await director.rpc("delete_partner_rule", { target: september }), "delete september");
+  });
+});
+
+// Decisão 24 (14/11/2026): carga de indicações antigas. A indicação é cadastrada depois de uma
+// vigência nova, mas a empresa já pagava antes dela ("Prim cashin" do BI).
+describe("primeiro pagamento informado pelo BI", () => {
+  async function importNovember(firstCashin: string | null) {
+    ok(
+      await director.rpc("import_lives", {
+        batch: batch("config-prim-cashin.xlsx", NOV),
+        rows: [
+          {
+            line_number: 2,
+            cnpj: BACK,
+            competency: NOV,
+            lives: 10,
+            company_name: "Empresa antiga",
+            group_name: null,
+            first_cashin: firstCashin,
+          },
+        ],
+      }),
+      "import november",
+    );
+    return ok(
+      await director
+        .from("referrals")
+        .select("first_cashin, activated_competency")
+        .eq("cnpj", BACK)
+        .single(),
+      "referral",
+    );
+  }
+
+  it("quem já pagava antes da vigência nova segue a anterior, e o prazo conta do primeiro pagamento", async () => {
+    const october = ok(
+      await director.rpc("save_partner_rule", {
+        payload: {
+          partner_id: partnerId,
+          value_per_life: "2.00",
+          valid_from: OCT,
+          term_months: "",
+        },
+      }),
+      "october rule",
+    );
+    const backId = await createReferral(BACK);
+    // Cadastrada depois da vigência de outubro (data ajustada direto no banco para o teste).
+    done(
+      await admin.from("referrals").update({ created_at: "2098-11-05T12:00:00Z" }).eq("id", backId),
+      "date back",
+    );
+
+    // Sem "Prim cashin" nada muda: vale a regra de quando a indicação foi feita.
+    expect(await importNovember(null)).toEqual({ first_cashin: null, activated_competency: NOV });
+    expect(await months(backId)).toEqual([
+      { competency: NOV, lives: 10, value_per_life: 2, term_months: null, amount: 20 },
+    ]);
+
+    // O mesmo mês reenviado com "Prim cashin" em agosto: regra de agosto e 1º mês pago em agosto.
+    expect(await importNovember(AUG)).toEqual({ first_cashin: AUG, activated_competency: AUG });
+    expect(await months(backId)).toEqual([
+      { competency: NOV, lives: 10, value_per_life: 1.5, term_months: null, amount: 15 },
+    ]);
+
+    // Prazo de 3 meses contado de agosto termina em outubro: novembro já não rende.
+    const term = ok(
+      await saveOwnRule(backId, { value_per_life: "", valid_from: AUG, term_months: "3" }),
+      "term from first payment",
+    );
+    expect(await months(backId)).toEqual([]);
+    done(await director.rpc("delete_partner_rule", { target: term }), "delete term");
+
+    const invalid = await director.rpc("import_lives", {
+      batch: batch("config-prim-cashin-invalido.xlsx", NOV),
+      rows: [
+        {
+          line_number: 2,
+          cnpj: BACK,
+          competency: NOV,
+          lives: 10,
+          company_name: "Empresa antiga",
+          group_name: null,
+          first_cashin: "2098-08-15",
+        },
+      ],
+    });
+    expect(invalid.error?.message).toBe("IMPORT_FIELDS");
+    done(await director.rpc("delete_partner_rule", { target: october }), "delete october rule");
   });
 });

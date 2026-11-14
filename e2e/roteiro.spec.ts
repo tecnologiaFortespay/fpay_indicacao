@@ -128,6 +128,7 @@ async function register(
   await page.getByLabel("Telefone").fill(data.phone);
   await page.getByLabel("E-mail de acesso").fill(data.email);
   await page.getByLabel("Senha (mínimo de 8 caracteres)").fill(PASSWORD);
+  await page.getByLabel("Confirmar senha").fill(PASSWORD);
   await page.getByRole("button", { name: "Enviar cadastro" }).click();
   await expect(page).toHaveURL(/\/cadastro-em-analise$/);
 }
@@ -1282,6 +1283,12 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(novo.getByLabel("Seu nome")).toHaveValue("Analista BI Novo");
     await novo.getByLabel("E-mail de acesso").fill("novo.e2e@fortespay.local");
     await novo.getByLabel("Senha (mínimo de 8 caracteres)").fill(PASSWORD);
+    // Senha diferente na confirmação é recusada e a conta não é criada.
+    await novo.getByLabel("Confirmar senha").fill(`${PASSWORD}x`);
+    await novo.getByRole("button", { name: "Criar acesso" }).click();
+    await expect(novo.getByText("As senhas precisam ser iguais.")).toBeVisible();
+    await novo.getByLabel("Senha (mínimo de 8 caracteres)").fill(PASSWORD);
+    await novo.getByLabel("Confirmar senha").fill(PASSWORD);
     await novo.getByRole("button", { name: "Criar acesso" }).click();
     await expect(novo).toHaveURL(/\/inicio$/);
     await expect(novo.getByRole("heading", { level: 1, name: "Visão geral" })).toBeVisible();
