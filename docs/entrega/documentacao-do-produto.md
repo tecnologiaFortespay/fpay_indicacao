@@ -19,10 +19,10 @@ sem precisar perguntar à Fortes Pay.
 
 ## 2. Quem usa
 
-| Perfil       | Quem é                                                         | O que faz                                                                                                                            |
-| ------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Diretor**  | Gestão da Fortes Pay e quem envia a planilha do BI             | Vê tudo. Convida e aprova parceiros, define as regras de remuneração, acompanha indicações, envia a planilha, fecha o mês. Usa a IA. |
-| **Parceiro** | Unidade franqueada ou parceiro externo (por exemplo, contador) | Registra indicações e acompanha as próprias: o que já rende, quanto vai receber, os meses fechados.                                  |
+| Perfil       | Quem é                                                         | O que faz                                                                                                                                 |
+| ------------ | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Diretor**  | Gestão da Fortes Pay e quem envia a planilha do BI             | Vê tudo. Aprova o cadastro dos parceiros, define as regras de remuneração, acompanha indicações, envia a planilha, fecha o mês. Usa a IA. |
+| **Parceiro** | Unidade franqueada ou parceiro externo (por exemplo, contador) | Registra indicações e acompanha as próprias: o que já rende, quanto vai receber, os meses fechados.                                       |
 
 São só esses dois perfis. Quem exporta e envia a planilha do BI usa o perfil de diretor, com o
 mesmo acesso. Todos os diretores são iguais: qualquer um convida outro diretor em **Equipe** e gera
@@ -49,9 +49,11 @@ só os próprios dados: nenhum parceiro vê outro parceiro nem as indicações d
 
 ## 4. O caminho completo, em uma página
 
-1. O diretor gera um **convite** para o parceiro e envia o link.
-2. O parceiro abre o link, preenche o cadastro e cria a senha. Fica **em análise**.
-3. O diretor **aprova** o cadastro e, na mesma tela, define a **regra de remuneração**.
+1. O parceiro abre o site e clica em **Criar conta de parceiro** (o diretor pode enviar o
+   endereço do cadastro).
+2. O parceiro preenche o cadastro e cria a senha. Fica **em análise**.
+3. O diretor **aprova** o cadastro e, na mesma tela, escolhe o tipo do parceiro e define a
+   **regra de remuneração**.
 4. O parceiro registra as **indicações** (CNPJ e nome da empresa). O diretor registra o andamento
    da negociação.
 5. Várias vezes por semana, a Fortes Pay envia a **planilha do BI** do mês. Cada
@@ -64,23 +66,26 @@ só os próprios dados: nenhum parceiro vê outro parceiro nem as indicações d
 
 ## 5. Parceiros
 
-### Convite e cadastro
+### Cadastro
 
-- Não existe cadastro aberto: todo parceiro entra por **convite**. Em **Parceiros → Convites →
-  Gerar convite**, o diretor informa o nome, o tipo (Unidade ou Parceiro externo) e até que dia o
-  convite vale.
-- O link aparece **uma única vez** na tela. O diretor copia e envia como preferir (WhatsApp,
-  e-mail). O convite vale para um único cadastro e expira na data escolhida.
-- O parceiro abre o link e preenche: responsável, cidade/UF, telefone, e-mail de acesso e senha.
-  O cadastro fica **Aguardando aprovação** e o parceiro vê a tela "Cadastro em análise".
-- Link já usado mostra "Convite já utilizado"; link alterado mostra "Convite inválido"; link
-  vencido mostra "Convite expirado".
+- O parceiro cria a própria conta, sem convite: na tela de entrada, **Criar conta de parceiro**. A
+  tela **Parceiros** mostra o endereço direto do cadastro, para o diretor enviar como preferir
+  (WhatsApp, e-mail).
+- O parceiro preenche: nome da unidade ou do parceiro, cidade/UF, responsável, telefone, e-mail de
+  acesso, senha e **confirmação da senha** (digitar duas vezes evita erro de digitação; se forem
+  diferentes, nada é criado).
+- O cadastro fica **Aguardando aprovação** e o parceiro vê a tela "Cadastro em análise". Ele só
+  entra no sistema depois que um diretor aprova. A **Visão geral** do diretor avisa quantos
+  cadastros estão aguardando, com um atalho para Parceiros.
+- Um e-mail faz um cadastro só: tentar de novo com o mesmo e-mail mostra "Este e-mail já tem conta".
+- Convites de parceiro não existem mais. Quem abrir um link antigo de convite é levado ao cadastro.
 
 ### Aprovação e recusa
 
-- Em **Parceiros → Aguardando aprovação → Analisar e aprovar**, o diretor confere os dados e
-  preenche a regra: **Valor por vida (R$)**, **Vale a partir de** e **Prazo (meses)**. Não existe
-  parceiro ativo sem regra.
+- Em **Parceiros → Aguardando aprovação → Analisar e aprovar**, o diretor confere os dados,
+  escolhe o **Tipo de parceiro** (Unidade ou Parceiro externo) e preenche a regra: **Valor por
+  vida (R$)**, **Vale a partir de** e **Prazo (meses)**. Não existe parceiro ativo sem tipo e sem
+  regra.
 - **Aprovar e liberar acesso** libera o login na hora.
 - **Recusar cadastro** exige um motivo. O parceiro vê "Cadastro não aprovado" e o motivo ao
   entrar. Um cadastro recusado pode ser reconsiderado e aprovado depois.
@@ -98,6 +103,13 @@ só os próprios dados: nenhum parceiro vê outro parceiro nem as indicações d
   Não dá para criar vigência num mês já fechado.
 - O **prazo** serve para quem recebe por tempo limitado (por exemplo, contador com 12 meses): cada
   cliente rende os primeiros N meses depois do primeiro pagamento.
+- **Vigência aplicada a uma empresa.** Por padrão, cada indicação segue a vigência do parceiro de
+  quando foi feita (ou a do primeiro pagamento, se a empresa já pagava antes). Para um caso
+  pontual, por exemplo a empresa nova que pagou no começo de outubro mas deve seguir a vigência de
+  setembro, o diretor escolhe outra vigência do parceiro para aquela empresa: no detalhe do envio
+  da planilha (seção 7) ou na ficha da indicação. Só dá para trocar quando o parceiro tem mais de
+  uma vigência e a indicação ainda não teve vidas num mês fechado; depois disso, usa-se o valor
+  próprio da indicação (seção 6).
 
 ### Ficha do parceiro
 
@@ -108,10 +120,15 @@ leitura.
 
 ### Nova senha
 
-O sistema não envia e-mail. Quando o parceiro esquece a senha, o diretor abre a ficha dele →
-**Acesso ao sistema → Gerar link de nova senha** e envia o link por WhatsApp ou e-mail. O link vale
-24 horas e uma única vez; gerar outro invalida o anterior. Quem lembra a senha e quer trocá-la usa
-**Minha conta** (ao lado de Sair): senha atual, nova e confirmação.
+Na tela de entrada, **Esqueci minha senha**: a pessoa informa o e-mail do acesso e recebe, pela
+caixa de suporte da Fortes Pay, um link para criar a senha nova. O link vale 24 horas e uma única
+vez. A tela responde do mesmo jeito com ou sem cadastro naquele e-mail, e aceita um pedido a cada
+2 minutos por conta. Vale para parceiro e para diretor.
+
+Se o e-mail não chegar (caixa de spam, endereço errado no cadastro), o diretor gera o mesmo link
+na ficha do parceiro → **Acesso ao sistema → Gerar link de nova senha** (para outro diretor, em
+**Equipe**) e envia por WhatsApp ou e-mail. Gerar outro link invalida o anterior. Quem lembra a
+senha e quer trocá-la usa **Minha conta** (ao lado de Sair): senha atual, nova e confirmação.
 
 ## 6. Indicações
 
@@ -194,6 +211,10 @@ dela, a partir do mês atual.
 - Linhas com CNPJ inválido ou vidas não numéricas são **ignoradas**, com o motivo no detalhe do
   envio. CNPJ repetido no arquivo é somado e aparece como "mesclada".
 - A indicação que aparece com vidas passa a **Ativa** (e fica registrado o primeiro mês pago).
+- Depois de importar, o detalhe do envio mostra **Empresas com vidas no mês**: cada empresa
+  indicada, o parceiro, a vigência aplicada e o valor do mês, com as empresas novas (primeiro mês
+  pago) no topo. É ali que o diretor troca a vigência do parceiro de uma empresa, quando o caso
+  pede (seção 5, "Vigência aplicada a uma empresa").
 
 ### Envio parcial e mês completo
 
@@ -291,9 +312,9 @@ registrados** lista os meses com quem preparou e quem fechou.
 | Menu                  | O que tem                                                                                                                                                                                                                               |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Visão geral**       | Valor do mês, vidas pagas, saldo acumulado a pagar e parceiros com vidas; tabela por parceiro; indicações por etapa. Avisa quando o mês escolhido já está fechado.                                                                      |
-| **Parceiros**         | Aguardando aprovação, Ativos (com a regra de hoje), Recusados e Convites. Cada parceiro abre a ficha (seção 5).                                                                                                                         |
+| **Parceiros**         | Aguardando aprovação (com o endereço do cadastro para enviar ao parceiro), Ativos (com a regra de hoje) e Recusados. Cada parceiro abre a ficha (seção 5).                                                                              |
 | **Indicações**        | Todas as indicações, com filtros por parceiro e situação, busca por CNPJ ou empresa e o mês das vidas; situação, parceiro, valor e prazo; mudar situação; registrar em nome de um parceiro. É o relatório de quem indicou cada cliente. |
-| **Importações**       | Enviar a planilha; histórico de envios; detalhe de cada envio com linhas ignoradas e a análise da IA.                                                                                                                                   |
+| **Importações**       | Enviar a planilha; histórico de envios; detalhe de cada envio com as empresas do mês (e a vigência aplicada a cada uma), as linhas ignoradas e a análise da IA.                                                                         |
 | **Fechamento do mês** | As três etapas, a tabela do mês, ajustes, fechar o lote, como foi pago, revisão da IA e fechamentos registrados.                                                                                                                        |
 | **Equipe**            | Os diretores, com e-mail de acesso. **Convidar diretor** gera um link de uso único: quem abre cria o próprio acesso e entra direto. **Gerar link de nova senha** para outro diretor (24 horas, uso único).                              |
 
@@ -332,13 +353,20 @@ pagar ou acumular e não altera dados.
   endereço de outra tela leva de volta ao início do perfil.
 - O banco confere o perfil em toda leitura e gravação: mesmo chamando o banco por fora da tela, um
   parceiro não lê dados de outro.
-- Senhas e links (convite, nova senha) não ficam guardados em texto: só uma impressão (hash).
+- Senhas e links (convite de diretor, nova senha) não ficam guardados em texto: só uma impressão
+  (hash).
+- O cadastro de parceiro é aberto, mas ninguém entra sem a aprovação de um diretor.
+- O "Esqueci minha senha" não revela se um e-mail tem cadastro.
 - Sessão que expira com a tela aberta leva ao login com o aviso "Sua sessão expirou".
 
 ## 13. Limitações conhecidas
 
-- **E-mail**: o sistema não envia e-mail. Convites e links de nova senha são copiados pelo diretor
-  e enviados por WhatsApp ou e-mail próprio; o "Esqueci minha senha" da tela explica esse caminho.
+- **E-mail**: o único e-mail que o sistema envia é o do "Esqueci minha senha", pela caixa de
+  suporte. Ele depende de a caixa estar configurada no servidor; enquanto não estiver, a tela
+  explica o caminho pelo diretor. O sistema não avisa por e-mail quando chega um cadastro novo,
+  quando ele é aprovado ou quando o mês fecha.
+- **E-mail do cadastro não é conferido**: o parceiro que digitar o e-mail errado ao criar a conta
+  não recebe o link de nova senha; o diretor corrige gerando o link pela ficha.
 - **Endereço**: o sistema está em https://fpay-indicacao.vercel.app até o domínio da Fortes Pay ser
   configurado.
 - **Um login por parceiro**. Vendedores (fase 2) ainda não existem.
@@ -358,8 +386,8 @@ Já confirmado em 09/11/2026: **"C. Cash-in" é a medida de vidas pagas do mês.
 ## 15. Próximos passos possíveis
 
 Anotados durante o projeto e fora desta fase: vendedores e comissão de vendedor (fase 2); vários
-logins por parceiro; inativar parceiro; reindicar CNPJ perdido; e-mail automático de convite e de
-fechamento; exportar o fechamento; carga do histórico da planilha antiga; automação da leitura do
+logins por parceiro; inativar parceiro; reindicar CNPJ perdido; e-mail automático de cadastro novo,
+aprovação e fechamento; exportar o fechamento; carga do histórico da planilha antiga; automação da leitura do
 BI (somente leitura); alerta de "cliente já pagava antes da indicação".
 
 ## 16. Onde encontrar mais

@@ -164,6 +164,17 @@ export function appOrigin(headers: Headers): string {
   return `${protocol}://${host.toLowerCase()}`;
 }
 
+// Endereço que vai dentro de um e-mail (link de nova senha). Na Vercel é o domínio de produção do
+// projeto, informado pela própria Vercel: o link não depende do cabeçalho Host de quem fez o pedido.
+// Fora dela (desenvolvimento, testes), é o endereço da requisição.
+export function mailLinkOrigin(headers: Headers): string {
+  const production = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim().toLowerCase();
+  if (production && /^[a-z0-9.-]+$/.test(production)) {
+    return `https://${production}`;
+  }
+  return appOrigin(headers);
+}
+
 export function environmentLabel(): string {
   return candidates("NEXT_PUBLIC_ENVIRONMENT_LABEL")[0]?.value ?? "";
 }

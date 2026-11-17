@@ -1,124 +1,15 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { databaseError, formValue } from "@/lib/actions";
-import { authErrorMessage } from "@/lib/auth/errors";
-import { emailSchema, passwordSchema, type FormState } from "@/lib/auth/validation";
+import { ensureAccount } from "@/lib/auth/signup";
+import type { FormState } from "@/lib/auth/validation";
 import { authConfig } from "@/lib/env";
 import { INVITATION_TOKEN_PATTERN } from "@/lib/invitations/queries";
 import { createClient } from "@/lib/supabase/server";
 
-const accountSchema = z.object({ email: emailSchema, password: passwordSchema });
-
-// Cadastro do parceiro: cidade, UF e telefone são obrigatórios (pedido do Denis, 14/11/2026).
-// Devolve a mensagem do primeiro campo que falta, se houver.
-function missingPartnerField(payload: {
-  city: string;
-  state: string;
-  contact_phone: string;
-}): string | null {
-  if (payload.city.trim() === "") {
-    return "Informe a cidade.";
-  }
-  if (!/^[A-Za-z]{2}$/.test(payload.state.trim())) {
-    return "Informe a UF com duas letras.";
-  }
-  if (payload.contact_phone.trim() === "") {
-    return "Informe o telefone.";
-  }
-  return null;
-}
-
-type Client = Awaited<ReturnType<typeof createClient>>;
-
-// Garante uma conta conectada para usar o convite: quem já está conectado (sem cadastro) segue com
-// ela; quem não está cria a conta com e-mail e senha. Devolve a mensagem de erro, se houver.
-async function ensureInvitedAccount(
-  supabase: Client,
-  token: string,
-  form: FormData,
-  displayName: string,
-): Promise<string | null> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) {
-    return null;
-  }
-  const account = accountSchema.safeParse({
-    email: form.get("email"),
-    password: form.get("password"),
-  });
-  if (!account.success) {
-    return account.error.issues[0].message;
-  }
-  if (form.get("confirmation") !== account.data.password) {
-    return "As senhas precisam ser iguais.";
-  }
-  const signUp = await supabase.auth.signUp({
-    email: account.data.email,
-    password: account.data.password,
-    options: { data: { display_name: displayName } },
-  });
-  const existing = signUp.error && /already|registered|exists/i.test(signUp.error.message);
-  if (signUp.error && !existing) {
-    return authErrorMessage(
-      signUp.error,
-      "Não foi possível criar a conta agora. Confira o e-mail e a senha e tente de novo.",
-    );
-  }
-  if (!signUp.data.session) {
-    // Com "Confirm email" ligado no Supabase a conta nasce sem sessão: o convite válido confirma o
-    // e-mail, porque é ele que comprova a origem. Conta que já existia sem cadastro concluído
-    // (ex.: criada antes desta regra) entra com a própria senha e segue.
-    const created = signUp.data.user;
-    if (created?.identities?.length) {
-      await supabase.rpc("confirm_invited_signup", { secret: token, account: created.id });
-    }
-    const signIn = await supabase.auth.signInWithPassword(account.data);
-    if (signIn.error) {
-      return "Este e-mail já tem conta. Entre com ela e abra o link do convite de novo.";
-    }
-  }
-  return null;
-}
-
-// Quem abre o link cria a conta e o cadastro de uma vez. O cadastro fica pendente até o diretor aprovar.
-export async function registerPartner(_previous: FormState, form: FormData): Promise<FormState> {
-  const token = formValue(form, "token");
-  if (!INVITATION_TOKEN_PATTERN.test(token)) {
-    return { error: "Convite inválido." };
-  }
-  if (!authConfig()) {
-    return { error: "O cadastro está temporariamente indisponível." };
-  }
-  const payload = {
-    name: formValue(form, "name"),
-    city: formValue(form, "city"),
-    state: formValue(form, "state"),
-    contact_name: formValue(form, "contact_name"),
-    contact_phone: formValue(form, "contact_phone"),
-  };
-  // Antes de criar a conta: campo faltando não pode deixar uma conta sem cadastro para trás.
-  const missing = missingPartnerField(payload);
-  if (missing) {
-    return { error: missing };
-  }
-  const supabase = await createClient();
-  const problem = await ensureInvitedAccount(supabase, token, form, payload.contact_name);
-  if (problem) {
-    return { error: problem };
-  }
-  const result = await supabase.rpc("register_partner", { secret: token, payload });
-  if (result.error) {
-    return { error: databaseError(result.error) };
-  }
-  // Redireciona no servidor: a nova renderização da página do convite já o mostraria como utilizado.
-  redirect("/cadastro-em-analise");
-}
-
-// Convite de diretor (decisão 19): a conta nasce e já entra na área interna; o convite é a aprovação.
+// Convite de diretor (decisão 19): a conta nasce e já entra na área interna; o convite é a
+// aprovação. É o único convite do sistema: o parceiro cria a própria conta em /cadastro (decisão 25).
 export async function registerDirector(_previous: FormState, form: FormData): Promise<FormState> {
   const token = formValue(form, "token");
   if (!INVITATION_TOKEN_PATTERN.test(token)) {
@@ -129,7 +20,10 @@ export async function registerDirector(_previous: FormState, form: FormData): Pr
   }
   const name = formValue(form, "name").trim();
   const supabase = await createClient();
-  const problem = await ensureInvitedAccount(supabase, token, form, name);
+  // Com "Confirm email" ligado no Supabase, o convite válido confirma o e-mail da conta nova.
+  const problem = await ensureAccount(supabase, form, name, async (account) => {
+    await supabase.rpc("confirm_invited_signup", { secret: token, account });
+  });
   if (problem) {
     return { error: problem };
   }

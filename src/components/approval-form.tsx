@@ -1,16 +1,33 @@
-import { Field, TextAreaField } from "@/components/fields";
+import { Field, SelectField, TextAreaField } from "@/components/fields";
 import { MutationForm } from "@/components/mutation-form";
 import { approvePartner, rejectPartner } from "@/app/parceiros/actions";
 import { currentCompetency } from "@/lib/competency";
 import { glossary } from "@/lib/glossary";
+import { partnerKindLabels } from "@/lib/labels";
 import type { Partner } from "@/lib/partners/queries";
 
-// Aprovação exige a regra do parceiro (valor por vida e início; prazo opcional). Não há parceiro
-// ativo sem regra. Cada indicação pode ter depois valor e prazo próprios.
+const kindOptions: [string, string][] = [
+  ["", "Escolha…"],
+  ...(Object.entries(partnerKindLabels) as [string, string][]),
+];
+
+// Aprovação exige o tipo do parceiro (o cadastro é aberto e chega sem tipo, decisão 25) e a regra
+// dele (valor por vida e início; prazo opcional). Não há parceiro ativo sem regra. Cada indicação
+// pode ter depois valor e prazo próprios.
 export function ApprovalForm({ partner, label }: { partner: Partner; label: string }) {
   return (
     <MutationForm action={approvePartner} label={label} pendingLabel="Aprovando…">
       <input type="hidden" name="partner_id" value={partner.id} />
+      <div className="fp-form-grid">
+        <SelectField
+          label="Tipo de parceiro"
+          name="kind"
+          required
+          options={kindOptions}
+          defaultValue={partner.kind ?? ""}
+          hint="Unidade da Fortes ou parceiro externo (contador, consultor, corretor)."
+        />
+      </div>
       <div className="fp-form-grid fp-form-grid-3">
         <Field
           label={glossary.valuePerLife.label}

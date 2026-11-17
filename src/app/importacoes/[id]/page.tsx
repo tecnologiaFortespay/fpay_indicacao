@@ -6,6 +6,7 @@ import { AiReviewPanel } from "@/components/ai-review-panel";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
 import { KeyValueStrip } from "@/components/key-value-strip";
+import { MonthCompanies } from "@/components/month-companies";
 import { SectionCard } from "@/components/section-card";
 import { aiConfigured } from "@/lib/ai/claude";
 import { latestReview } from "@/lib/ai/reviews";
@@ -25,11 +26,12 @@ export const metadata: Metadata = { title: "Importação" };
 // A análise da IA roda depois da resposta (after()) e pode levar alguns minutos na Vercel.
 export const maxDuration = 300;
 
-type PageProps = { params: Promise<{ id: string }> };
+type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ msg?: string }> };
 
-export default async function ImportDetailPage({ params }: PageProps) {
+export default async function ImportDetailPage({ params, searchParams }: PageProps) {
   await requireRole("director");
   const { id } = await params;
+  const { msg } = await searchParams;
   if (!z.uuid().safeParse(id).success) {
     redirect("/importacoes");
   }
@@ -47,7 +49,7 @@ export default async function ImportDetailPage({ params }: PageProps) {
     })
     .join(", ");
   return (
-    <AppShell title="Importação">
+    <AppShell title="Importação" flash={msg}>
       <Link href="/importacoes" className="fp-detail-back">
         ← Importações
       </Link>
@@ -91,6 +93,14 @@ export default async function ImportDetailPage({ params }: PageProps) {
         action={analyzeImport}
         fields={{ batch_id: batch.id }}
       />
+      {/* Decisão 27: as empresas do mês e a vigência do parceiro aplicada a cada uma. */}
+      {batch.competencies.map((date) => (
+        <MonthCompanies
+          key={date}
+          competency={dateToCompetency(date)}
+          returnTo={`/importacoes/${batch.id}`}
+        />
+      ))}
       <SectionCard
         title={`Linhas ignoradas ou mescladas (${rows.length})`}
         subtitle="Linhas que não entraram como vieram, com o motivo. Empresas sem indicação na plataforma só são contadas."

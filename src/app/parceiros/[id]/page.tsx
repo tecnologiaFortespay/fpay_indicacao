@@ -52,7 +52,10 @@ function placeOf(partner: Partner): string {
 
 // Mesma faixa de dados para parceiro aguardando, recusado ou ativo.
 function PartnerFacts({ partner }: { partner: Partner }) {
-  const kind = partnerKindLabels[partner.kind as keyof typeof partnerKindLabels] ?? partner.kind;
+  const kind =
+    partnerKindLabels[partner.kind as keyof typeof partnerKindLabels] ??
+    partner.kind ??
+    "a escolher na aprovação";
   const status =
     partnerStatusLabels[partner.status as keyof typeof partnerStatusLabels] ?? partner.status;
   const contact = [partner.contact_email, partner.contact_phone].filter(Boolean).join(" · ") || "—";
@@ -93,7 +96,7 @@ function PendingPartner({ partner, flash }: { partner: Partner; flash?: string }
       )}
       <SectionCard
         title={rejected ? "Reconsiderar: aprovar o cadastro" : "Aprovar o cadastro"}
-        subtitle="Para liberar o acesso, defina quanto este parceiro recebe por vida paga. Depois dá para criar novas vigências e dar valor próprio a uma indicação."
+        subtitle="Para liberar o acesso, escolha o tipo e defina quanto este parceiro recebe por vida paga. Depois dá para criar novas vigências e dar valor próprio a uma indicação."
       >
         <PanelBody>
           <ApprovalForm partner={partner} label="Aprovar e liberar acesso" />
@@ -316,15 +319,17 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
               linkLabel="Link de nova senha"
             >
               <p className="fp-help">
-                Se o parceiro esqueceu a senha, gere o link e envie a ele (WhatsApp, e-mail). Ele
-                abre o link, define a senha nova e entra. O link vale por 24 horas e uma única vez;
-                gerar outro invalida o anterior.
+                O parceiro pede a nova senha sozinho em “Esqueci minha senha”, na tela de entrada: o
+                link chega no e-mail dele. Se o e-mail não chegar, gere o link aqui e envie a ele
+                (WhatsApp, e-mail). O link vale por 24 horas e uma única vez; gerar outro invalida o
+                anterior.
               </p>
               <input type="hidden" name="partner_id" value={partner.id} />
             </MutationForm>
           ) : (
             <p className="fp-help">
-              O login nasce quando o parceiro faz o cadastro pelo link do convite.
+              O login nasce quando o parceiro cria a própria conta em “Criar conta de parceiro”, na
+              tela de entrada.
             </p>
           )}
         </PanelBody>

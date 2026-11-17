@@ -26,8 +26,9 @@ import {
   recentImports,
   type PartnerClosingItem,
 } from "@/lib/partner-panel/queries";
-import { listReferralRules, ruleInForce } from "@/lib/partners/queries";
+import { listPartnerRules, listReferralRules, ruleInForce } from "@/lib/partners/queries";
 import { effectiveTerms, ownRuleOf, termLabel } from "@/lib/referrals/config";
+import { partnerRuleFor, referenceMonth } from "@/lib/referrals/rule-choice";
 import { listReferrals, referralMonthValues, type ReferralRow } from "@/lib/referrals/queries";
 import {
   conversionSentence,
@@ -77,15 +78,17 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
   const current = currentCompetency();
   const competency = isCompetency(requestedCompetency) ? requestedCompetency : current;
   const referrals = await listReferrals({ partnerId });
-  const [summary, months, closings, updatedAt, rule, recent, ownRules] = await Promise.all([
-    partnerMonthSummary(partnerId, competency),
-    referralMonthValues(competency),
-    partnerClosingItems(partnerId),
-    lastImportAt(competency),
-    ruleInForce(partnerId, competency),
-    recentImports(),
-    listReferralRules(referrals.map((referral) => referral.id)),
-  ]);
+  const [summary, months, closings, updatedAt, rule, recent, ownRules, partnerRules] =
+    await Promise.all([
+      partnerMonthSummary(partnerId, competency),
+      referralMonthValues(competency),
+      partnerClosingItems(partnerId),
+      lastImportAt(competency),
+      ruleInForce(partnerId, competency),
+      recentImports(),
+      listReferralRules(referrals.map((referral) => referral.id)),
+      listPartnerRules(partnerId),
+    ]);
   const pending = pendingBalanceOf(closings);
   const latestClosing = closings[0] ?? null;
   const closedMonth = closings.find((item) => item.competency === competency) ?? null;
@@ -351,8 +354,12 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
               <tbody>
                 {rows.map((referral) => {
                   const month = months.get(referral.id);
-                  // Sem vidas no mês: vigência própria da indicação em vigor, senão a regra do parceiro.
-                  const terms = effectiveTerms(ownRuleOf(ownRules, referral.id, competency), rule);
+                  // Sem vidas no mês: vigência própria da indicação em vigor, senão a do parceiro
+                  // que vale para ela (a escolhida pelo diretor ou a automática, decisão 27).
+                  const terms = effectiveTerms(
+                    ownRuleOf(ownRules, referral.id, competency),
+                    partnerRuleFor(partnerRules, referenceMonth(referral), competency),
+                  );
                   const valuePerLife = month?.value_per_life ?? terms.valuePerLife;
                   const term = month?.term_months ?? terms.termMonths;
                   return (

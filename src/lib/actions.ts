@@ -23,10 +23,12 @@ export function databaseError(error: DatabaseError): string {
     case "RESET_FIELDS":
     case "PASSWORD_FIELDS":
       return detail || "Confira os campos informados.";
+    case "RULE_CHOICE_LOCKED":
+      return `Esta indicação já teve vidas num mês fechado (${detail}), então a regra dela não muda por aqui. Para mudar daqui em diante, crie uma vigência própria na ficha da indicação.`;
     case "RULE_LOCKED":
       return `Mês fechado (${detail}): vigências até esse mês não mudam mais. Crie uma vigência a partir de um mês aberto.`;
     case "RESET_INVALID":
-      return "Este link de nova senha é inválido, expirou ou já foi usado. Peça um novo à Fortes Pay.";
+      return "Este link de nova senha é inválido, expirou ou já foi usado. Peça outro em “Esqueci minha senha”.";
     case "INVITATION_INVALID":
       return "Convite inválido, expirado ou já utilizado.";
     case "ALREADY_REGISTERED":

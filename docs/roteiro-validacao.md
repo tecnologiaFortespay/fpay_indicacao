@@ -2,7 +2,8 @@
 
 Roteiro escrito pelo Diego em 28/10/2026; é a definição do MVP (`docs/decisoes.md`). Os blocos 1 a 9
 são o texto dele, com os ajustes das decisões seguintes; os blocos 10 a 14 cobrem as decisões de 28/10
-a 04/11/2026. O teste `e2e/roteiro.spec.ts` executa os passos com planilhas sintéticas no formato do BI.
+a 04/11/2026; o bloco 15 e os passos 2.1 a 2.5, 12.7, 12.8 e 14.6 seguem as decisões 25 a 27, de
+16/11/2026. O teste `e2e/roteiro.spec.ts` executa os passos com planilhas sintéticas no formato do BI.
 
 Formato: ação → resultado esperado. Execute em ordem; cada bloco usa o que o anterior criou.
 
@@ -26,13 +27,14 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
   do mesmo navegador dividem a mesma sessão.
 - Dois perfis: **diretor** (quem envia a planilha do BI usa o mesmo acesso) e **parceiro**. O
   primeiro login de diretor é criado pela equipe técnica (`npm run bootstrap`); os demais, por
-  convite em **Equipe** (bloco 12). Cada parceiro precisa de um e-mail diferente (ex.:
-  `seunome+teresina@empresa.com.br`).
+  convite em **Equipe** (bloco 12). O parceiro cria a própria conta (bloco 2). Cada parceiro precisa
+  de um e-mail diferente, que você consiga abrir (ex.: `seunome+teresina@empresa.com.br`).
 - Três planilhas do BI "Detalhamento Empresas" (Excel, como sai do Power BI): [M-2], [M-1] e [M0].
   Em cada uma, anote 4 CNPJs que você vai indicar (A, B, D, E) e o C. Cash-in deles. C e F são CNPJs
   válidos que **não** estão em nenhuma planilha (para F, use `88.999.000/1001-41`).
-- O sistema não envia e-mail: convites e links de nova senha são gerados por um diretor, que copia
-  e envia (bloco 12). Nenhum passo depende de e-mail.
+- O único e-mail que o sistema envia é o do "Esqueci minha senha" (passos 12.7 e 12.8). Ele exige
+  o envio configurado no servidor: `/status` mostra `"email":"ligado"`. Sem isso, a tela explica o
+  caminho pelo diretor e esses dois passos não se aplicam; nenhum outro passo depende de e-mail.
 
 ## Bloco 1 — Acesso
 
@@ -40,17 +42,17 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 1.2. Entrar como diretor → Visão geral; menu: Visão geral, Parceiros, Indicações, Importações, Fechamento do mês, Equipe.
 1.3. Entrar com a senha errada → "E-mail ou senha incorretos.", sem dizer qual dos dois está errado.
 
-## Bloco 2 — Convite e aprovação (3 parceiros)
+## Bloco 2 — Cadastro e aprovação (3 parceiros)
 
-2.1. Diretor → Parceiros. Não existe "Novo parceiro": parceiro entra por convite. Em Convites → **Gerar convite**: "Unidade Teresina", tipo Unidade, validade 7 dias → o link aparece uma única vez; copiar.
-2.2. Janela do parceiro → abrir o link → "Cadastro · Unidade Teresina" com a validade. Preencher responsável, cidade/UF, telefone, e-mail, senha → **Cadastro em análise**. Tentar /inicio → continua em Cadastro em análise.
-2.3. Abrir o mesmo link de novo → "Convite já utilizado". Trocar um caractere do link → "Convite inválido".
-2.4. Diretor → Parceiros → Aguardando aprovação → **Analisar e aprovar** em Teresina. Clicar **Aprovar e liberar acesso** sem valor por vida → o navegador avisa que o campo é obrigatório.
-2.5. Valor por vida 1,50, **Vale a partir de** [M-2], prazo em branco → aviso "Parceiro aprovado. O acesso dele está liberado."; a ficha mostra Situação Ativo e "Hoje: R$ 1,50 por vida · sem prazo · vale desde [M-2]".
+2.1. Diretor → Parceiros. Não existe "Novo parceiro" nem convite: o parceiro cria a própria conta. Em Aguardando aprovação aparece o **endereço direto do cadastro**, para enviar ao parceiro. Janela do parceiro → tela de entrada → **Criar conta de parceiro** → abre o cadastro.
+2.2. Preencher nome ("Unidade Teresina"), cidade/UF, responsável, telefone, e-mail e senha, com a **confirmação de senha diferente** → "As senhas precisam ser iguais." e nada é criado. Corrigir a confirmação → **Enviar cadastro** → **Cadastro em análise**. Tentar /inicio → continua em Cadastro em análise. Na Visão geral do diretor aparece "1 cadastro de parceiro aguardando aprovação", com o atalho **Analisar em Parceiros**.
+2.3. Em outra janela, Criar conta de parceiro com o **mesmo e-mail** e outra senha → "Este e-mail já tem conta…"; nenhum cadastro novo aparece para o diretor. Um endereço de convite que não existe (/convite/…) → "Convite inválido".
+2.4. Diretor → Parceiros → Aguardando aprovação → **Analisar e aprovar** em Teresina: o Tipo aparece como "a escolher na aprovação". Clicar **Aprovar e liberar acesso** sem escolher o **Tipo de parceiro** → o navegador avisa que o campo é obrigatório; escolher Unidade e clicar sem valor por vida → mesmo aviso no valor.
+2.5. Tipo Unidade, valor por vida 1,50, **Vale a partir de** [M-2], prazo em branco → aviso "Parceiro aprovado. O acesso dele está liberado."; a ficha mostra Situação Ativo, Tipo Unidade e "Hoje: R$ 1,50 por vida · sem prazo · vale desde [M-2]".
 2.6. Na janela do parceiro, recarregar → entra em Meu painel com "Olá, Unidade Teresina".
-2.7. Repetir 2.1–2.5 para Unidade Natal: 2,00, a partir de [M-2], sem prazo.
-2.8. Repetir para Contador Fulano (tipo Parceiro externo): 1,50, a partir de [M-2], prazo 12.
-2.9. Convite "Unidade Recusa", cadastrar; diretor → **Recusar cadastro** com motivo → aviso "Cadastro recusado…"; a ficha mostra o motivo e "Reconsiderar: aprovar o cadastro". O parceiro vê "Cadastro não aprovado" + motivo. Em Parceiros, Recusa aparece em Recusados e não em Ativos.
+2.7. Repetir o cadastro e a aprovação para Unidade Natal: tipo Unidade, 2,00, a partir de [M-2], sem prazo.
+2.8. Repetir para Contador Fulano: tipo **Parceiro externo**, 1,50, a partir de [M-2], prazo 12; a ficha mostra Tipo Parceiro externo.
+2.9. Cadastrar "Unidade Recusa"; diretor → **Recusar cadastro** com motivo → aviso "Cadastro recusado…"; a ficha mostra o motivo e "Reconsiderar: aprovar o cadastro". O parceiro vê "Cadastro não aprovado" + motivo. Em Parceiros, Recusa aparece em Recusados e não em Ativos.
 2.10. Diretor → Teresina → **Nova vigência**: 1,80 a partir de [M0] → "Regra salva."; a tabela mostra [M-2] R$ 1,50 "não, histórico" e [M0] R$ 1,80 "sim, é a mais recente"; só existe "Editar a vigência de [M0]".
 2.11. Como Teresina → Meu cadastro: só leitura, com "Hoje: R$ 1,80 por vida · sem prazo · vale desde [M0]". /parceiros → volta para Meu painel.
 
@@ -126,7 +128,7 @@ O mês em andamento pode ser enviado várias vezes; cada envio substitui o mês 
 ## Bloco 9 — Isolamento
 
 9.1. Teresina abre pela URL a ficha de Natal (/parceiros/<id>), /fechamento, /importacoes → volta para Meu painel, sem dado alheio.
-9.2. Parceiro pendente (novo convite, cadastro sem aprovar) → /inicio continua em Cadastro em análise.
+9.2. Parceiro pendente (cadastro novo, ainda sem aprovar) → /inicio continua em Cadastro em análise.
 9.3. Ctrl+U em qualquer tela, procurar `service_role` → nada.
 
 ## Bloco 10 — Valor e prazo da indicação e "como foi pago"
@@ -147,15 +149,16 @@ Exige a chave da IA no servidor (`/status` mostra `"ia":"ligada"`). Sem ela, as 
 11.3. **Faça no passo 7.1, antes de fechar [M-1]**: Fechamento → [M-1] preparado → "Analisar com IA" → resumo e alertas; recalcular depois mostra o aviso de revisão anterior ao cálculo.
 11.4. Parceiro → nenhuma tela mostra IA.
 
-## Bloco 12 — Nova senha e Equipe (sem e-mail)
+## Bloco 12 — Nova senha e Equipe
 
-12.1. Diretor → Parceiros → ficha de um parceiro ativo → **Acesso ao sistema** → Gerar link de nova senha → o link aparece para copiar.
+12.1. (Reserva, para quando o e-mail não chega) Diretor → Parceiros → ficha de um parceiro ativo → **Acesso ao sistema** → Gerar link de nova senha → o link aparece para copiar.
 12.2. Em outra janela, abrir o link → "Definir nova senha" com o nome do responsável e o e-mail → salvar → login mostra "Senha alterada" → entrar com a nova.
 12.3. Abrir o mesmo link de novo → "Link inválido ou expirado".
 12.4. Diretor → **Minha conta** (ao lado de Sair) → senha atual, nova senha e confirmação → **Alterar senha** → "Senha alterada". Em outra janela, entrar com a nova senha funciona; a antiga é recusada.
 12.5. Diretor → **Equipe** → a lista mostra os diretores com e-mail → **Convidar diretor** → nome → Gerar convite → o link aparece para copiar. Em outra janela, abrir o link → "Cadastro · (nome convidado)", convite para diretor → e-mail de acesso e senha → **Criar acesso** → entra direto na Visão geral, com o menu completo (inclusive Equipe). De volta à Equipe, o novo diretor está na lista e o convite aparece como "Cadastro feito". Parceiro que digita /equipe volta ao próprio painel.
 12.6. Diretor → Equipe → na linha de outro diretor → **Gerar link de nova senha** (na própria linha aparece "Você", sem botão). Em outra janela, abrir o link → Definir nova senha → entrar com a nova funciona.
-12.7. Tela de login → **Esqueci minha senha** → a página só explica: pedir o link a um diretor (parceiro: pela ficha; diretor: pela Equipe); não há campo de e-mail nem envio. "Voltar ao login" leva ao login.
+12.7. Tela de login → **Esqueci minha senha** → informar o e-mail de Teresina → **Enviar link** → "Se este e-mail tiver cadastro, o link para criar a nova senha foi enviado…". Na caixa de entrada de Teresina chega o e-mail "Fortes Pay: crie sua nova senha", com o nome do responsável e o link → abrir → "Definir nova senha" → salvar → login mostra "Senha alterada" → entrar com a nova. Abrir o mesmo link de novo → "Link inválido ou expirado", com **Pedir um novo link**.
+12.8. Esqueci minha senha com um e-mail **sem cadastro** → a mesma mensagem, e nenhum e-mail é enviado. Pedir de novo para o mesmo e-mail logo em seguida → a mesma mensagem, sem um segundo e-mail (um pedido a cada 2 minutos por conta). Diretor também recebe o link pelo e-mail dele. "Voltar ao login" leva ao login.
 
 ## Bloco 13 — O parceiro entende o que rende
 
@@ -168,9 +171,19 @@ Exige a chave da IA no servidor (`/status` mostra `"ia":"ligada"`). Sem ela, as 
 
 14.1. Aprovar, recusar, remover vigência, fechar lote, responder fechamento e mudar situação mostram um aviso verde no topo da página; recarregar a página não repete o aviso.
 14.2. Depois de "Indicação registrada." ou "Convite criado", os campos ficam limpos: clicar de novo não repete o cadastro.
-14.3. Abrir um convite numa janela já conectada como outro parceiro → "Você já está conectado", com botão Sair.
+14.3. Abrir um convite de diretor numa janela já conectada com outra conta → "Você já está conectado", com botão Sair.
 14.4. Deixar uma tela aberta, sair em outra aba e salvar algo na primeira → "Sua sessão expirou. Entre de novo para continuar." e o login.
 14.5. Endereço que não existe (ex.: /pagina-que-nao-existe) → "Página não encontrada" com "Ir para o início".
+14.6. Link antigo de convite de parceiro (de antes de 16/11/2026) → "O cadastro agora é direto", com **Criar conta de parceiro**.
+
+## Bloco 15 — Vigência do parceiro escolhida no envio
+
+Teresina tem duas vigências: 1,50 desde [M-2] e 1,80 desde [M0] (passo 2.10). O caso: uma empresa nova paga pela primeira vez em [M0], mas deve seguir a vigência anterior.
+
+15.1. Teresina → **Nova indicação**: empresa H, um CNPJ que está na planilha de [M0] e ainda não foi indicado. Diretor → Importações → enviar de novo a planilha de [M0] → no detalhe do envio, **Empresas com vidas em [M0]**: H vem no topo, com "nova: 1º mês pago" e, em Vigência aplicada, "R$ 1,80 por vida · sem prazo" e "vigência de [M0] … (automática)" (se a planilha trouxer "Prim cashin" de H anterior a [M0], a automática já é a de [M-2]). A não tem seletor: "já teve vidas em mês fechado".
+15.2. Na linha de H, escolher "Vigência de [M-2] · R$ 1,50 · sem prazo" → **Aplicar** → aviso "Regra da indicação atualizada…"; a linha passa a "R$ 1,50 por vida", "(escolhida pelo diretor)", e o valor do mês = vidas × 1,50.
+15.3. Teresina → Meu painel → [M0]: H a R$ 1,50.
+15.4. Diretor → Indicações → H → **Vigência do parceiro aplicada** mostra a vigência de [M-2], "escolhida pelo diretor"; escolher "Automática" → Aplicar → H volta a 1,80, também no painel de Teresina. Na ficha de A não há seletor: a indicação já teve vidas num mês fechado.
 
 ## Como rodar à mão (ambiente local)
 

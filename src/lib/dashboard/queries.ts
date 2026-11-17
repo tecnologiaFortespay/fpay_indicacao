@@ -64,7 +64,8 @@ export async function directorOverview(competency: string): Promise<Overview> {
     return {
       partner_id: partner.id,
       name: partner.name,
-      kind: partner.kind,
+      // Parceiro ativo sempre tem tipo (escolhido na aprovação).
+      kind: partner.kind ?? "",
       lives,
       value_per_life:
         valuePerLife === null || valuePerLife === undefined ? null : String(valuePerLife),

@@ -1,6 +1,12 @@
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { expect, type Browser, type Locator, type Page } from "@playwright/test";
+import {
+  expect,
+  type APIRequestContext,
+  type Browser,
+  type Locator,
+  type Page,
+} from "@playwright/test";
 import { adminClient, ensureStaffUser } from "../scripts/bootstrap.mjs";
 
 export const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -105,4 +111,49 @@ export async function openDisclosure(page: Page, label: string | RegExp) {
 // Botão de envio de um formulário dentro do bloco (o resumo do bloco tem o mesmo texto às vezes).
 export function submitIn(container: Locator, name: string | RegExp) {
   return container.locator('button[type="submit"]', { hasText: name });
+}
+
+// Caixa de e-mail de teste: o Mailpit do Supabase local recebe tudo o que o sistema envia
+// (SMTP_HOST e SMTP_PORT de .env.test). Nada sai para um endereço de verdade.
+const MAILPIT = "http://127.0.0.1:54344";
+
+export type Mail = { subject: string; from: string; text: string };
+
+export async function clearMailbox(request: APIRequestContext) {
+  const response = await request.delete(`${MAILPIT}/api/v1/messages`);
+  expect(response.ok()).toBe(true);
+}
+
+// Mensagens recebidas pelo endereço, da mais nova para a mais antiga.
+export async function mailsTo(request: APIRequestContext, address: string): Promise<Mail[]> {
+  const search = await request.get(`${MAILPIT}/api/v1/search`, {
+    params: { query: `to:"${address}"` },
+  });
+  expect(search.ok()).toBe(true);
+  const { messages } = (await search.json()) as { messages: { ID: string }[] };
+  const mails: Mail[] = [];
+  for (const { ID } of messages) {
+    const message = (await (await request.get(`${MAILPIT}/api/v1/message/${ID}`)).json()) as {
+      Subject: string;
+      From: { Address: string };
+      Text: string;
+    };
+    mails.push({ subject: message.Subject, from: message.From.Address, text: message.Text });
+  }
+  return mails;
+}
+
+// Espera a mensagem mais nova para o endereço (o envio acontece dentro da ação do formulário).
+export async function waitForMail(request: APIRequestContext, address: string): Promise<Mail> {
+  let mails: Mail[] = [];
+  await expect
+    .poll(
+      async () => {
+        mails = await mailsTo(request, address);
+        return mails.length;
+      },
+      { timeout: 20000 },
+    )
+    .toBeGreaterThan(0);
+  return mails[0];
 }

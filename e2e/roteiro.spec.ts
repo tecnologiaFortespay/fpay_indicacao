@@ -14,12 +14,15 @@ import { FAKE_CLOSING_SUMMARY, fakeRequests, resetFakeRequests } from "./fake-an
 import {
   actor,
   clean,
+  clearMailbox,
   login,
+  mailsTo,
   openDisclosure,
   PASSWORD,
   resetAndSeedStaff,
   submitIn,
   upload,
+  waitForMail,
 } from "./helpers";
 
 // O roteiro foi escrito com hoje em outubro de 2026. Aqui os meses são relativos a hoje, para o
@@ -45,6 +48,8 @@ const C = company("556667770001", "Empresa C Ltda", "Grupo C");
 const D = company("667778880001", "Empresa D Ltda", "Grupo D");
 const E = company("778889990001", "Empresa E Ltda", "Grupo E");
 const F = company("889990001001", "Empresa F Ltda", "Grupo F");
+// Empresa nova, indicada e paga pela primeira vez no mês corrente (bloco 15).
+const G = company("990001112001", "Empresa G Ltda", "Grupo G");
 
 // Clientes da Fortes Pay que não foram indicados (ficam "fora da plataforma") e duas linhas inválidas.
 const OTHERS: ExportRow[] = Array.from({ length: 8 }, (_, index) => ({
@@ -62,6 +67,7 @@ function exportFor(
   month: string,
   lives: Partial<Record<"A" | "B" | "D" | "E", number>>,
   format: "xlsx" | "csv" = "xlsx",
+  extra: ExportRow[] = [],
 ) {
   const referred: ExportRow[] = [];
   for (const [key, entry] of [
@@ -75,7 +81,7 @@ function exportFor(
       referred.push({ cnpj: entry.cnpj, company: entry.company, lives: value, group: entry.group });
     }
   }
-  const all = [...referred, ...OTHERS, ...INVALID];
+  const all = [...referred, ...extra, ...OTHERS, ...INVALID];
   return format === "csv" ? biExportCsv(all, month) : biExport(all, month);
 }
 
@@ -86,6 +92,11 @@ const OCTOBER = exportFor(OCT, { A: 37, D: 58, E: 23 });
 // Envio parcial seguinte do mesmo mês: A fechou mais vidas. Vem em CSV, como o Google Planilhas
 // exporta (nomes só nos subtotais, números com ponto de milhar).
 const OCTOBER_UPDATE = exportFor(OCT, { A: 40, D: 58, E: 23 }, "csv");
+
+// Envio parcial seguinte: entra a empresa G, nova, com 15 vidas (bloco 15).
+const OCTOBER_WITH_G = exportFor(OCT, { A: 40, D: 58, E: 23 }, "xlsx", [
+  { cnpj: G.cnpj, company: G.company, lives: 15, group: G.group },
+]);
 
 const NEW_PASSWORD = "Nova-senha-e2e-999";
 
@@ -107,29 +118,31 @@ async function rowText(page: Page, name: string | RegExp): Promise<string> {
   return clean(await row.innerText());
 }
 
-async function createInvite(director: Page, name: string, kind: string) {
-  await director.goto("/parceiros");
-  const form = await openDisclosure(director, "Gerar convite");
-  await form.getByLabel("Nome da unidade ou do parceiro").fill(name);
-  await form.getByRole("combobox", { name: "Tipo" }).selectOption({ label: kind });
-  await submitIn(form, "Gerar convite").click();
-  return form.getByLabel("Link do convite").inputValue();
-}
+type Registration = {
+  name: string;
+  contact: string;
+  city: string;
+  state: string;
+  phone: string;
+  email: string;
+};
 
-async function register(
-  page: Page,
-  link: string,
-  data: { contact: string; city: string; state: string; phone: string; email: string },
-) {
-  await page.goto(link);
+// Cadastro aberto (decisão 25): o parceiro cria a própria conta em /cadastro, sem convite.
+async function fillRegistration(page: Page, data: Registration, confirmation = PASSWORD) {
+  await page.getByLabel("Nome da unidade ou do parceiro").fill(data.name);
   await page.getByLabel("Cidade").fill(data.city);
   await page.getByLabel("UF").fill(data.state);
   await page.getByLabel("Nome do responsável").fill(data.contact);
   await page.getByLabel("Telefone").fill(data.phone);
   await page.getByLabel("E-mail de acesso").fill(data.email);
   await page.getByLabel("Senha (mínimo de 8 caracteres)").fill(PASSWORD);
-  await page.getByLabel("Confirmar senha").fill(PASSWORD);
+  await page.getByLabel("Confirmar senha").fill(confirmation);
   await page.getByRole("button", { name: "Enviar cadastro" }).click();
+}
+
+async function register(page: Page, data: Registration) {
+  await page.goto("/cadastro");
+  await fillRegistration(page, data);
   await expect(page).toHaveURL(/\/cadastro-em-analise$/);
 }
 
@@ -142,7 +155,11 @@ async function openPending(director: Page, name: string): Promise<string> {
   return director.url().split("/").pop() ?? "";
 }
 
-async function approve(director: Page, rule: { value: string; from: string; term: string }) {
+async function approve(
+  director: Page,
+  rule: { kind: string; value: string; from: string; term: string },
+) {
+  await director.getByLabel("Tipo de parceiro").selectOption({ label: rule.kind });
   await director.getByLabel("Valor por vida (R$)").fill(rule.value);
   await director.getByLabel("Vale a partir de").fill(rule.from);
   await director.getByLabel("Prazo (meses)").fill(rule.term);
@@ -223,7 +240,6 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   const rec = await actor(browser, base);
   const pen = await actor(browser, base);
   const ids: Record<string, string> = {};
-  let teresinaLink = "";
   let septemberAt = 0;
 
   await test.step("1.1 sem login, as áreas internas levam ao login", async () => {
@@ -259,48 +275,80 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(bi).toHaveURL(/\/inicio$/);
   });
 
-  await test.step("2.1 sem Novo parceiro; convite de 7 dias, link exibido uma vez", async () => {
+  await test.step("2.1 sem Novo parceiro e sem convite; o cadastro abre pela tela de entrada", async () => {
     await dir.goto("/parceiros");
     await expect(dir.getByText("Novo parceiro")).toHaveCount(0);
-    const sevenDays = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
-    const invite = await openDisclosure(dir, "Gerar convite");
-    await expect(invite.getByLabel(/^Válido até/)).toHaveValue(sevenDays);
-    teresinaLink = await createInvite(dir, "Unidade Teresina", "Unidade");
-    expect(teresinaLink).toMatch(/\/convite\/[A-Za-z0-9_-]{40,}$/);
-    await dir.reload();
-    await expect(dir.getByLabel("Link do convite")).toHaveCount(0);
+    await expect(dir.getByText("Gerar convite")).toHaveCount(0);
+    await expect(dir.getByRole("heading", { name: "Convites" })).toHaveCount(0);
+    await expect(section(dir, "Aguardando aprovação")).toContainText(`${base}/cadastro`);
+    await ter.goto("/login");
+    await ter.getByRole("link", { name: "Criar conta de parceiro" }).click();
+    await expect(ter).toHaveURL(/\/cadastro$/);
+    await expect(
+      ter.getByRole("heading", { level: 1, name: "Criar conta de parceiro" }),
+    ).toBeVisible();
   });
 
-  await test.step("2.2 cadastro pelo link fica em análise, inclusive em /inicio", async () => {
-    await ter.goto(teresinaLink);
-    await expect(
-      ter.getByRole("heading", { level: 1, name: "Cadastro · Unidade Teresina" }),
-    ).toBeVisible();
-    await expect(ter.getByText(/válido até \d{2}\/\d{2}\/\d{4}/)).toBeVisible();
-    await register(ter, teresinaLink, {
+  await test.step("2.2 confirmação de senha diferente é recusada; cadastro certo fica em análise, inclusive em /inicio", async () => {
+    const teresina = {
+      name: "Unidade Teresina",
       contact: "Maria Teresina",
       city: "Teresina",
       state: "PI",
       phone: "(86) 99999-0000",
       email: "teresina.e2e@fortespay.local",
-    });
+    };
+    await fillRegistration(ter, teresina, "Senha-diferente-123");
+    await expect(
+      ter.getByRole("alert").filter({ hasText: "As senhas precisam ser iguais." }),
+    ).toBeVisible();
+    await expect(ter).toHaveURL(/\/cadastro$/);
+    await register(ter, teresina);
     await expect(ter.getByRole("heading", { level: 1, name: "Cadastro em análise" })).toBeVisible();
     await ter.goto("/inicio");
     await expect(ter).toHaveURL(/\/cadastro-em-analise$/);
+    // O cadastro chega sem o diretor ter pedido: a Visão geral avisa e leva a Parceiros.
+    await dir.goto("/inicio");
+    await expect(dir.getByText("1 cadastro de parceiro aguardando aprovação")).toBeVisible();
+    await dir.getByRole("link", { name: "Analisar em Parceiros" }).click();
+    await expect(dir).toHaveURL(/\/parceiros$/);
+    // Com o cadastro feito, a tela de criar conta leva de volta ao aviso de análise.
+    await ter.goto("/cadastro");
+    await expect(ter).toHaveURL(/\/cadastro-em-analise$/);
   });
 
-  await test.step("2.3 link usado e link alterado", async () => {
-    await ter.goto(teresinaLink);
+  await test.step("2.3 o mesmo e-mail não cria outra conta; link de convite que não existe é recusado", async () => {
+    await anon.goto("/cadastro");
+    await anon.getByLabel("Nome da unidade ou do parceiro").fill("Unidade Repetida");
+    await anon.getByLabel("Cidade").fill("Teresina");
+    await anon.getByLabel("UF").fill("PI");
+    await anon.getByLabel("Nome do responsável").fill("Outra Pessoa");
+    await anon.getByLabel("Telefone").fill("(86) 90000-0000");
+    await anon.getByLabel("E-mail de acesso").fill("teresina.e2e@fortespay.local");
+    await anon.getByLabel("Senha (mínimo de 8 caracteres)").fill("Outra-senha-12345");
+    await anon.getByLabel("Confirmar senha").fill("Outra-senha-12345");
+    await anon.getByRole("button", { name: "Enviar cadastro" }).click();
     await expect(
-      ter.getByRole("heading", { level: 1, name: "Convite já utilizado" }),
+      anon.getByRole("alert").filter({ hasText: "Este e-mail já tem conta." }),
     ).toBeVisible();
-    const changed = teresinaLink.slice(0, -1) + (teresinaLink.endsWith("A") ? "B" : "A");
-    await ter.goto(changed);
-    await expect(ter.getByRole("heading", { level: 1, name: "Convite inválido" })).toBeVisible();
+    await anon.goto(`/convite/${"A".repeat(43)}`);
+    await expect(anon.getByRole("heading", { level: 1, name: "Convite inválido" })).toBeVisible();
+    await dir.goto("/parceiros");
+    await expect(
+      section(dir, "Aguardando aprovação").getByRole("link", { name: /Unidade Repetida/ }),
+    ).toHaveCount(0);
   });
 
-  await test.step("2.4 aprovar sem valor por vida é bloqueado", async () => {
+  await test.step("2.4 aprovar sem tipo ou sem valor por vida é bloqueado", async () => {
     ids.teresina = await openPending(dir, "Unidade Teresina");
+    // O cadastro aberto chega sem tipo: o diretor escolhe ao aprovar.
+    await expect(dir.locator(".fp-facts")).toContainText("a escolher na aprovação");
+    await dir.getByRole("button", { name: "Aprovar e liberar acesso" }).click();
+    const kind = dir.getByLabel("Tipo de parceiro");
+    expect(await kind.evaluate((input: HTMLSelectElement) => input.validity.valueMissing)).toBe(
+      true,
+    );
+    await kind.selectOption({ label: "Unidade" });
     await dir.getByRole("button", { name: "Aprovar e liberar acesso" }).click();
     const value = dir.getByLabel("Valor por vida (R$)");
     expect(await value.evaluate((input: HTMLInputElement) => input.validity.valueMissing)).toBe(
@@ -309,10 +357,11 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(dir.getByRole("heading", { name: "Aprovar o cadastro" })).toBeVisible();
   });
 
-  await test.step("2.5 aprovar com 1,50 desde agosto, sem prazo: ficha Ativo", async () => {
-    const rules = await approve(dir, { value: "1,50", from: AUG, term: "" });
+  await test.step("2.5 aprovar como Unidade, 1,50 desde agosto, sem prazo: ficha Ativo", async () => {
+    const rules = await approve(dir, { kind: "Unidade", value: "1,50", from: AUG, term: "" });
     expect(rules).toContain(`${AUG_LABEL} R$ 1,50 sem prazo`);
     await expect(dir.locator(".fp-facts")).toContainText("Ativo");
+    await expect(dir.locator(".fp-facts")).toContainText("Unidade");
   });
 
   await test.step("2.6 o parceiro recarrega e entra em Meu painel", async () => {
@@ -324,8 +373,8 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   });
 
   await test.step("2.7 Unidade Natal: 2,00 desde agosto, sem prazo", async () => {
-    const link = await createInvite(dir, "Unidade Natal", "Unidade");
-    await register(nat, link, {
+    await register(nat, {
+      name: "Unidade Natal",
       contact: "João Natal",
       city: "Natal",
       state: "RN",
@@ -333,7 +382,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
       email: "natal.e2e@fortespay.local",
     });
     ids.natal = await openPending(dir, "Unidade Natal");
-    expect(await approve(dir, { value: "2,00", from: AUG, term: "" })).toContain(
+    expect(await approve(dir, { kind: "Unidade", value: "2,00", from: AUG, term: "" })).toContain(
       `${AUG_LABEL} R$ 2,00 sem prazo`,
     );
     await nat.reload();
@@ -341,8 +390,8 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   });
 
   await test.step("2.8 Contador Fulano, Parceiro externo: 1,50 desde agosto, 12 meses", async () => {
-    const link = await createInvite(dir, "Contador Fulano", "Parceiro externo");
-    await register(con, link, {
+    await register(con, {
+      name: "Contador Fulano",
       contact: "Fulano de Tal",
       city: "Fortaleza",
       state: "CE",
@@ -350,17 +399,17 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
       email: "contador.e2e@fortespay.local",
     });
     ids.contador = await openPending(dir, "Contador Fulano");
-    expect(await approve(dir, { value: "1,50", from: AUG, term: "12" })).toContain(
-      `${AUG_LABEL} R$ 1,50 12 meses`,
-    );
+    expect(
+      await approve(dir, { kind: "Parceiro externo", value: "1,50", from: AUG, term: "12" }),
+    ).toContain(`${AUG_LABEL} R$ 1,50 12 meses`);
     await expect(dir.locator(".fp-facts")).toContainText("Parceiro externo");
     await con.reload();
     await expect(con).toHaveURL(/\/inicio$/);
   });
 
   await test.step("2.9 recusa com motivo; fora da lista de ativos", async () => {
-    const link = await createInvite(dir, "Unidade Recusa", "Unidade");
-    await register(rec, link, {
+    await register(rec, {
+      name: "Unidade Recusa",
       contact: "Pedro Recusa",
       city: "Recife",
       state: "PE",
@@ -1103,8 +1152,8 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   });
 
   await test.step("9.2 parceiro pendente continua em Cadastro em análise", async () => {
-    const link = await createInvite(dir, "Unidade Pendente", "Unidade");
-    await register(pen, link, {
+    await register(pen, {
+      name: "Unidade Pendente",
       contact: "Ana Pendente",
       city: "Sobral",
       state: "CE",
@@ -1233,7 +1282,106 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     expect(row).toContain("R$ 3,00 por vida · 6 meses");
   });
 
-  // Bloco 12 (continuação) — decisão 19 de 09/11/2026: senha e equipe sem e-mail.
+  // Bloco 15 — decisão 27 de 16/11/2026: o diretor escolhe a vigência do parceiro de uma empresa
+  // nova, na tela do envio da planilha. Teresina tem 1,50 desde agosto e 1,80 desde outubro.
+  const companies = () => section(dir, /^Empresas com vidas em /);
+
+  await test.step("15.1 empresa nova no envio de outubro: vigência automática de outubro; quem já fechou mês não troca", async () => {
+    await refer(ter, G, "15");
+    await expect(
+      ter.getByRole("status").filter({ hasText: "Indicação registrada." }),
+    ).toBeVisible();
+    await upload(bi, "outubro-com-g.xlsx", OCT, OCTOBER_WITH_G);
+    await dir.goto(bi.url());
+    await expect(
+      dir.getByRole("heading", { name: new RegExp(`^Empresas com vidas em ${OCT_LABEL} \\(`) }),
+    ).toBeVisible();
+    const rowG = clean(
+      await companies()
+        .getByRole("row", { name: new RegExp(G.company) })
+        .innerText(),
+    );
+    expect(rowG).toContain("nova: 1º mês pago");
+    expect(rowG).toContain("Unidade Teresina");
+    expect(rowG).toContain("R$ 1,80 por vida · sem prazo");
+    expect(rowG).toContain(
+      `vigência de ${shortCompetencyLabel(OCT)}: R$ 1,80 por vida · sem prazo (automática)`,
+    );
+    expect(rowG).toContain("R$ 27,00");
+    // A já teve vidas em agosto e setembro, fechados: a vigência dela não muda por aqui.
+    const rowA = companies().getByRole("row", { name: new RegExp(A.company) });
+    await expect(rowA).toContainText("já teve vidas em mês fechado");
+    await expect(rowA.getByRole("button", { name: "Aplicar" })).toHaveCount(0);
+    // Só G pode trocar de vigência: as outras empresas do mês já tiveram vidas em mês fechado.
+    await expect(companies().getByRole("button", { name: "Aplicar" })).toHaveCount(1);
+  });
+
+  await test.step("15.2 diretor aplica a vigência de agosto a G na tela do envio: 1,50 na hora", async () => {
+    const row = companies().getByRole("row", { name: new RegExp(G.company) });
+    const choice = row.getByLabel(`Vigência do parceiro para ${G.company}`);
+    expect(clean((await choice.locator("option").allInnerTexts()).join(" | "))).toBe(
+      [
+        `Automática (${shortCompetencyLabel(OCT)} · R$ 1,80 · sem prazo)`,
+        `Vigência de ${shortCompetencyLabel(AUG)} · R$ 1,50 · sem prazo`,
+        `Vigência de ${shortCompetencyLabel(OCT)} · R$ 1,80 · sem prazo`,
+      ].join(" | "),
+    );
+    await choice.selectOption(AUG);
+    await row.getByRole("button", { name: "Aplicar" }).click();
+    await expect(
+      dir.getByRole("status").filter({ hasText: "Regra da indicação atualizada." }),
+    ).toBeVisible();
+    await expect(dir).toHaveURL(/\/importacoes\/[0-9a-f-]{36}$/);
+    const rowG = clean(
+      await companies()
+        .getByRole("row", { name: new RegExp(G.company) })
+        .innerText(),
+    );
+    expect(rowG).toContain("R$ 1,50 por vida · sem prazo");
+    expect(rowG).toContain(
+      `vigência de ${shortCompetencyLabel(AUG)}: R$ 1,50 por vida · sem prazo (escolhida pelo diretor)`,
+    );
+    expect(rowG).toContain("R$ 22,50");
+    await expect(
+      companies()
+        .getByRole("row", { name: new RegExp(G.company) })
+        .getByLabel(`Vigência do parceiro para ${G.company}`),
+    ).toHaveValue(AUG);
+  });
+
+  await test.step("15.3 Teresina vê G a 1,50 no painel", async () => {
+    await ter.goto("/inicio");
+    expect(await rowText(ter, G.company)).toContain("15 R$ 1,50 R$ 22,50 sem prazo");
+  });
+
+  await test.step("15.4 na ficha da indicação a escolha aparece e volta para a automática", async () => {
+    await dir.goto("/indicacoes");
+    await dir.getByRole("link", { name: G.company }).click();
+    await expect(dir).toHaveURL(/\/indicacoes\/[0-9a-f-]{36}$/);
+    const card = section(dir, "Vigência do parceiro aplicada");
+    expect(clean(await card.innerText())).toContain(
+      `Hoje: vigência de ${shortCompetencyLabel(AUG)}: R$ 1,50 por vida · sem prazo (escolhida pelo diretor)`,
+    );
+    await card.getByLabel(`Vigência do parceiro para ${G.company}`).selectOption("");
+    await card.getByRole("button", { name: "Aplicar" }).click();
+    await expect(
+      dir.getByRole("status").filter({ hasText: "Regra da indicação atualizada." }),
+    ).toBeVisible();
+    expect(clean(await section(dir, "Vigência do parceiro aplicada").innerText())).toContain(
+      `Hoje: vigência de ${shortCompetencyLabel(OCT)}: R$ 1,80 por vida · sem prazo (automática)`,
+    );
+    await ter.goto("/inicio");
+    expect(await rowText(ter, G.company)).toContain("15 R$ 1,80 R$ 27,00 sem prazo");
+    // A, com vidas em mês fechado, não oferece a escolha na ficha.
+    await dir.goto("/indicacoes");
+    await dir.getByRole("link", { name: A.company }).click();
+    const locked = section(dir, "Vigência do parceiro aplicada");
+    await expect(locked).toContainText("já teve vidas num mês fechado");
+    await expect(locked.getByRole("button", { name: "Aplicar" })).toHaveCount(0);
+  });
+
+  // Bloco 12 (continuação) — decisão 19 de 09/11/2026 (Minha conta e Equipe) e decisão 26 de
+  // 16/11/2026 ("Esqueci minha senha" por e-mail).
   await test.step("12.4 Minha conta: diretor troca a própria senha; a nova entra, a antiga não", async () => {
     await dir.goto("/inicio");
     await dir.getByRole("link", { name: "Minha conta" }).first().click();
@@ -1330,7 +1478,8 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(page).toHaveURL(/\/inicio$/);
   });
 
-  await test.step("12.7 Esqueci minha senha explica o caminho pelo diretor, sem e-mail", async () => {
+  await test.step("12.7 Esqueci minha senha: o link chega por e-mail e troca a senha", async () => {
+    await clearMailbox(request);
     const page = await actor(browser, base);
     await page.goto("/login");
     await page.getByRole("link", { name: "Esqueci minha senha" }).click();
@@ -1338,10 +1487,56 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(
       page.getByRole("heading", { level: 1, name: "Esqueci minha senha" }),
     ).toBeVisible();
-    await expect(page.getByText("O sistema não envia e-mail.")).toBeVisible();
-    await expect(page.getByText(/gera o link em Equipe/)).toBeVisible();
-    await expect(page.getByRole("button", { name: "Enviar link" })).toHaveCount(0);
-    await expect(page.getByLabel("E-mail", { exact: true })).toHaveCount(0);
+    await page.getByLabel("E-mail", { exact: true }).fill("Teresina.E2E@fortespay.local");
+    await page.getByRole("button", { name: "Enviar link" }).click();
+    await expect(
+      page.getByRole("status").filter({ hasText: "Se este e-mail tiver cadastro" }),
+    ).toBeVisible();
+    const mail = await waitForMail(request, "teresina.e2e@fortespay.local");
+    expect(mail.subject).toBe("Fortes Pay: crie sua nova senha");
+    expect(mail.from).toBe("suporte@fortespay.local");
+    expect(mail.text).toContain("Olá, Maria Teresina.");
+    expect(mail.text).toContain("24 horas");
+    const link = mail.text.match(/https?:\/\/\S+\/nova-senha\/[A-Za-z0-9_-]{43}/)?.[0] ?? "";
+    expect(link.startsWith(`${base}/nova-senha/`)).toBe(true);
+
+    await page.goto(link);
+    await expect(page.getByRole("heading", { level: 1, name: "Definir nova senha" })).toBeVisible();
+    await expect(page.getByText(/teresina\.e2e@fortespay\.local/)).toBeVisible();
+    await page.getByLabel("Nova senha (mínimo de 8 caracteres)").fill("Senha-teresina-email-1");
+    await page.getByLabel("Confirme a nova senha").fill("Senha-teresina-email-1");
+    await page.getByRole("button", { name: "Salvar nova senha" }).click();
+    await expect(page).toHaveURL(/\/login\?senha=alterada$/);
+    await login(page, "teresina.e2e@fortespay.local", "Senha-teresina-email-1");
+    await expect(page).toHaveURL(/\/inicio$/);
+    // O link vale uma vez só; a tela oferece pedir outro.
+    await page.goto(link);
+    await expect(page.getByRole("heading", { name: "Link inválido ou expirado" })).toBeVisible();
+    await page.getByRole("link", { name: "Pedir um novo link" }).click();
+    await expect(page).toHaveURL(/\/esqueci-senha$/);
+  });
+
+  await test.step("12.8 e-mail sem cadastro e pedido repetido: mesma resposta, nenhum e-mail a mais", async () => {
+    await clearMailbox(request);
+    const page = await actor(browser, base);
+    await page.goto("/esqueci-senha");
+    const answer = page.getByRole("status").filter({ hasText: "Se este e-mail tiver cadastro" });
+    await page.getByLabel("E-mail", { exact: true }).fill("ninguem.e2e@fortespay.local");
+    await page.getByRole("button", { name: "Enviar link" }).click();
+    await expect(answer).toBeVisible();
+    // Diretor também pede a nova senha por e-mail; o segundo pedido em seguida não envia outro.
+    await page.reload();
+    await page.getByLabel("E-mail", { exact: true }).fill(staff.bi.email);
+    await page.getByRole("button", { name: "Enviar link" }).click();
+    await expect(answer).toBeVisible();
+    await waitForMail(request, staff.bi.email);
+    await page.reload();
+    await page.getByLabel("E-mail", { exact: true }).fill(staff.bi.email);
+    await page.getByRole("button", { name: "Enviar link" }).click();
+    await expect(answer).toBeVisible();
+    await page.waitForTimeout(1500);
+    expect(await mailsTo(request, staff.bi.email)).toHaveLength(1);
+    expect(await mailsTo(request, "ninguem.e2e@fortespay.local")).toHaveLength(0);
     await page.getByRole("link", { name: "Voltar ao login" }).click();
     await expect(page).toHaveURL(/\/login$/);
   });

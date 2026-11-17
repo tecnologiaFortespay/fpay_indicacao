@@ -217,14 +217,14 @@ isOneToOne: false
                   ]
                 },"partners": {
                   Row: {
-                    "approved_at": string | null,"approved_by": string | null,"city": string | null,"contact_email": string | null,"contact_name": string | null,"contact_phone": string | null,"created_at": string,"created_by": string | null,"id": string,"kind": string,"name": string,"rejection_reason": string | null,"state": string | null,"status": string
+                    "approved_at": string | null,"approved_by": string | null,"city": string | null,"contact_email": string | null,"contact_name": string | null,"contact_phone": string | null,"created_at": string,"created_by": string | null,"id": string,"kind": string | null,"name": string,"rejection_reason": string | null,"state": string | null,"status": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"city"?: string | null,"contact_email"?: string | null,"contact_name"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind": string,"name": string,"rejection_reason"?: string | null,"state"?: string | null,"status"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"city"?: string | null,"contact_email"?: string | null,"contact_name"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind"?: string | null,"name": string,"rejection_reason"?: string | null,"state"?: string | null,"status"?: string
                   }
                   Update: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"city"?: string | null,"contact_email"?: string | null,"contact_name"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind"?: string,"name"?: string,"rejection_reason"?: string | null,"state"?: string | null,"status"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"city"?: string | null,"contact_email"?: string | null,"contact_name"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind"?: string | null,"name"?: string,"rejection_reason"?: string | null,"state"?: string | null,"status"?: string
                   }
                   Relationships: [
                     
@@ -251,14 +251,14 @@ isOneToOne: false
                   ]
                 },"referrals": {
                   Row: {
-                    "activated_competency": string | null,"cnpj": string,"company_name": string,"created_at": string,"created_by": string | null,"estimated_lives": number | null,"first_cashin": string | null,"id": string,"partner_id": string,"seller_name": string | null,"status": string,"status_changed_at": string
+                    "activated_competency": string | null,"cnpj": string,"company_name": string,"created_at": string,"created_by": string | null,"estimated_lives": number | null,"first_cashin": string | null,"id": string,"partner_id": string,"rule_month": string | null,"seller_name": string | null,"status": string,"status_changed_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "activated_competency"?: string | null,"cnpj": string,"company_name": string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"first_cashin"?: string | null,"id"?: string,"partner_id": string,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string
+                    "activated_competency"?: string | null,"cnpj": string,"company_name": string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"first_cashin"?: string | null,"id"?: string,"partner_id": string,"rule_month"?: string | null,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string
                   }
                   Update: {
-                    "activated_competency"?: string | null,"cnpj"?: string,"company_name"?: string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"first_cashin"?: string | null,"id"?: string,"partner_id"?: string,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string
+                    "activated_competency"?: string | null,"cnpj"?: string,"company_name"?: string,"created_at"?: string,"created_by"?: string | null,"estimated_lives"?: number | null,"first_cashin"?: string | null,"id"?: string,"partner_id"?: string,"rule_month"?: string | null,"seller_name"?: string | null,"status"?: string,"status_changed_at"?: string
                   }
                   Relationships: [
                     {
@@ -317,6 +317,9 @@ isOneToOne: false
           Functions: {
             "approve_partner":
 { Args: { "payload": Json }; Returns: undefined
+                           },
+"cancel_password_reset":
+{ Args: { "secret": string }; Returns: undefined
                            },
 "change_my_password":
 { Args: { "current_password": string,"new_password": string }; Returns: undefined
@@ -406,14 +409,22 @@ isOneToOne: false
               "competencies": (string)[],"created_at": string
             }[]
                            },
+"referral_rule_locks":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "locked": string,"referral_id": string
+            }[]
+                           },
 "register_director":
 { Args: { "payload": Json,"secret": string }; Returns: undefined
                            },
 "register_partner":
-{ Args: { "payload": Json,"secret": string }; Returns: string
+{ Args: { "payload": Json }; Returns: string
                            },
 "reject_partner":
 { Args: { "reason": string,"target": string }; Returns: undefined
+                           },
+"request_password_reset":
+{ Args: { "account_email": string,"secret": string }; Returns: Json
                            },
 "reset_password_with_token":
 { Args: { "password": string,"secret": string }; Returns: undefined
@@ -432,6 +443,9 @@ isOneToOne: false
                            },
 "set_payment_note":
 { Args: { "note": string,"target": string }; Returns: undefined
+                           },
+"set_referral_rule_month":
+{ Args: { "month"?: string,"target": string }; Returns: undefined
                            },
 "set_referral_seller":
 { Args: { "name": string,"target": string }; Returns: undefined

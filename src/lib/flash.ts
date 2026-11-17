@@ -7,6 +7,8 @@ export const flashMessages = {
   lote_fechado: "Lote fechado. Nada mais entra neste mês.",
   resposta_registrada: "Resposta registrada. A Fortes Pay já consegue ver.",
   situacao_atualizada: "Situação atualizada.",
+  regra_escolhida:
+    "Regra da indicação atualizada. Os valores dos meses abertos já seguem a escolha.",
   analise_pedida: "Análise pedida à IA. O resultado aparece abaixo em alguns instantes.",
 } as const;
 

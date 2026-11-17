@@ -25,8 +25,9 @@ import { glossary } from "@/lib/glossary";
 import { referralStatusLabels, type ReferralStatus } from "@/lib/labels";
 import { formatInteger } from "@/lib/money";
 import { lastImportAt } from "@/lib/partner-panel/queries";
-import { listPartnerOptions, listReferralRules, ruleInForce } from "@/lib/partners/queries";
+import { listPartnerOptions, listPartnerRules, listReferralRules } from "@/lib/partners/queries";
 import { effectiveTerms, ownRuleOf, referralRuleSummary } from "@/lib/referrals/config";
+import { partnerRuleFor, referenceMonth } from "@/lib/referrals/rule-choice";
 import {
   listReferrals,
   referralMonthValues,
@@ -84,12 +85,12 @@ function sinceLabel(referral: ReferralRow): string {
 async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
   const partnerId = user.profile.partner?.id ?? "";
   const competency = await latestCompetency();
-  const [referrals, months, rule, updatedAt] = await Promise.all([
+  const [referrals, months, partnerRules, updatedAt] = await Promise.all([
     listReferrals({ partnerId }),
     competency
       ? referralMonthValues(competency)
       : Promise.resolve(new Map<string, ReferralMonth>()),
-    ruleInForce(partnerId, currentCompetency()),
+    listPartnerRules(partnerId),
     competency ? lastImportAt(competency) : Promise.resolve(null),
   ]);
   // Vigências próprias das indicações (decisão 23), para explicar valor e prazo sem vidas no mês.
@@ -204,7 +205,12 @@ async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
                   <tbody>
                     {items.map((referral) => {
                       const month = months.get(referral.id);
-                      const terms = effectiveTerms(ownRuleOf(ownRules, referral.id, today), rule);
+                      // Sem vidas no mês: a vigência própria, senão a do parceiro que vale para
+                      // esta indicação (a escolhida pelo diretor ou a automática, decisão 27).
+                      const terms = effectiveTerms(
+                        ownRuleOf(ownRules, referral.id, today),
+                        partnerRuleFor(partnerRules, referenceMonth(referral), today),
+                      );
                       return (
                         <tr key={referral.id}>
                           <td>

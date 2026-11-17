@@ -1,31 +1,23 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
-import { Field, SelectField } from "@/components/fields";
-import { FormDisclosure } from "@/components/form-disclosure";
-import { MutationForm } from "@/components/mutation-form";
 import { OrbitaIcon } from "@/components/orbita-icon";
 import { PageIntro } from "@/components/page-intro";
 import { SectionCard } from "@/components/section-card";
 import { requireRole } from "@/lib/auth/session";
 import { currentCompetency, formatDate } from "@/lib/competency";
-import {
-  defaultInvitationValidUntil,
-  invitationStatus,
-  listInvitations,
-} from "@/lib/invitations/queries";
-import { invitationStatusLabels, partnerKindLabels } from "@/lib/labels";
+import { appOrigin } from "@/lib/env";
+import { partnerKindLabels } from "@/lib/labels";
 import { listAllRules, listPartners, type Partner } from "@/lib/partners/queries";
 import { currentRule, ruleSentence } from "@/lib/referrals/config";
-import { createInvitation } from "./actions";
 
 export const metadata: Metadata = { title: "Parceiros" };
 
-const kindOptions = Object.entries(partnerKindLabels) as [string, string][];
-
+// O tipo é escolhido pelo diretor na aprovação; antes disso o cadastro não tem tipo.
 function kindOf(partner: Partner): string {
-  return partnerKindLabels[partner.kind as keyof typeof partnerKindLabels] ?? partner.kind;
+  return partnerKindLabels[partner.kind as keyof typeof partnerKindLabels] ?? partner.kind ?? "—";
 }
 
 function placeOf(partner: Partner): string {
@@ -41,7 +33,7 @@ function PendingRow({ partner }: { partner: Partner }) {
       <span>
         <strong>{partner.name}</strong>
         <small>
-          {kindOf(partner)} · {placeOf(partner)}
+          {placeOf(partner)}
           {partner.contact_name ? ` · ${partner.contact_name}` : ""} · cadastrado em{" "}
           {formatDate(partner.created_at)}
         </small>
@@ -56,34 +48,35 @@ function PendingRow({ partner }: { partner: Partner }) {
 
 export default async function PartnersPage() {
   await requireRole("director");
-  const [partners, invitations, rules] = await Promise.all([
-    listPartners(),
-    listInvitations(["unit", "external"]),
-    listAllRules(),
-  ]);
+  const [partners, rules] = await Promise.all([listPartners(), listAllRules()]);
   const today = currentCompetency();
+  // Endereço que o diretor pode mandar ao parceiro (WhatsApp, e-mail) para ele criar a conta.
+  const signupAddress = `${appOrigin(await headers())}/cadastro`;
   const pending = partners.filter((partner) => partner.status === "pending");
   const active = partners.filter((partner) => partner.status === "active");
   const rejected = partners.filter((partner) => partner.status === "rejected");
-  const openInvitations = invitations.filter(
-    (invitation) => invitationStatus(invitation) === "open",
-  );
   return (
     <AppShell title="Parceiros">
       <PageIntro>
-        Unidades e parceiros externos que indicam clientes. Parceiro novo entra por convite: você
-        gera o link, ele preenche o cadastro e você aprova definindo quanto ele recebe por vida.
+        Unidades e parceiros externos que indicam clientes. O parceiro novo cria a própria conta em
+        “Criar conta de parceiro”, na tela de entrada do sistema; o cadastro aparece aqui e você
+        aprova escolhendo o tipo e quanto ele recebe por vida.
       </PageIntro>
 
       <SectionCard
         title={`Aguardando aprovação (${pending.length})`}
-        subtitle="Cadastros feitos pelo link do convite. O parceiro só entra no sistema depois que você aprova."
+        subtitle="Cadastros feitos pelo próprio parceiro em “Criar conta de parceiro”. Ele só entra no sistema depois que você aprova."
+        footnote={
+          <>
+            Endereço direto do cadastro, para enviar ao parceiro:{" "}
+            <span className="fp-num break-all">{signupAddress}</span>
+          </>
+        }
       >
         {pending.length === 0 ? (
           <EmptyState title="Nenhum cadastro aguardando">
-            {openInvitations.length > 0
-              ? `Há ${openInvitations.length} convite(s) ainda sem cadastro. Quando o parceiro preencher, ele aparece aqui.`
-              : "Gere um convite abaixo e envie o link ao parceiro."}
+            Peça ao parceiro para abrir o sistema e clicar em “Criar conta de parceiro”. Quando ele
+            enviar o cadastro, aparece aqui para você aprovar.
           </EmptyState>
         ) : (
           pending.map((partner) => <PendingRow key={partner.id} partner={partner} />)
@@ -161,86 +154,6 @@ export default async function PartnersPage() {
           </div>
         </SectionCard>
       )}
-
-      <SectionCard
-        title="Convites"
-        subtitle="Cada convite é um link de uso único: o parceiro abre, preenche o cadastro e fica aguardando a sua aprovação."
-      >
-        <FormDisclosure
-          label="Gerar convite"
-          open={invitations.length === 0}
-          description="Depois de gerar, copie o link na hora e envie ao parceiro por WhatsApp ou e-mail: por segurança ele aparece uma vez só, e o sistema não envia sozinho."
-        >
-          <MutationForm action={createInvitation} label="Gerar convite" pendingLabel="Gerando…">
-            <div className="fp-form-grid fp-form-grid-3">
-              <Field
-                label="Nome da unidade ou do parceiro"
-                name="partner_name"
-                required
-                maxLength={160}
-                hint="Aparece no convite; o parceiro pode corrigir no cadastro."
-              />
-              <SelectField label="Tipo" name="kind" options={kindOptions} defaultValue="unit" />
-              <Field
-                label="Válido até"
-                name="valid_until"
-                type="date"
-                required
-                defaultValue={defaultInvitationValidUntil()}
-                hint="Até o fim deste dia (horário de Fortaleza)."
-              />
-            </div>
-          </MutationForm>
-        </FormDisclosure>
-        {invitations.length > 0 && (
-          <div className="fp-table-wrap">
-            <table className="fp-table">
-              <thead>
-                <tr>
-                  <th>Convite para</th>
-                  <th>Tipo</th>
-                  <th>Criado em</th>
-                  <th>Válido até</th>
-                  <th>Situação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invitations.map((invitation) => {
-                  const status = invitationStatus(invitation);
-                  return (
-                    <tr key={invitation.id}>
-                      <td>{invitation.partner_name}</td>
-                      <td>
-                        {partnerKindLabels[invitation.kind as keyof typeof partnerKindLabels] ??
-                          invitation.kind}
-                      </td>
-                      <td>{formatDate(invitation.created_at)}</td>
-                      <td>{formatDate(invitation.expires_at)}</td>
-                      <td>
-                        {status === "used" && invitation.partner_id ? (
-                          <Link href={`/parceiros/${invitation.partner_id}`}>
-                            {invitationStatusLabels[status]}
-                          </Link>
-                        ) : (
-                          <span
-                            className={
-                              status === "open"
-                                ? "fp-status fp-status-pending"
-                                : "fp-status fp-status-muted"
-                            }
-                          >
-                            {invitationStatusLabels[status]}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </SectionCard>
     </AppShell>
   );
 }

@@ -35,12 +35,14 @@ npm run dev               # http://localhost:3000
 
 São dois perfis: diretor e parceiro. O primeiro diretor é criado pelo script acima; os demais (quem
 envia a planilha do BI também usa esse perfil) entram por convite em **Equipe**, um login por pessoa.
-Parceiros entram só por convite: o diretor gera o link em **Parceiros → Convites**, a unidade preenche
-o cadastro, e o diretor aprova informando a regra do parceiro (valor por vida, vigência, prazo). Uma
+Parceiros criam a própria conta em **Criar conta de parceiro** (`/cadastro`), sem convite, e o
+diretor aprova escolhendo o tipo e a regra do parceiro (valor por vida, vigência, prazo). Uma
 vigência nova do parceiro vale para quem for indicado a partir do mês dela; indicações anteriores
 seguem a regra de quando foram feitas. Cada indicação pode ter vigências próprias de valor e prazo,
-definidas pelo diretor em **Indicações**; sem elas vale a regra do parceiro. Cada pessoa troca a
-própria senha em **Minha conta**.
+definidas pelo diretor em **Indicações**; sem elas vale a regra do parceiro, e o diretor pode
+escolher, por empresa, qual vigência do parceiro vale (no detalhe do envio da planilha ou na ficha
+da indicação). Cada pessoa troca a própria senha em **Minha conta**; quem esqueceu pede o link por
+e-mail em **Esqueci minha senha**.
 
 Para seguir o roteiro de validação à mão contra o Supabase local, mesmo com o `.env.local` apontando
 para o projeto real: `npm run db:clean`, `npm run bootstrap:local` e `npm run dev:local`
@@ -60,7 +62,7 @@ Os testes apagam dados e se recusam a rodar contra qualquer URL que não seja lo
 
 Projeto `mltanrtdgyrfhsqmpcum`, região `sa-east-1` (São Paulo). Em `.env.local`:
 `NEXT_PUBLIC_SUPABASE_URL=https://mltanrtdgyrfhsqmpcum.supabase.co`, a anon key, a service_role
-key (só para `npm run bootstrap`) e `SUPABASE_DB_URL` (pooler em modo sessão, porta 5432, só para
+key (`npm run bootstrap` e o "Esqueci minha senha") e `SUPABASE_DB_URL` (pooler em modo sessão, porta 5432, só para
 `npm run db:push`). Veja `.env.example`.
 
 Passos, nesta ordem:
@@ -69,23 +71,25 @@ Passos, nesta ordem:
    `supabase/migrations` e registra o histórico em `supabase_migrations.schema_migrations`
    (não precisa de token da CLI; usa `SUPABASE_DB_URL`). Primeira aplicação em 28/10/2026; cada
    migration nova é aplicada do mesmo jeito.
-2. **Auth** (feito em 03/11/2026 pela CLI): "Confirm email" **desligado** (o convite é que valida
-   a origem; ligado, cada cadastro pelo link dispara um e-mail e esbarra no limite por hora do
-   Supabase), Site URL `https://fpay-indicacao.vercel.app` e, nas Redirect URLs,
+2. **Auth** (feito em 03/11/2026 pela CLI): "Confirm email" **desligado** (a conta do parceiro
+   nasce já com sessão e quem filtra é a aprovação do diretor; ligado, cada cadastro dispara um
+   e-mail do Supabase e esbarra no limite por hora dele), Site URL `https://fpay-indicacao.vercel.app` e, nas Redirect URLs,
    `https://fpay-indicacao.vercel.app/auth/callback` e `https://fpay-indicacao.vercel.app/**`. Para
    refazer: `npx supabase login` e um `config.toml` só com esses campos numa pasta à parte
    (`<pasta>/supabase/config.toml`), aplicado com
    `npx supabase --workdir <pasta> config diff --project-ref mltanrtdgyrfhsqmpcum` e depois
    `config push`. Campos não declarados no arquivo ficam como estão no projeto. Não use o
    `supabase/config.toml` do repositório: ele é o do ambiente local (localhost).
-3. **E-mail**: o sistema não envia e-mail e nenhum fluxo depende dele. Convites e links de nova
-   senha são gerados por um diretor, que copia e envia: para parceiro, na ficha dele; para outro
-   diretor, em **Equipe**. Quem está conectado troca a própria senha em **Minha conta**, e o
-   "Esqueci minha senha" da tela só explica esse caminho. Último recurso para um diretor sem outro
-   diretor disponível: `npm run reset-link -- --email <e-mail>`.
+3. **E-mail**: o único e-mail do sistema é o do "Esqueci minha senha", enviado por SMTP pela caixa
+   de suporte da Fortes Pay (variáveis `SMTP_*` e `SUPABASE_SERVICE_ROLE_KEY` no servidor; veja
+   "Deploy"). Sem elas, a tela explica o caminho pelo diretor, que continua existindo como reserva:
+   ele gera o link de nova senha na ficha do parceiro ou, para outro diretor, em **Equipe**, e
+   envia por conta própria. Quem está conectado troca a própria senha em **Minha conta**. Último
+   recurso para um diretor sem outro diretor disponível: `npm run reset-link -- --email <e-mail>`.
 4. **Primeiro diretor**: `npm run bootstrap -- --email <diretor> --role director --name "..." --password "..."`.
    Os demais diretores (também quem envia a planilha do BI) são convidados em **Equipe**.
-5. **Variáveis no servidor do app**: nenhuma é obrigatória (veja "Deploy").
+5. **Variáveis no servidor do app**: nenhuma é obrigatória para o sistema subir; as do e-mail ligam
+   o "Esqueci minha senha" (veja "Deploy").
 
 ## Deploy (Vercel)
 
@@ -98,17 +102,21 @@ Passos, nesta ordem:
   dados) e completam o que o servidor não informar ou informar errado. `NEXT_PUBLIC_SUPABASE_URL` e
   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, se existirem e forem válidas (chave anônima do mesmo projeto do
   endereço), têm preferência. `NEXT_PUBLIC_ENVIRONMENT_LABEL` é opcional (vazio em produção).
-  `ANTHROPIC_API_KEY` liga a IA (marcar como Sensitive). Não configure
-  `SUPABASE_SERVICE_ROLE_KEY` nem `SUPABASE_DB_URL` no app: só os scripts locais usam.
-- O endereço público (links de convite e de recuperação de senha, cookie só https) vem da própria
-  requisição: `Host`/`x-forwarded-host` e `x-forwarded-proto`, que a Vercel repassa. Deploys de
-  preview também apontam para o banco da Fortes Pay.
+  `ANTHROPIC_API_KEY` liga a IA (marcar como Sensitive). `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+  `SMTP_PASSWORD`, `SMTP_FROM` e `SUPABASE_SERVICE_ROLE_KEY` ligam o e-mail do "Esqueci minha
+  senha" (senha e chave como Sensitive; a chave de serviço é lida só em
+  `src/lib/supabase/admin.ts`). Não configure `SUPABASE_DB_URL` no app: só o `npm run db:push` usa.
+- O endereço público (links de convite e de nova senha copiados pelo diretor, cookie só https) vem
+  da própria requisição: `Host`/`x-forwarded-host` e `x-forwarded-proto`, que a Vercel repassa. O
+  link que vai dentro do e-mail usa o domínio de produção informado pela Vercel
+  (`VERCEL_PROJECT_PRODUCTION_URL`). Deploys de preview também apontam para o banco da Fortes Pay.
 - Limites da Vercel considerados: requisição até 4,5 MB (o envio da planilha aceita até 4 MB; o
   export real tem cerca de 150 KB) e tempo de função (`maxDuration = 300` nas páginas de
   Importações e Fechamento, onde a análise da IA roda depois da resposta com `after()`).
 - Diagnóstico sem segredos em `/status`: versão publicada, endereço visto pelo servidor, de onde
   veio a conexão (execução, build ou projeto da Fortes Pay) a resposta do Supabase à chave (200 =
-  aceita) e se a IA tem chave. O rodapé do login mostra "Versão de" com a data do build; falhas de login que não são
+  aceita), se a IA tem chave e se o e-mail do "Esqueci minha senha" está ligado (ou quais variáveis
+  faltam). O rodapé do login mostra "Versão de" com a data do build; falhas de login que não são
   senha errada aparecem na tela com o código e vão para o log da função.
 - Depois do primeiro deploy, no Supabase: Site URL = `https://<domínio>` e
   `https://<domínio>/auth/callback` nas Redirect URLs (seção "Projeto real").

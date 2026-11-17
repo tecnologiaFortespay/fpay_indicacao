@@ -19,7 +19,8 @@ const previewSchema = z.object({
   expires_at: z.string(),
 });
 
-// Link de nova senha gerado pelo diretor na ficha do parceiro. Não exige login.
+// Link de nova senha: chega por e-mail a quem pediu em "Esqueci minha senha" (decisão 26) ou é
+// gerado por um diretor na ficha do parceiro ou na Equipe. Não exige login.
 export default async function ResetLinkPage({ params }: PageProps) {
   const { token } = await params;
   const preview = INVITATION_TOKEN_PATTERN.test(token)
@@ -32,7 +33,9 @@ export default async function ResetLinkPage({ params }: PageProps) {
         title="Link inválido ou expirado"
         description="Este link de nova senha não vale mais: expirou, já foi usado ou foi substituído por outro."
       >
-        <p className="text-sm">Peça um novo link à Fortes Pay.</p>
+        <Link href="/esqueci-senha" className="text-primary underline">
+          Pedir um novo link
+        </Link>
         <Link href="/login" className="text-primary underline">
           Entrar
         </Link>

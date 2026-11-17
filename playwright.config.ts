@@ -37,6 +37,14 @@ export default defineConfig({
       // A IA aponta para a imitação local; nenhuma chamada sai para a Anthropic.
       ANTHROPIC_API_KEY: "chave-de-teste",
       ANTHROPIC_BASE_URL: `http://127.0.0.1:${FAKE_ANTHROPIC_PORT}`,
+      // E-mail: só o Mailpit do Supabase local (.env.test), sem usuário; vazio aqui para o Next não
+      // completar com um SMTP real que esteja no .env.local.
+      SMTP_HOST: process.env.SMTP_HOST ?? "",
+      SMTP_PORT: process.env.SMTP_PORT ?? "",
+      SMTP_FROM: process.env.SMTP_FROM ?? "",
+      SMTP_USER: "",
+      SMTP_PASSWORD: "",
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
     },
   },
 });

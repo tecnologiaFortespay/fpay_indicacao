@@ -132,3 +132,14 @@ export async function referralMonths(id: string): Promise<ReferralMonthRow[]> {
     amount: row.amount ?? 0,
   }));
 }
+
+// Indicações que já tiveram vidas num mês fechado e o último desses meses ("YYYY-MM"). Para elas a
+// escolha da vigência do parceiro fica travada (decisão 27): o fechamento guardou os valores.
+export async function ruleChoiceLocks(): Promise<Map<string, string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("referral_rule_locks");
+  if (error) {
+    throw new Error("Não foi possível consultar os meses fechados das indicações.");
+  }
+  return new Map(data.map((row) => [row.referral_id, row.locked.slice(0, 7)]));
+}

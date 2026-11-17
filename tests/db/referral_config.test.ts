@@ -28,7 +28,8 @@ const OWN = cnpjWithDigits("101112131001");
 const EARLY = cnpjWithDigits("121314151001");
 const LATE = cnpjWithDigits("131415161001");
 const BACK = cnpjWithDigits("141516171001");
-const ALL = [PLAIN, CUSTOM, TERM, OWN, EARLY, LATE, BACK];
+const CHOICE = cnpjWithDigits("151617181001");
+const ALL = [PLAIN, CUSTOM, TERM, OWN, EARLY, LATE, BACK, CHOICE];
 const AUG = "2098-08-01";
 const SEP = "2098-09-01";
 const OCT = "2098-10-01";
@@ -477,5 +478,122 @@ describe("primeiro pagamento informado pelo BI", () => {
     });
     expect(invalid.error?.message).toBe("IMPORT_FIELDS");
     done(await director.rpc("delete_partner_rule", { target: october }), "delete october rule");
+  });
+});
+
+// Decisão 27 (16/11/2026): empresa nova que paga em outubro, mas deve seguir a vigência anterior.
+// O diretor escolhe a vigência do parceiro que vale para a indicação.
+describe("vigência do parceiro escolhida pelo diretor", () => {
+  async function choose(client: Client, referralId: string, month?: string) {
+    return client.rpc("set_referral_rule_month", { target: referralId, month });
+  }
+
+  it("a escolha troca a regra da indicação; sem escolha volta a automática", async () => {
+    ok(
+      await director.rpc("save_partner_rule", {
+        payload: {
+          partner_id: partnerId,
+          value_per_life: "2.00",
+          valid_from: OCT,
+          term_months: "6",
+        },
+      }),
+      "october rule",
+    );
+    const choiceId = await createReferral(CHOICE);
+    // Indicada em outubro, já na vigência nova (data ajustada direto no banco para o teste).
+    done(
+      await admin
+        .from("referrals")
+        .update({ created_at: "2098-10-03T12:00:00Z" })
+        .eq("id", choiceId),
+      "date choice",
+    );
+    ok(
+      await director.rpc("import_lives", {
+        batch: batch("config-escolha.xlsx", OCT),
+        rows: rows([[CHOICE, OCT, 10]]),
+      }),
+      "import october",
+    );
+    expect(await months(choiceId)).toEqual([
+      { competency: OCT, lives: 10, value_per_life: 2, term_months: 6, amount: 20 },
+    ]);
+
+    for (const client of [noProfile, partner]) {
+      expect((await choose(client, choiceId, AUG)).error?.code).toBe("42501");
+    }
+    // Setembro não é início de nenhuma vigência deste parceiro, mesmo sendo de outro.
+    ok(
+      await director.rpc("save_partner_rule", {
+        payload: {
+          partner_id: otherPartnerId,
+          value_per_life: "9.00",
+          valid_from: SEP,
+          term_months: "",
+        },
+      }),
+      "other partner rule",
+    );
+    const notARule = await choose(director, choiceId, SEP);
+    expect(notARule.error?.details).toBe("Escolha uma das vigências cadastradas do parceiro.");
+    const missing = await choose(director, "00000000-0000-4000-8000-000000000000", AUG);
+    expect(missing.error?.code).toBe("P0002");
+
+    // Vigência de agosto escolhida: valor e prazo passam a ser os dela.
+    done(await choose(director, choiceId, AUG), "choose august");
+    expect(await months(choiceId)).toEqual([
+      { competency: OCT, lives: 10, value_per_life: 1.5, term_months: null, amount: 15 },
+    ]);
+    const saved = ok(
+      await director.from("referrals").select("rule_month").eq("id", choiceId).single(),
+      "rule_month",
+    );
+    expect(saved).toEqual({ rule_month: AUG });
+    // A vigência própria da indicação continua mandando sobre a regra escolhida.
+    const own = ok(
+      await saveOwnRule(choiceId, { value_per_life: "3.00", valid_from: OCT, term_months: "" }),
+      "own rule",
+    );
+    expect(await values(choiceId)).toEqual([3]);
+    done(await director.rpc("delete_partner_rule", { target: own }), "delete own rule");
+
+    // Sem mês: volta a escolha automática (indicada em outubro, regra de outubro).
+    done(await choose(director, choiceId), "back to automatic");
+    expect(await values(choiceId)).toEqual([2]);
+    const cleared = ok(
+      await director.from("referrals").select("rule_month").eq("id", choiceId).single(),
+      "rule_month cleared",
+    );
+    expect(cleared).toEqual({ rule_month: null });
+  });
+
+  it("indicação com vidas em mês fechado não troca de regra", async () => {
+    const choice = ok(
+      await director.from("referrals").select("id").eq("cnpj", CHOICE).single(),
+      "choice referral",
+    );
+    const me = (await director.auth.getUser()).data.user?.id ?? "";
+    // Outubro fechado (gravado direto: fechar pelo fluxo exige o mês já terminado).
+    const closing = ok(
+      await admin
+        .from("closings")
+        .insert({
+          competency: OCT,
+          status: "closed",
+          closed_by: me,
+          closed_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single(),
+      "closed october",
+    );
+    const locked = await choose(director, choice.id, AUG);
+    expect(locked.error?.message).toBe("RULE_CHOICE_LOCKED");
+    expect(locked.error?.details).toBe("10/2098");
+    // Indicação sem vidas no mês fechado continua livre para a escolha.
+    done(await choose(director, plainId, AUG), "choose for referral without closed lives");
+    done(await choose(director, plainId), "undo");
+    done(await admin.from("closings").delete().eq("id", closing.id), "reopen october");
   });
 });

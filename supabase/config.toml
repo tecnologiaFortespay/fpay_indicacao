@@ -107,8 +107,8 @@ openai_api_key = "env(OPENAI_API_KEY)"
 enabled = true
 # Port to use for the email testing server web interface.
 port = 54344
-# Uncomment to expose additional ports for testing user applications that send emails.
-# smtp_port = 54345
+# Porta SMTP exposta: o "Esqueci minha senha" do sistema envia o e-mail por ela nos testes.
+smtp_port = 54345
 # pop3_port = 54346
 # admin_email = "admin@email.com"
 # sender_name = "Admin"

@@ -1,15 +1,12 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { databaseError, formValue } from "@/lib/actions";
 import { passwordResetLink } from "@/lib/auth/password-reset-link";
 import { actionUser, deniedState } from "@/lib/auth/session";
 import { normalizeCnpj } from "@/lib/cnpj";
-import { appOrigin } from "@/lib/env";
 import { withFlash } from "@/lib/flash";
 import { partnerLogin } from "@/lib/partners/queries";
 import type { FormState } from "@/lib/auth/validation";
@@ -157,36 +154,8 @@ export async function createReferral(_previous: FormState, form: FormData): Prom
   return { success: "Indicação registrada." };
 }
 
-export async function createInvitation(_previous: FormState, form: FormData): Promise<FormState> {
-  const user = await actionUser("director");
-  if (!user) {
-    return deniedState();
-  }
-  const validUntil = formValue(form, "valid_until");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(validUntil)) {
-    return { error: "Informe a validade do convite." };
-  }
-  const secret = randomBytes(32).toString("base64url");
-  const payload = {
-    partner_name: formValue(form, "partner_name"),
-    kind: formValue(form, "kind"),
-    // Fim do dia em Fortaleza (UTC-3, sem horário de verão), como o diretor lê no formulário.
-    valid_until: `${validUntil}T23:59:59-03:00`,
-    secret,
-  };
-  const supabase = await createClient();
-  const result = await supabase.rpc("create_invitation", { payload });
-  if (result.error) {
-    return { error: databaseError(result.error) };
-  }
-  revalidatePath("/parceiros");
-  return {
-    success: "Convite criado. Copie o link abaixo e envie ao parceiro.",
-    link: `${appOrigin(await headers())}/convite/${secret}`,
-  };
-}
-
-// Enquanto o e-mail do Supabase não é confiável, a nova senha sai por um link que o diretor envia.
+// Reserva do "Esqueci minha senha" (decisão 26): se o e-mail não chegar ao parceiro, o diretor
+// gera o link de nova senha e envia por conta própria.
 export async function createPasswordReset(
   _previous: FormState,
   form: FormData,
@@ -211,6 +180,11 @@ export async function approvePartner(_previous: FormState, form: FormData): Prom
   if (!z.uuid().safeParse(partnerId).success) {
     return { error: "Parceiro inválido." };
   }
+  // O tipo vinha do convite; desde a decisão 25 o diretor escolhe aqui.
+  const kind = formValue(form, "kind");
+  if (kind !== "unit" && kind !== "external") {
+    return { error: "Escolha o tipo: unidade ou parceiro externo." };
+  }
   const valuePerLife = parseMoneyInput(formValue(form, "value_per_life"));
   if (valuePerLife === null) {
     return { error: "Informe o valor por vida, por exemplo 1,50." };
@@ -221,6 +195,7 @@ export async function approvePartner(_previous: FormState, form: FormData): Prom
   }
   const payload = {
     partner_id: partnerId,
+    kind,
     value_per_life: valuePerLife,
     valid_from: competencyToDate(validFrom),
     term_months: formValue(form, "term_months"),

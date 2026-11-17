@@ -49,11 +49,11 @@ Navegador ──► Vercel (Next.js 16, região gru1 / São Paulo)
 ## 4. Estrutura do repositório
 
 ```
-supabase/migrations/   14 migrations, em ordem; toda escrita é função SQL que confere o perfil
+supabase/migrations/   21 migrations, em ordem; toda escrita é função SQL que confere o perfil
 supabase/config.toml   configuração do Supabase LOCAL (não aplicar no projeto real)
 src/app/               rotas em português: login, inicio, parceiros, indicacoes, importacoes,
-                       fechamento, fechamentos, equipe, minha-conta, meu-cadastro, convite,
-                       nova-senha, status, ...
+                       fechamento, fechamentos, equipe, minha-conta, meu-cadastro, cadastro,
+                       convite, esqueci-senha, nova-senha, status, ...
 src/components/        shell, navegação, formulários e o kit de tela (PageIntro, SectionCard,
                        Notice, FormDisclosure, Stepper, ...)
 src/lib/               env, sessão, leitor do BI (imports/xlsx.ts, csv.ts, bi.ts), consultas
@@ -73,20 +73,20 @@ só com aprovação.
 
 ### Tabelas
 
-| Tabela           | Guarda                                                                                                                                                                                                                                         |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `profiles`       | um por usuário do Auth: perfil (`director` ou `partner`), parceiro, nome; hash do link de nova senha                                                                                                                                           |
-| `partners`       | parceiros: tipo (unidade/externo), contato, situação (pendente, ativo, recusado), motivo da recusa, aprovação                                                                                                                                  |
-| `partner_rules`  | vigências da regra: valor por vida, vale a partir de (mês), prazo em meses; `referral_id` nulo = vigência do parceiro (vale para indicações feitas a partir do mês), preenchido = vigência própria da indicação (vale por mês)                 |
-| `invitations`    | convites: hash do token, nome, tipo, validade, uso                                                                                                                                                                                             |
-| `companies`      | empresas indicadas (CNPJ, nome, grupo, primeiro mês visto)                                                                                                                                                                                     |
-| `referrals`      | indicações: parceiro, CNPJ, situação, primeiro mês pago, vidas estimadas, vendedor (texto); valor e prazo próprios são vigências em `partner_rules`                                                                                            |
-| `import_batches` | cada envio da planilha: arquivo, hash, meses, contagens (lidas, importadas, fora, ignoradas), quem enviou                                                                                                                                      |
-| `import_rows`    | linhas ignoradas ou mescladas de cada envio, com o motivo                                                                                                                                                                                      |
-| `monthly_lives`  | vidas pagas por CNPJ e mês (substituídas a cada envio do mês)                                                                                                                                                                                  |
-| `closings`       | fechamento por mês: em preparação ou fechado, quem preparou e quem fechou                                                                                                                                                                      |
-| `closing_items`  | linha do fechamento por parceiro: vidas, valor, ajuste e motivo, saldo anterior, total, decisão, resposta do parceiro, como foi pago, e `details` (jsonb: os clientes do mês com vidas, valor por vida, valor e vendedor, gravados no cálculo) |
-| `ai_reviews`     | análises da IA (de um envio ou de um fechamento): situação, resumo, alertas, erro                                                                                                                                                              |
+| Tabela           | Guarda                                                                                                                                                                                                                                                     |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `profiles`       | um por usuário do Auth: perfil (`director` ou `partner`), parceiro, nome; hash do link de nova senha                                                                                                                                                       |
+| `partners`       | parceiros: tipo (unidade/externo, escolhido na aprovação; nulo enquanto aguarda), contato, situação (pendente, ativo, recusado), motivo da recusa, aprovação                                                                                               |
+| `partner_rules`  | vigências da regra: valor por vida, vale a partir de (mês), prazo em meses; `referral_id` nulo = vigência do parceiro (vale para indicações feitas a partir do mês), preenchido = vigência própria da indicação (vale por mês)                             |
+| `invitations`    | convites de diretor: hash do token, nome, tipo, validade, uso (os de parceiro, anteriores à decisão 25, ficam como histórico)                                                                                                                              |
+| `companies`      | empresas indicadas (CNPJ, nome, grupo, primeiro mês visto)                                                                                                                                                                                                 |
+| `referrals`      | indicações: parceiro, CNPJ, situação, primeiro mês pago, primeiro pagamento do BI (`first_cashin`), vigência do parceiro escolhida pelo diretor (`rule_month`), vidas estimadas, vendedor (texto); valor e prazo próprios são vigências em `partner_rules` |
+| `import_batches` | cada envio da planilha: arquivo, hash, meses, contagens (lidas, importadas, fora, ignoradas), quem enviou                                                                                                                                                  |
+| `import_rows`    | linhas ignoradas ou mescladas de cada envio, com o motivo                                                                                                                                                                                                  |
+| `monthly_lives`  | vidas pagas por CNPJ e mês (substituídas a cada envio do mês)                                                                                                                                                                                              |
+| `closings`       | fechamento por mês: em preparação ou fechado, quem preparou e quem fechou                                                                                                                                                                                  |
+| `closing_items`  | linha do fechamento por parceiro: vidas, valor, ajuste e motivo, saldo anterior, total, decisão, resposta do parceiro, como foi pago, e `details` (jsonb: os clientes do mês com vidas, valor por vida, valor e vendedor, gravados no cálculo)             |
+| `ai_reviews`     | análises da IA (de um envio ou de um fechamento): situação, resumo, alertas, erro                                                                                                                                                                          |
 
 ### Views de cálculo
 
@@ -96,17 +96,18 @@ só com aprovação.
 
 ### Funções SQL principais
 
-| Assunto    | Funções                                                                                                                                                         |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Perfil     | `is_director`, `my_partner_id`, `current_profile`, `current_role_name`                                                                                          |
-| Convite    | `create_invitation`, `invitation_preview`, `register_partner`, `register_director`, `confirm_invited_signup`                                                    |
-| Equipe     | `list_directors`                                                                                                                                                |
-| Parceiro   | `approve_partner`, `reject_partner`, `save_partner`, `save_partner_rule`, `delete_partner_rule`                                                                 |
-| Indicação  | `create_referral`, `set_referral_status`, `set_referral_seller`, `valid_cnpj` (vigências próprias: `save_partner_rule`/`delete_partner_rule` com `referral_id`) |
-| Importação | `import_lives`, `preview_import` (conferência: roda e desfaz), `last_import_at(mês)`, `recent_imports`, `latest_complete_competency`                            |
-| Fechamento | `closing_blocker`, `prepare_closing`, `set_closing_adjustment`, `close_closing`, `respond_closing_item`, `set_payment_note`                                     |
-| Senha      | `create_password_reset`, `password_reset_preview`, `reset_password_with_token`, `change_my_password`                                                            |
-| IA         | `start_ai_review`, `finish_ai_review`                                                                                                                           |
+| Assunto    | Funções                                                                                                                                                                                                                                                         |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Perfil     | `is_director`, `my_partner_id`, `current_profile`, `current_role_name`                                                                                                                                                                                          |
+| Cadastro   | `register_partner` (cadastro aberto: a conta conectada, sem perfil, vira parceiro pendente)                                                                                                                                                                     |
+| Convite    | `create_invitation` (só diretor), `invitation_preview`, `register_director`, `confirm_invited_signup`                                                                                                                                                           |
+| Equipe     | `list_directors`                                                                                                                                                                                                                                                |
+| Parceiro   | `approve_partner`, `reject_partner`, `save_partner`, `save_partner_rule`, `delete_partner_rule`                                                                                                                                                                 |
+| Indicação  | `create_referral`, `set_referral_status`, `set_referral_seller`, `set_referral_rule_month` e `referral_rule_locks` (vigência do parceiro escolhida, decisão 27), `valid_cnpj` (vigências próprias: `save_partner_rule`/`delete_partner_rule` com `referral_id`) |
+| Importação | `import_lives`, `preview_import` (conferência: roda e desfaz), `last_import_at(mês)`, `recent_imports`, `latest_complete_competency`                                                                                                                            |
+| Fechamento | `closing_blocker`, `prepare_closing`, `set_closing_adjustment`, `close_closing`, `respond_closing_item`, `set_payment_note`                                                                                                                                     |
+| Senha      | `request_password_reset` e `cancel_password_reset` (só com a chave de serviço: pedido pelo e-mail), `create_password_reset` (diretor), `password_reset_preview`, `reset_password_with_token`, `change_my_password`                                              |
+| IA         | `start_ai_review`, `finish_ai_review`                                                                                                                                                                                                                           |
 
 Regras garantidas no banco (não só na tela):
 
@@ -115,8 +116,13 @@ Regras garantidas no banco (não só na tela):
   vigência usada por mês fechado; `import_lives` ignora linhas de mês fechado.
 - **Regra pela data da indicação** (`referral_month_lives`, decisão 23): para cada indicação e mês,
   vale a vigência própria da indicação em vigor no mês ou, sem ela, a vigência do parceiro mais
-  recente que já valia no mês e já existia no mês em que a indicação foi feita (se nenhuma existia,
-  a primeira que passou a valer). Uma vigência nova nunca muda um mês anterior a ela.
+  recente que já valia no mês e já existia no **mês de referência** da indicação (se nenhuma
+  existia, a primeira que passou a valer). O mês de referência é o escolhido pelo diretor
+  (`referrals.rule_month`, decisão 27) ou, sem escolha, o mais antigo entre o mês em que a
+  indicação foi feita e o do primeiro pagamento informado pelo BI (decisão 24). Uma vigência nova
+  nunca muda um mês anterior a ela. `set_referral_rule_month` recusa a troca para indicação que
+  já teve vidas num mês fechado. A mesma escolha é repetida em TypeScript só para a tela dizer
+  de onde veio o valor (`src/lib/referrals/rule-choice.ts`, com teste).
 - **Fechamentos em ordem** (`closing_blocker`): o mês precisa ter terminado (fuso de Fortaleza),
   ter um envio feito depois do fim do mês e não ter mês anterior aberto com envio.
 - **Envio parcial × mês completo** (`latest_complete_competency`): só um envio do mês já terminado
@@ -140,14 +146,24 @@ Regras garantidas no banco (não só na tela):
 - **Diretores**: o primeiro é criado por script (`npm run bootstrap`); os demais entram por convite
   em **Equipe** (tipo `director` em `invitations`, função `register_director`) e entram direto, sem
   aprovação. Todos os diretores são iguais.
-- **Parceiro** só entra por convite: o token vai no link e só o hash SHA-256 fica no banco. O
-  cadastro cria o usuário no Auth e o perfil; até a aprovação, o login só mostra "Cadastro em
-  análise".
-- "Confirm email" está **desligado** no Supabase (o convite é que valida a origem).
-- **Nova senha**: um diretor gera um link de 24 horas e uso único (hash em `profiles`,
-  `create_password_reset`): para parceiro, na ficha dele; para outro diretor, em Equipe. Quem está
-  conectado troca a própria senha em **Minha conta** (`change_my_password`, que confere a senha
-  atual com bcrypt e grava a nova no formato do Supabase Auth). Último recurso para um diretor:
+- **Parceiro** cria a própria conta em `/cadastro` (decisão 25): a ação cria o usuário no Auth
+  (e-mail, senha e confirmação da senha) e chama `register_partner`, que cria o parceiro pendente
+  e o perfil da conta conectada. Até a aprovação, o login só mostra "Cadastro em análise"; o tipo
+  do parceiro é escolhido pelo diretor em `approve_partner`. A criação da conta é a mesma do
+  convite de diretor (`src/lib/auth/signup.ts`).
+- "Confirm email" está **desligado** no Supabase: a conta nasce já com sessão, e o e-mail do
+  cadastro não é conferido (quem filtra é a aprovação do diretor).
+- **Nova senha por e-mail** (decisão 26): `/esqueci-senha` pede o e-mail; a ação gera o segredo
+  do link, chama `request_password_reset` com o cliente de serviço (`src/lib/supabase/admin.ts`,
+  único uso da chave de serviço na aplicação) e envia o link `/nova-senha/<segredo>` por SMTP
+  (`src/lib/mail.ts`, `src/lib/auth/password-reset-mail.ts`). O link vale 24 horas e uma vez
+  (hash em `profiles`), a resposta da tela é a mesma com ou sem cadastro, há um pedido a cada 2
+  minutos por conta e, se o envio falhar, `cancel_password_reset` desfaz o link. Sem as variáveis
+  de e-mail ou sem a chave de serviço, a página explica o caminho pelo diretor.
+- **Nova senha pelo diretor** (reserva): o mesmo link, gerado por `create_password_reset`: para
+  parceiro, na ficha dele; para outro diretor, em Equipe. Quem está conectado troca a própria
+  senha em **Minha conta** (`change_my_password`, que confere a senha atual com bcrypt e grava a
+  nova no formato do Supabase Auth). Último recurso para um diretor:
   `npm run reset-link -- --email <e-mail>` gera um link de recuperação do Supabase (1 hora), sem
   enviar e-mail.
 - Toda server action confere o perfil (`actionUser`); sem sessão, devolve "Sua sessão expirou" e
@@ -155,15 +171,17 @@ Regras garantidas no banco (não só na tela):
 
 ## 7. Fluxos no código
 
-| Fluxo               | Arquivos principais                                                                                                                                                                                                                       |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Envio da planilha   | `src/app/importacoes/import-form.tsx` → `actions.ts` (`previewImport` → RPC `preview_import`; `uploadImport` → RPC `import_lives`) → `src/lib/imports/file.ts` (arquivo) → `xlsx.ts` ou `csv.ts` (leitura) → `bi.ts` (colunas, mês, CNPJ) |
-| Painéis             | `src/lib/dashboard/queries.ts` (diretor), `src/lib/partner-panel/queries.ts` (parceiro)                                                                                                                                                   |
-| Fechamento          | `src/app/fechamento/` + `src/lib/closings/queries.ts` → RPCs de fechamento                                                                                                                                                                |
-| Indicações e etapas | `src/app/indicacoes/`, `src/lib/referrals/` (`stages.ts`: etapas e frases; `transitions.ts`: mudanças permitidas, espelho da função SQL)                                                                                                  |
-| Convite e aprovação | `src/app/convite/`, `src/app/parceiros/`, `src/lib/invitations/queries.ts`                                                                                                                                                                |
-| IA                  | `src/lib/ai/material.ts` (o que vai para a IA), `claude.ts` (chamada), `reviews.ts` (registro)                                                                                                                                            |
-| Mensagens e erros   | `src/lib/actions.ts` (`databaseError`: códigos do banco → texto), `src/lib/auth/errors.ts`, `src/lib/flash.ts`                                                                                                                            |
+| Fluxo                 | Arquivos principais                                                                                                                                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Envio da planilha     | `src/app/importacoes/import-form.tsx` → `actions.ts` (`previewImport` → RPC `preview_import`; `uploadImport` → RPC `import_lives`) → `src/lib/imports/file.ts` (arquivo) → `xlsx.ts` ou `csv.ts` (leitura) → `bi.ts` (colunas, mês, CNPJ)               |
+| Painéis               | `src/lib/dashboard/queries.ts` (diretor), `src/lib/partner-panel/queries.ts` (parceiro)                                                                                                                                                                 |
+| Fechamento            | `src/app/fechamento/` + `src/lib/closings/queries.ts` → RPCs de fechamento                                                                                                                                                                              |
+| Indicações e etapas   | `src/app/indicacoes/`, `src/lib/referrals/` (`stages.ts`: etapas e frases; `transitions.ts`: mudanças permitidas, espelho da função SQL)                                                                                                                |
+| Cadastro e aprovação  | `src/app/cadastro/`, `src/app/parceiros/`, `src/lib/auth/signup.ts`; convite de diretor: `src/app/convite/`, `src/app/equipe/`, `src/lib/invitations/queries.ts`                                                                                        |
+| Nova senha por e-mail | `src/app/esqueci-senha/` → `src/lib/supabase/admin.ts` (RPC `request_password_reset`) → `src/lib/mail.ts` (SMTP) → `src/app/nova-senha/[token]/`                                                                                                        |
+| Vigência escolhida    | `src/components/month-companies.tsx` (detalhe do envio) e `src/app/indicacoes/[id]/` → `src/components/rule-choice-form.tsx` → `setReferralRule` em `src/app/indicacoes/actions.ts` → RPC `set_referral_rule_month`; `src/lib/referrals/rule-choice.ts` |
+| IA                    | `src/lib/ai/material.ts` (o que vai para a IA), `claude.ts` (chamada), `reviews.ts` (registro)                                                                                                                                                          |
+| Mensagens e erros     | `src/lib/actions.ts` (`databaseError`: códigos do banco → texto), `src/lib/auth/errors.ts`, `src/lib/flash.ts`                                                                                                                                          |
 
 O formato da planilha do BI e as regras de leitura estão em [`docs/arquivo-bi.md`](../arquivo-bi.md).
 Se o BI mudar as colunas, só `src/lib/imports/bi.ts` e os testes dele mudam.
@@ -186,29 +204,39 @@ Se o BI mudar as colunas, só `src/lib/imports/bi.ts` e os testes dele mudam.
 
 ### Na Vercel (aplicação)
 
-| Variável                        | Obrigatória | Para quê                                                      |
-| ------------------------------- | ----------- | ------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY`             | não         | liga a IA; marcar como Sensitive                              |
-| `NEXT_PUBLIC_SUPABASE_URL`      | não         | endereço do Supabase; sem ela vale o do projeto da Fortes Pay |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | não         | chave pública; precisa ser do mesmo projeto do endereço       |
-| `NEXT_PUBLIC_ENVIRONMENT_LABEL` | não         | etiqueta de ambiente na tela (vazia em produção)              |
+| Variável                                                            | Obrigatória   | Para quê                                                                                                                                                      |
+| ------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`                                                 | não           | liga a IA; marcar como Sensitive                                                                                                                              |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | para o e-mail | caixa de suporte que envia o "Esqueci minha senha"; `SMTP_PORT` 587 (padrão) ou 465; `SMTP_FROM` é o remetente que a pessoa vê; marcar a senha como Sensitive |
+| `SUPABASE_SERVICE_ROLE_KEY`                                         | para o e-mail | chave de serviço do Supabase, só para gerar o link de nova senha pedido por e-mail; marcar como Sensitive                                                     |
+| `NEXT_PUBLIC_SUPABASE_URL`                                          | não           | endereço do Supabase; sem ela vale o do projeto da Fortes Pay                                                                                                 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`                                     | não           | chave pública; precisa ser do mesmo projeto do endereço                                                                                                       |
+| `NEXT_PUBLIC_ENVIRONMENT_LABEL`                                     | não           | etiqueta de ambiente na tela (vazia em produção)                                                                                                              |
 
 Em produção, o endereço e a chave **pública** do projeto da Fortes Pay estão em `src/lib/env.ts`
 (são públicos por natureza; quem protege os dados é a RLS). O endereço do próprio site vem da
-requisição (`x-forwarded-host`), então links de convite e de nova senha seguem o domínio em uso.
+requisição (`x-forwarded-host`), então links de convite e de nova senha copiados pelo diretor
+seguem o domínio em uso. O link que vai **dentro do e-mail** usa o domínio de produção informado
+pela própria Vercel (`VERCEL_PROJECT_PRODUCTION_URL`, variável de sistema), para não depender do
+cabeçalho de quem fez o pedido.
 
-**Nunca** configure na Vercel `SUPABASE_SERVICE_ROLE_KEY` nem `SUPABASE_DB_URL`: elas dão acesso
-total ao banco e só os scripts locais usam.
+**E-mail e chave de serviço.** Sem `SMTP_HOST`, `SMTP_FROM` e `SUPABASE_SERVICE_ROLE_KEY` o
+sistema funciona, mas o "Esqueci minha senha" não envia e-mail (a tela explica o caminho pelo
+diretor) e `/status` mostra `"email": "desligado: falta …"`. A chave de serviço dá acesso total ao
+banco: na Vercel ela existe só para essa função (decisão 26), fica marcada como Sensitive, é lida em
+um único arquivo (`src/lib/supabase/admin.ts`) e nunca vai ao navegador (o roteiro confere isso no
+passo 9.3). **Nunca** configure `SUPABASE_DB_URL` na Vercel: só o `npm run db:push` usa.
 
 ### Na máquina de quem administra (`.env.local`, fora do git)
 
-| Variável                        | Para quê                                                               |
-| ------------------------------- | ---------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | projeto real                                                           |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | chave pública                                                          |
-| `SUPABASE_SERVICE_ROLE_KEY`     | `npm run bootstrap` e `npm run reset-link` (Supabase → Settings → API) |
-| `SUPABASE_DB_URL`               | `npm run db:push` (pooler em modo sessão, porta 5432)                  |
-| `ANTHROPIC_API_KEY`             | IA no ambiente local (opcional)                                        |
+| Variável                        | Para quê                                                                                                         |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | projeto real                                                                                                     |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | chave pública                                                                                                    |
+| `SUPABASE_SERVICE_ROLE_KEY`     | `npm run bootstrap`, `npm run reset-link` e o "Esqueci minha senha" em `npm run dev` (Supabase → Settings → API) |
+| `SMTP_*`                        | e-mail do "Esqueci minha senha" em `npm run dev` (opcional; local: Mailpit em `127.0.0.1:54345`)                 |
+| `SUPABASE_DB_URL`               | `npm run db:push` (pooler em modo sessão, porta 5432)                                                            |
+| `ANTHROPIC_API_KEY`             | IA no ambiente local (opcional)                                                                                  |
 
 O modelo está em `.env.example`, só com marcadores. `.env.test` (versionado) aponta sempre para o
 Supabase local, com as chaves de demonstração da CLI.
@@ -291,18 +319,27 @@ Testado no Supabase local em 04/11/2026.
 
 ### E-mail
 
-O sistema não envia e-mail e nenhum fluxo depende dele: convites e links de nova senha são copiados
-pelo diretor e enviados por conta própria, e o "Esqueci minha senha" da tela só explica esse caminho.
-Não é preciso configurar SMTP.
+O único e-mail do sistema é o do "Esqueci minha senha" (decisão 26), enviado por SMTP pela caixa de
+suporte da Fortes Pay. Para ligar: na Vercel, em Settings → Environment Variables, criar
+`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` (ex.:
+`Fortes Pay <suporte@fortespay.com.br>`) e `SUPABASE_SERVICE_ROLE_KEY`, e publicar de novo. Conferir
+em `/status` (`"email": "ligado"`) e pedir uma nova senha para um e-mail próprio. Na porta 587 a
+conexão é cifrada antes do login (STARTTLS obrigatório quando há usuário); na 465, desde o início.
+Caixas do Google Workspace e do Microsoft 365 costumam exigir uma "senha de app" ou a liberação de
+SMTP autenticado para a conta. Falha de envio aparece para a pessoa como "Não foi possível enviar o
+e-mail agora" e vai para o log da função na Vercel.
+
+Convites de diretor e o link de nova senha gerado pelo diretor continuam sendo copiados e enviados
+por conta própria; não há outro e-mail automático.
 
 ## 12. Testes
 
-| Comando                             | O que cobre                                                                                                                              |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm test`                          | 44 testes de unidade: leitor do BI, CNPJ, mês, moeda, etapas, chamada da IA                                                              |
-| `npm run test:db`                   | 40 testes das funções SQL e da RLS, contra o Supabase local                                                                              |
-| `npm run test:e2e`                  | Playwright: zera o banco local, faz o build e executa o roteiro de validação inteiro e 9 casos extras (IA com uma imitação local da API) |
-| `npm run lint`, `npm run typecheck` | ESLint e TypeScript                                                                                                                      |
+| Comando                             | O que cobre                                                                                                                                                                    |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm test`                          | 82 testes de unidade: leitor do BI, CNPJ, mês, moeda, etapas, vigência escolhida, e-mail, chamada da IA                                                                        |
+| `npm run test:db`                   | 64 testes das funções SQL e da RLS, contra o Supabase local                                                                                                                    |
+| `npm run test:e2e`                  | Playwright: zera o banco local, faz o build e executa o roteiro de validação inteiro e 10 casos extras (IA com uma imitação local da API; e-mail no Mailpit do Supabase local) |
+| `npm run lint`, `npm run typecheck` | ESLint e TypeScript                                                                                                                                                            |
 
 Os testes de banco e de ponta a ponta se recusam a rodar contra um Supabase que não seja local
 (`tests/local-only.ts`). Em 04/11/2026, além da suíte, um smoke contra o sistema publicado percorreu
@@ -313,12 +350,17 @@ comandos acima. Passo a passo no README.
 
 ## 13. Segurança
 
-- Chaves com acesso total (`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`) só na máquina de quem
-  administra; nunca na Vercel, no código ou no git.
+- Chaves com acesso total: `SUPABASE_DB_URL` só na máquina de quem administra;
+  `SUPABASE_SERVICE_ROLE_KEY` na máquina de quem administra e, como variável Sensitive, na Vercel
+  (só para o link de nova senha por e-mail, seção 9). Nunca no código, no navegador ou no git.
+- O cadastro de parceiro é aberto: qualquer pessoa pode enviar um, e nenhum entra sem a aprovação
+  de um diretor. Não há proteção contra cadastros automáticos (anotado em `docs/depois.md`).
 - O repositório está **público** no GitHub da Fortes Pay. Não há segredo nele (a chave pública do
   Supabase é pública por natureza), mas a recomendação é torná-lo privado antes do uso real.
 - Planilhas reais do BI nunca vão para o git (`*.xlsx` no `.gitignore`; os CSV reais ficam em `.local/`).
-- Tokens de convite e de nova senha: só o hash fica no banco. Senhas ficam no Supabase Auth.
+- Tokens de convite e de nova senha: só o hash fica no banco. Senhas ficam no Supabase Auth. O
+  pedido de nova senha por e-mail responde igual com ou sem cadastro e é limitado a um a cada 2
+  minutos por conta.
 - Páginas logadas saem com `Cache-Control: no-store`.
 
 ## 14. Limites e pontos de atenção

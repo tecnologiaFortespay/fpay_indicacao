@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Database } from "@/lib/supabase/types";
@@ -30,21 +30,45 @@ function futureDate(days: number): string {
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 }
 
-async function invite(name: string, kind = "unit"): Promise<{ id: string; secret: string }> {
-  const secret = randomBytes(32).toString("base64url");
+function newSecret(): string {
+  return randomBytes(32).toString("base64url");
+}
+
+// Convite de diretor, o único que existe desde a decisão 25.
+async function invite(name: string): Promise<{ id: string; secret: string }> {
+  const secret = newSecret();
   const id = ok(
     await director.rpc("create_invitation", {
-      payload: { partner_name: name, kind, valid_until: futureDate(7), secret },
+      payload: { partner_name: name, kind: "director", valid_until: futureDate(7), secret },
     }),
     "create_invitation",
   );
   return { id, secret };
 }
 
-async function registerWithNewUser(secret: string, payload: Record<string, string>) {
+// Convite de parceiro criado antes da decisão 25, ainda aberto (gravado direto na tabela).
+async function oldPartnerInvitation(name: string): Promise<string> {
+  const secret = newSecret();
+  done(
+    await admin.from("invitations").insert({
+      token_hash: createHash("sha256").update(secret).digest("hex"),
+      partner_name: name,
+      kind: "unit",
+      expires_at: futureDate(7),
+      created_by: directorUser.id,
+    }),
+    "old partner invitation",
+  );
+  return secret;
+}
+
+const PLACE = { city: "Natal", state: "rn", contact_phone: "(84) 99999-0000" };
+
+// Cadastro aberto (decisão 25): a conta recém-criada, ainda sem perfil, cadastra o parceiro.
+async function registerWithNewUser(payload: Record<string, string>) {
   const user = await createUser(admin, null);
   const client = await userClient(user.email);
-  const result = await client.rpc("register_partner", { secret, payload });
+  const result = await client.rpc("register_partner", { payload });
   return { user, client, result };
 }
 
@@ -56,170 +80,109 @@ beforeAll(async () => {
   noProfile = await userClient(noProfileUser.email);
 });
 
-describe("fatia 2 — convite, cadastro e aprovação", () => {
-  it("diretor gera convite; quem abre o link vê só nome, tipo e validade", async () => {
-    const { secret } = await invite("Unidade Teresina");
-    const preview = ok(
-      await anonClient().rpc("invitation_preview", { secret }),
-      "invitation_preview",
-    );
-    expect(preview).toMatchObject({
-      partner_name: "Unidade Teresina",
-      kind: "unit",
-      status: "open",
-    });
-    const missing = await anonClient().rpc("invitation_preview", { secret: "nao-existe" });
-    expect(missing.data).toBeNull();
-    const denied = await noProfile.rpc("create_invitation", {
-      payload: {
-        partner_name: "X",
-        kind: "unit",
-        valid_until: futureDate(1),
-        secret: randomBytes(32).toString("base64url"),
-      },
-    });
-    expect(denied.error?.code).toBe("42501");
-  });
-
-  it("cadastro pelo link cria parceiro pendente e perfil; o link não serve duas vezes", async () => {
-    const { secret } = await invite("Unidade Natal");
-    const { client, result } = await registerWithNewUser(secret, {
+describe("cadastro aberto e aprovação", () => {
+  it("a conta sem perfil cadastra o parceiro pendente, ainda sem tipo; sem sessão não cadastra", async () => {
+    const { user, client, result } = await registerWithNewUser({
       name: "Unidade Natal",
-      city: "Natal",
-      state: "rn",
       contact_name: "Ana",
+      ...PLACE,
     });
     const partnerId = ok(result, "register_partner");
     const profile = ok(await client.rpc("current_profile"), "current_profile") as {
       role: string;
+      display_name: string;
       partner: { id: string; status: string };
     };
     expect(profile.role).toBe("partner");
+    expect(profile.display_name).toBe("Ana");
     expect(profile.partner).toMatchObject({ id: partnerId, status: "pending" });
     const own = ok(
-      await client.from("partners").select("name, state, status").eq("id", partnerId).single(),
+      await client
+        .from("partners")
+        .select("name, kind, city, state, contact_email, contact_phone, status")
+        .eq("id", partnerId)
+        .single(),
       "own partner",
     );
-    expect(own).toEqual({ name: "Unidade Natal", state: "RN", status: "pending" });
+    expect(own).toEqual({
+      name: "Unidade Natal",
+      kind: null,
+      city: "Natal",
+      state: "RN",
+      contact_email: user.email,
+      contact_phone: "(84) 99999-0000",
+      status: "pending",
+    });
+    // Segundo envio do mesmo formulário: o cadastro é o mesmo, não nasce outro parceiro.
     const again = await client.rpc("register_partner", {
-      secret,
-      payload: { name: "Unidade Natal", contact_name: "Ana" },
+      payload: { name: "Outro nome", contact_name: "Ana", ...PLACE },
     });
     expect(again.data).toBe(partnerId);
-    const other = await registerWithNewUser(secret, { name: "Outra", contact_name: "Bia" });
-    expect(other.result.error?.message).toBe("INVITATION_INVALID");
-    const preview = ok(
-      await anonClient().rpc("invitation_preview", { secret }),
-      "preview after use",
-    );
-    expect(preview).toMatchObject({ status: "used" });
-  });
-
-  it("convite válido confirma o e-mail da conta recém-criada (Confirm email ligado)", async () => {
-    const { secret } = await invite("Unidade Mossoró");
-    const email = uniqueEmail("mossoro");
-    const created = await admin.auth.admin.createUser({ email, password: PASSWORD });
-    const account = created.data.user?.id ?? "";
-    expect(created.data.user?.email_confirmed_at ?? null).toBeNull();
-
-    const wrongSecret = await anonClient().rpc("confirm_invited_signup", {
-      secret: "nao-existe",
-      account,
+    const anonymous = await anonClient().rpc("register_partner", {
+      payload: { name: "Sem conta", contact_name: "Zé", ...PLACE },
     });
-    expect(wrongSecret.data).toBe(false);
-    const confirmed = await anonClient().rpc("confirm_invited_signup", { secret, account });
-    expect(confirmed.data).toBe(true);
-    const again = await anonClient().rpc("confirm_invited_signup", { secret, account });
-    expect(again.data).toBe(false);
-
-    const user = await admin.auth.admin.getUserById(account);
-    expect(user.data.user?.email_confirmed_at).toBeTruthy();
-    const client = await userClient(email);
-    const partnerId = ok(
-      await client.rpc("register_partner", {
-        secret,
-        payload: { name: "Unidade Mossoró", city: "Mossoró", state: "RN", contact_name: "Rita" },
-      }),
-      "register_partner",
-    );
-    expect(partnerId).toBeTruthy();
+    expect(anonymous.error?.code).toBe("42501");
   });
 
-  it("convite não confirma conta que já tem perfil", async () => {
-    const { secret } = await invite("Unidade Caicó");
-    const created = await admin.auth.admin.createUser({
-      email: uniqueEmail("caico"),
-      password: PASSWORD,
+  it("nome, cidade, UF, responsável e telefone são obrigatórios", async () => {
+    const complete = { name: "Unidade Campos", contact_name: "Bia", ...PLACE };
+    const cases: [Record<string, string>, string][] = [
+      [{ ...complete, name: " " }, "Informe o nome da unidade ou do parceiro."],
+      [{ ...complete, city: "" }, "Informe a cidade."],
+      [{ ...complete, state: "R" }, "Informe a UF com duas letras."],
+      [{ ...complete, contact_name: "" }, "Informe o nome do responsável."],
+      [{ ...complete, contact_phone: " " }, "Informe o telefone."],
+    ];
+    for (const [payload, message] of cases) {
+      const refused = await noProfile.rpc("register_partner", { payload });
+      expect(refused.error?.message).toBe("REGISTRATION_FIELDS");
+      expect(refused.error?.details).toBe(message);
+    }
+    expect((await noProfile.rpc("current_profile")).data).toBeNull();
+  });
+
+  it("conta de diretor não se cadastra como parceiro", async () => {
+    const result = await director.rpc("register_partner", {
+      payload: { name: "Diretor Parceiro", contact_name: "Dir", ...PLACE },
     });
-    const account = created.data.user?.id ?? "";
-    done(
-      await admin
-        .from("profiles")
-        .insert({ user_id: account, role: "director", display_name: "Diretor" }),
-      "profile",
-    );
-    const result = await anonClient().rpc("confirm_invited_signup", { secret, account });
-    expect(result.data).toBe(false);
+    expect(result.error?.message).toBe("ALREADY_REGISTERED");
   });
 
-  it("só existem os perfis diretor e parceiro (o de analista saiu em 04/11/2026)", async () => {
-    const created = await admin.auth.admin.createUser({
-      email: uniqueEmail("ex-analista"),
-      password: PASSWORD,
-    });
-    const result = await admin
-      .from("profiles")
-      .insert({ user_id: created.data.user?.id ?? "", role: "analyst", display_name: "Analista" });
-    expect(result.error?.code).toBe("23514");
-  });
-
-  it("convite expirado não cadastra", async () => {
-    const { id, secret } = await invite("Unidade Expirada");
-    done(
-      await admin
-        .from("invitations")
-        .update({ expires_at: new Date(Date.now() - 1000).toISOString() })
-        .eq("id", id),
-      "expire",
-    );
-    const preview = ok(await anonClient().rpc("invitation_preview", { secret }), "preview expired");
-    expect(preview).toMatchObject({ status: "expired" });
-    const { result } = await registerWithNewUser(secret, {
-      name: "Unidade Expirada",
-      contact_name: "Caio",
-    });
-    expect(result.error?.message).toBe("INVITATION_INVALID");
-  });
-
-  it("aprovação exige a regra (sem meio de pagamento); depois o parceiro entra e lê só o que é dele", async () => {
-    const { secret } = await invite("Unidade Manaus");
-    const { client, result } = await registerWithNewUser(secret, {
+  it("aprovação exige o tipo e a regra; depois o parceiro entra e lê só o que é dele", async () => {
+    const { client, result } = await registerWithNewUser({
       name: "Unidade Manaus",
       contact_name: "Dora",
+      ...PLACE,
     });
     const partnerId = ok(result, "register_partner");
     const base = {
       partner_id: partnerId,
+      kind: "unit",
       value_per_life: "2.00",
       valid_from: "2026-10-01",
       term_months: "",
     };
+    const noKind = await director.rpc("approve_partner", { payload: { ...base, kind: "" } });
+    expect(noKind.error?.details).toBe("Informe se é unidade ou parceiro externo.");
     const noValue = await director.rpc("approve_partner", {
-      payload: { partner_id: partnerId, valid_from: "2026-10-01" },
+      payload: { partner_id: partnerId, kind: "unit", valid_from: "2026-10-01" },
     });
     expect(noValue.error?.details).toBe("Informe o valor por vida (ex.: 1,50).");
     const noStart = await director.rpc("approve_partner", {
-      payload: { partner_id: partnerId, value_per_life: "2.00" },
+      payload: { partner_id: partnerId, kind: "unit", value_per_life: "2.00" },
     });
     expect(noStart.error?.details).toBe("Informe o mês de início da vigência.");
     const noProfileTry = await noProfile.rpc("approve_partner", { payload: base });
     expect(noProfileTry.error?.code).toBe("42501");
+    // O próprio parceiro pendente não se aprova.
+    const selfApproval = await client.rpc("approve_partner", { payload: base });
+    expect(selfApproval.error?.code).toBe("42501");
     done(await director.rpc("approve_partner", { payload: base }), "approve");
     const approved = ok(
-      await director.from("partners").select("status").eq("id", partnerId).single(),
+      await director.from("partners").select("status, kind").eq("id", partnerId).single(),
       "approved",
     );
-    expect(approved).toEqual({ status: "active" });
+    expect(approved).toEqual({ status: "active", kind: "unit" });
     const rules = ok(
       await client
         .from("partner_rules")
@@ -236,11 +199,11 @@ describe("fatia 2 — convite, cadastro e aprovação", () => {
     expect(alreadyActive.error?.details).toBe("Este parceiro já está ativo.");
   });
 
-  it("recusa guarda o motivo e só vale para cadastro pendente", async () => {
-    const { secret } = await invite("Indicador Recusado", "external");
-    const { client, result } = await registerWithNewUser(secret, {
+  it("recusa guarda o motivo e só vale para cadastro pendente; reconsiderar aprova com o tipo", async () => {
+    const { client, result } = await registerWithNewUser({
       name: "Indicador Recusado",
       contact_name: "Eva",
+      ...PLACE,
     });
     const partnerId = ok(result, "register_partner");
     const noReason = await director.rpc("reject_partner", { target: partnerId, reason: " " });
@@ -258,17 +221,63 @@ describe("fatia 2 — convite, cadastro e aprovação", () => {
     });
     const twice = await director.rpc("reject_partner", { target: partnerId, reason: "De novo." });
     expect(twice.error?.details).toBe("Só um cadastro pendente pode ser recusado.");
+    done(
+      await director.rpc("approve_partner", {
+        payload: {
+          partner_id: partnerId,
+          kind: "external",
+          value_per_life: "1.00",
+          valid_from: "2026-10-01",
+          term_months: "12",
+        },
+      }),
+      "reconsider",
+    );
+    const reconsidered = ok(
+      await director
+        .from("partners")
+        .select("status, kind, rejection_reason")
+        .eq("id", partnerId)
+        .single(),
+      "reconsidered",
+    );
+    expect(reconsidered).toEqual({ status: "active", kind: "external", rejection_reason: null });
+  });
+
+  it("só existem os perfis diretor e parceiro (o de analista saiu em 04/11/2026)", async () => {
+    const created = await admin.auth.admin.createUser({
+      email: uniqueEmail("ex-analista"),
+      password: PASSWORD,
+    });
+    const result = await admin
+      .from("profiles")
+      .insert({ user_id: created.data.user?.id ?? "", role: "analyst", display_name: "Analista" });
+    expect(result.error?.code).toBe("23514");
   });
 });
 
-// 09/11/2026 — Equipe: o diretor convida outros diretores pelo mesmo tipo de link do parceiro.
+// 09/11/2026 — Equipe: o diretor convida outros diretores por um link de uso único. Desde a
+// decisão 25 (16/11/2026) é o único convite: o parceiro cria a própria conta.
 describe("convite de diretor (Equipe)", () => {
   async function newUserClient(): Promise<Client> {
     return userClient((await createUser(admin, null)).email);
   }
 
-  it("diretor convida outro diretor; quem abre o link vê o nome e o tipo", async () => {
-    const { secret } = await invite("Analista BI", "director");
+  it("convite só existe para diretor; quem abre o link vê o nome e o tipo", async () => {
+    for (const kind of ["unit", "external"]) {
+      const refused = await director.rpc("create_invitation", {
+        payload: {
+          partner_name: "Unidade Convidada",
+          kind,
+          valid_until: futureDate(7),
+          secret: newSecret(),
+        },
+      });
+      expect(refused.error?.details).toBe(
+        "Convite é só para diretor: o parceiro cria a própria conta em Criar conta.",
+      );
+    }
+    const { secret } = await invite("Analista BI");
     const preview = ok(
       await anonClient().rpc("invitation_preview", { secret }),
       "invitation_preview",
@@ -278,10 +287,21 @@ describe("convite de diretor (Equipe)", () => {
       kind: "director",
       status: "open",
     });
+    const missing = await anonClient().rpc("invitation_preview", { secret: "nao-existe" });
+    expect(missing.data).toBeNull();
+    const denied = await noProfile.rpc("create_invitation", {
+      payload: {
+        partner_name: "X",
+        kind: "director",
+        valid_until: futureDate(1),
+        secret: newSecret(),
+      },
+    });
+    expect(denied.error?.code).toBe("42501");
   });
 
   it("cadastro pelo convite cria o perfil de diretor, que já age como diretor; o link não serve duas vezes", async () => {
-    const { secret } = await invite("Analista BI", "director");
+    const { secret } = await invite("Analista BI");
     const client = await newUserClient();
     done(
       await client.rpc("register_director", { secret, payload: { name: "Beatriz BI" } }),
@@ -313,24 +333,78 @@ describe("convite de diretor (Equipe)", () => {
     expect(preview).toMatchObject({ status: "used" });
   });
 
-  it("convite de parceiro não cadastra diretor, nem convite de diretor cadastra parceiro", async () => {
-    const partnerInvite = await invite("Unidade Cruzada", "unit");
-    const directorInvite = await invite("Diretor Cruzado", "director");
+  it("convite válido confirma o e-mail da conta recém-criada (Confirm email ligado)", async () => {
+    const { secret } = await invite("Diretora Mossoró");
+    const email = uniqueEmail("mossoro");
+    const created = await admin.auth.admin.createUser({ email, password: PASSWORD });
+    const account = created.data.user?.id ?? "";
+    expect(created.data.user?.email_confirmed_at ?? null).toBeNull();
+
+    const wrongSecret = await anonClient().rpc("confirm_invited_signup", {
+      secret: "nao-existe",
+      account,
+    });
+    expect(wrongSecret.data).toBe(false);
+    // Convite antigo de parceiro não confirma mais ninguém.
+    const oldInvite = await anonClient().rpc("confirm_invited_signup", {
+      secret: await oldPartnerInvitation("Unidade Antiga"),
+      account,
+    });
+    expect(oldInvite.data).toBe(false);
+    const confirmed = await anonClient().rpc("confirm_invited_signup", { secret, account });
+    expect(confirmed.data).toBe(true);
+    const again = await anonClient().rpc("confirm_invited_signup", { secret, account });
+    expect(again.data).toBe(false);
+
+    const user = await admin.auth.admin.getUserById(account);
+    expect(user.data.user?.email_confirmed_at).toBeTruthy();
+    const client = await userClient(email);
+    done(
+      await client.rpc("register_director", { secret, payload: { name: "Rita Diretora" } }),
+      "register_director",
+    );
+  });
+
+  it("convite não confirma conta que já tem perfil", async () => {
+    const { secret } = await invite("Diretor Caicó");
+    const created = await admin.auth.admin.createUser({
+      email: uniqueEmail("caico"),
+      password: PASSWORD,
+    });
+    const account = created.data.user?.id ?? "";
+    done(
+      await admin
+        .from("profiles")
+        .insert({ user_id: account, role: "director", display_name: "Diretor" }),
+      "profile",
+    );
+    const result = await anonClient().rpc("confirm_invited_signup", { secret, account });
+    expect(result.data).toBe(false);
+  });
+
+  it("convite expirado e convite antigo de parceiro não cadastram diretor", async () => {
+    const { id, secret } = await invite("Diretor Expirado");
+    done(
+      await admin
+        .from("invitations")
+        .update({ expires_at: new Date(Date.now() - 1000).toISOString() })
+        .eq("id", id),
+      "expire",
+    );
+    const preview = ok(await anonClient().rpc("invitation_preview", { secret }), "preview expired");
+    expect(preview).toMatchObject({ status: "expired" });
     const client = await newUserClient();
+    const expired = await client.rpc("register_director", { secret, payload: { name: "Caio" } });
+    expect(expired.error?.message).toBe("INVITATION_INVALID");
     const asDirector = await client.rpc("register_director", {
-      secret: partnerInvite.secret,
+      secret: await oldPartnerInvitation("Unidade Cruzada"),
       payload: { name: "Fulano" },
     });
     expect(asDirector.error?.message).toBe("INVITATION_INVALID");
-    const asPartner = await client.rpc("register_partner", {
-      secret: directorInvite.secret,
-      payload: { name: "Unidade X", contact_name: "Fulano" },
-    });
-    expect(asPartner.error?.message).toBe("INVITATION_INVALID");
   });
 
   it("sem nome não cadastra; conta que já tem perfil não usa o convite", async () => {
-    const { secret } = await invite("Sem Nome", "director");
+    const { secret } = await invite("Sem Nome");
     const noName = await (
       await newUserClient()
     ).rpc("register_director", {

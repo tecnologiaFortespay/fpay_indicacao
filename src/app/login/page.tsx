@@ -43,7 +43,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
       )}
       {params.erro === "link" && (
         <Notice tone="danger" role="status" compact>
-          Este link é inválido ou expirou. Peça um novo link à Fortes Pay.
+          Este link é inválido ou expirou. Peça outro em “Esqueci minha senha”.
         </Notice>
       )}
       {params.motivo === "sessao" && (
@@ -58,6 +58,12 @@ export default async function LoginPage({ searchParams }: PageProps) {
       >
         Esqueci minha senha
       </Link>
+      <p className="text-center text-sm text-muted-foreground">
+        Quer indicar clientes?{" "}
+        <Link href="/cadastro" className="font-medium text-primary hover:underline">
+          Criar conta de parceiro
+        </Link>
+      </p>
       {built && (
         <p className="text-center text-xs text-muted-foreground">
           Versão de {formatDateTime(built)}

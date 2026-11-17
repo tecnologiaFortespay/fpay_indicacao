@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth-shell";
 import { LogoutButton, SessionGuard } from "@/components/session-controls";
@@ -20,11 +21,14 @@ export default async function NoAccessPage() {
   }
   return (
     <AuthShell
-      title="Conta sem perfil"
-      description="Esta conta existe, mas o cadastro não foi concluído. Se você recebeu um convite, abra o link dele de novo (com esta conta já conectada) para concluir; se não, fale com a Fortes Pay."
+      title="Cadastro não concluído"
+      description="Esta conta existe, mas o cadastro não foi concluído. Parceiro: conclua o cadastro abaixo. Diretor: abra de novo o link do convite que recebeu, com esta conta já conectada."
     >
       <SessionGuard />
       <p className="break-all text-sm text-muted-foreground">{user.email}</p>
+      <Link href="/cadastro" className="block text-sm font-medium text-primary hover:underline">
+        Concluir cadastro de parceiro
+      </Link>
       <LogoutButton />
     </AuthShell>
   );

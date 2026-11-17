@@ -8,6 +8,7 @@ import { Field, SelectField } from "@/components/fields";
 import { KeyValueStrip } from "@/components/key-value-strip";
 import { MutationForm } from "@/components/mutation-form";
 import { Notice } from "@/components/notice";
+import { RuleChoiceForm } from "@/components/rule-choice-form";
 import { RulesCard } from "@/components/rules-card";
 import { PanelBody, SectionCard } from "@/components/section-card";
 import { requireRole } from "@/lib/auth/session";
@@ -22,9 +23,10 @@ import {
 } from "@/lib/competency";
 import { referralStatusLabels, type ReferralStatus } from "@/lib/labels";
 import { formatCurrency, formatInteger } from "@/lib/money";
-import { listReferralRules, ruleInForce } from "@/lib/partners/queries";
+import { listPartnerRules, listReferralRules } from "@/lib/partners/queries";
 import { effectiveTerms, ruleInMonth, termLabel } from "@/lib/referrals/config";
-import { getReferral, referralMonths } from "@/lib/referrals/queries";
+import { getReferral, referralMonths, ruleChoiceLocks } from "@/lib/referrals/queries";
+import { ruleChoice, ruleChoiceLabel } from "@/lib/referrals/rule-choice";
 import {
   referralExplanation,
   referralStage,
@@ -50,12 +52,18 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
     notFound();
   }
   const today = currentCompetency();
-  const [rule, months, lockedThrough, rulesByReferral] = await Promise.all([
-    ruleInForce(referral.partner_id, today),
+  const [partnerRules, months, lockedThrough, rulesByReferral, locks] = await Promise.all([
+    listPartnerRules(referral.partner_id),
     referralMonths(id),
     lastClosedCompetency(),
     listReferralRules([id]),
+    ruleChoiceLocks(),
   ]);
+  // Vigência do parceiro que vale para esta indicação hoje: a escolhida pelo diretor ou a
+  // automática, pela data da indicação ou do primeiro pagamento (decisões 23, 24 e 27).
+  const choice = ruleChoice(referral, partnerRules, today);
+  const rule = choice.applied;
+  const choiceLock = locks.get(id) ?? null;
   const ownRules = rulesByReferral.get(id) ?? [];
   const status = referralStatusLabels[referral.status as ReferralStatus] ?? referral.status;
   const transitions = allowedTransitions(referral.status).map(
@@ -119,9 +127,43 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
         {referralExplanation(referral, { valuePerLife: effectiveValue, termMonths: effectiveTerm })}
       </Notice>
 
+      <SectionCard
+        title="Vigência do parceiro aplicada"
+        subtitle="Qual vigência do parceiro vale para esta indicação. Por padrão é a de quando a indicação foi feita (ou a do primeiro pagamento, se a empresa já pagava antes). Para um caso pontual, escolha outra: por exemplo, a empresa pagou no começo do mês, mas deve seguir a regra do mês anterior."
+      >
+        <PanelBody>
+          <p className="fp-sentence">
+            Hoje:{" "}
+            <strong>
+              {rule ? ruleChoiceLabel(rule) : "o parceiro não tem vigência neste mês"}
+            </strong>{" "}
+            ({referral.rule_month ? "escolhida pelo diretor" : "automática"})
+          </p>
+          {choiceLock ? (
+            <p className="fp-help">
+              Esta indicação já teve vidas num mês fechado ({shortCompetencyLabel(choiceLock)}),
+              então a vigência do parceiro não muda mais por aqui. Para mudar o valor ou o prazo
+              daqui em diante, crie uma vigência própria abaixo.
+            </p>
+          ) : partnerRules.length < 2 ? (
+            <p className="fp-help">
+              O parceiro tem uma vigência só; não há outra para escolher. Para dar a esta indicação
+              um valor ou prazo diferente, crie uma vigência própria abaixo.
+            </p>
+          ) : (
+            <RuleChoiceForm
+              referralId={referral.id}
+              companyName={referral.company_name}
+              choice={choice}
+              returnTo={`/indicacoes/${referral.id}`}
+            />
+          )}
+        </PanelBody>
+      </SectionCard>
+
       <RulesCard
         title="Valor e prazo desta indicação"
-        subtitle="Vigências próprias desta indicação, combinadas com a Fortes Pay. Valor em branco usa o do parceiro; sem vigência própria, vale a regra do parceiro de quando a indicação foi feita."
+        subtitle="Vigências próprias desta indicação, combinadas com a Fortes Pay. Valor em branco usa o do parceiro; sem vigência própria, vale a vigência do parceiro aplicada acima."
         footnote="Uma vigência nova vale do mês dela em diante; os meses anteriores continuam como estavam e meses já fechados não mudam. O prazo conta a partir do primeiro mês pago."
         rules={ownRules}
         partnerId={referral.partner_id}

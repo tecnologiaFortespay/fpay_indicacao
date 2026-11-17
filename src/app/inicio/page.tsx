@@ -19,6 +19,7 @@ import {
 import { directorOverview, latestCompetency } from "@/lib/dashboard/queries";
 import { latestImport } from "@/lib/imports/queries";
 import { partnerKindLabels, referralStatusLabels, type ReferralStatus } from "@/lib/labels";
+import { pendingPartnerCount } from "@/lib/partners/queries";
 import { referralStatusCounts } from "@/lib/referrals/queries";
 import {
   referralStage,
@@ -42,12 +43,13 @@ export default async function HomePage({ searchParams }: PageProps) {
   const competency = isCompetency(params.competency)
     ? params.competency
     : (latest ?? currentCompetency());
-  const [overview, last, counts, pending, closing] = await Promise.all([
+  const [overview, last, counts, pending, closing, waiting] = await Promise.all([
     directorOverview(competency),
     latestImport(),
     referralStatusCounts(),
     pendingBalances(),
     getClosing(competency),
+    pendingPartnerCount(),
   ]);
   const statusEntries = Object.entries(referralStatusLabels) as [ReferralStatus, string][];
   const monthLabel = competencyLabel(competency);
@@ -58,6 +60,23 @@ export default async function HomePage({ searchParams }: PageProps) {
         Quanto cada parceiro rende no mês, pela planilha do BI. Mês em andamento é prévia; o valor
         oficial sai em Fechamento do mês, depois que o mês termina.
       </PageIntro>
+
+      {waiting > 0 && (
+        <Notice
+          tone="info"
+          title={
+            waiting === 1
+              ? "1 cadastro de parceiro aguardando aprovação"
+              : `${waiting} cadastros de parceiro aguardando aprovação`
+          }
+        >
+          O parceiro criou a própria conta e só entra no sistema depois que você aprova.{" "}
+          <Link href="/parceiros" className="underline">
+            Analisar em Parceiros
+          </Link>
+          .
+        </Notice>
+      )}
 
       {closed && closing && (
         <Notice tone="warning" title={`${monthLabel} já foi fechado`}>
@@ -127,8 +146,8 @@ export default async function HomePage({ searchParams }: PageProps) {
       >
         {overview.rows.length === 0 ? (
           <EmptyState title="Nenhum parceiro ativo ainda">
-            Gere um convite em Parceiros; o parceiro aparece aqui depois que você aprovar o
-            cadastro.
+            O parceiro cria a própria conta na tela de entrada do sistema e aparece aqui depois que
+            você aprovar o cadastro em Parceiros.
           </EmptyState>
         ) : (
           <div className="fp-table-wrap">

@@ -188,3 +188,61 @@ valem sobre o que ele diz.
     cashin". Consequência: empresa que já pagava há mais tempo que o prazo da regra não rende.
     Vale a partir do próximo envio da planilha de cada mês aberto; meses fechados não mudam.
     Migration `20261114000018_first_cashin.sql`; nenhuma tabela nova.
+
+## 16/11/2026 — apontamentos do time da Fortes Pay (quatro ajustes, pedidos pelo Diego)
+
+25. **Cadastro aberto do parceiro, sem convite.** Apontamento do time: em vez de o diretor gerar
+    um link para cada parceiro, o parceiro entra no site e cria a própria conta; o diretor só
+    confirma. A tela de entrada ganhou **Criar conta de parceiro** (`/cadastro`): nome da unidade
+    ou do parceiro, cidade/UF, responsável, telefone, e-mail, senha e confirmação da senha. O
+    cadastro nasce **Aguardando aprovação**, como antes, e o parceiro vê "Cadastro em análise". O
+    tipo (Unidade ou Parceiro externo) vinha do convite; por escolha do Diego (16/11/2026) passa a
+    ser definido **pelo diretor ao aprovar**, junto com a regra. Os convites de parceiro saíram: a
+    tela Parceiros não tem mais "Convites" e mostra o endereço do cadastro para o diretor enviar;
+    os convites que estavam abertos deixaram de valer, e quem abrir um link antigo é levado ao
+    cadastro. O convite de **diretor** (Equipe, decisão 19) não muda. Como o cadastro passa a
+    chegar sem o diretor ter pedido, a Visão geral avisa quantos aguardam aprovação. Chamadas do
+    Claude:
+    qualquer pessoa pode enviar um cadastro (a aprovação é o filtro, e o recusado fica em
+    Recusados); uma conta faz um cadastro só; enquanto aguarda, o parceiro não tem tipo
+    (`partners.kind` nulo). Sobrepõe a decisão 10 e o bloco 2 do roteiro. Migration
+    `20261116000019_open_signup.sql`; nenhuma tabela nova.
+26. **"Esqueci minha senha" por e-mail, pela caixa de suporte.** Apontamento do time: em vez de o
+    diretor mandar um link, o parceiro informa o e-mail e recebe o link para criar a senha nova,
+    como em qualquer site. O link é o mesmo de antes (24 horas, uso único, só o hash guardado) e
+    abre a mesma tela; muda quem o gera: o próprio sistema, que o envia por SMTP pela caixa de
+    suporte da Fortes Pay. A tela responde igual com ou sem cadastro (não confirma quais e-mails
+    têm conta), aceita um pedido a cada 2 minutos por conta e, se o e-mail não sair, desfaz o
+    link. Vale para parceiro e para diretor. O link gerado pelo diretor (ficha do parceiro e
+    Equipe) **continua como reserva**, para quando o e-mail não chegar (proposta do Claude, aceita
+    pelo Diego). Por escolha do Diego (16/11/2026) a configuração fica **na Vercel**: `SMTP_HOST`,
+    `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` e `SUPABASE_SERVICE_ROLE_KEY`. A chave
+    de serviço passa a existir no servidor (antes a regra era "nunca na Vercel"): a função que
+    gera o link a partir de um e-mail só aceita essa chave, porque, se o navegador pudesse
+    chamá-la, qualquer pessoa definiria o link de uma conta alheia. Ela é lida em um arquivo só
+    (`src/lib/supabase/admin.ts`) e nunca vai ao navegador. Enquanto as variáveis não estiverem
+    no servidor, a tela explica o caminho pelo diretor (como na decisão 19) e `/status` mostra
+    `"email": "desligado: falta …"`. O link do e-mail usa o domínio de produção informado pela
+    Vercel. Sobrepõe a decisão 12 e o item (c) da 19. Migration
+    `20261116000020_password_reset_email.sql`; nenhuma tabela nova.
+27. **Vigência do parceiro escolhida por empresa, na tela do envio da planilha.** Apontamento do
+    time: há empresas novas que pagam no começo de outubro, mas a vigência que deve valer para
+    elas é a de setembro; são casos pontuais, de avaliação manual. Resposta do Diego (16/11/2026):
+    o diretor **escolhe qual vigência do parceiro vale para a empresa** (não digita valor nem muda
+    o mês das vidas). O detalhe de cada envio ganhou **Empresas com vidas em <mês>**: cada empresa
+    indicada com vidas no mês, o parceiro, quando foi indicada, o primeiro pagamento do BI, a
+    vigência aplicada e o valor do mês, com as empresas novas (primeiro mês pago) no topo. Em
+    "Vigência aplicada" o diretor escolhe uma das vigências cadastradas do parceiro ou
+    "Automática" (decisões 23 e 24) e clica em Aplicar; o valor muda na hora, também para o
+    parceiro. A mesma escolha aparece na ficha da indicação ("Vigência do parceiro aplicada"). No
+    banco, `referrals.rule_month` guarda o mês da vigência escolhida e entra no lugar do mês de
+    referência automático; a vigência própria da indicação continua mandando sobre a do parceiro.
+    Chamadas do Claude (**a confirmar com o Diego**): (a) o seletor só aparece quando o parceiro
+    tem mais de uma vigência; (b) indicação que já teve vidas num **mês fechado** não troca de
+    vigência por aqui, porque o fechamento guardou os valores (decisões 6 e 8): para mudar dali
+    em diante usa-se a vigência própria da indicação. Migration
+    `20261116000021_rule_choice.sql`; nenhuma tabela nova.
+28. **Confirmação de senha no cadastro.** O campo "Confirmar senha" já estava no ar desde
+    14/11/2026 (o teste do time foi anterior a essa publicação). Continua na tela nova de criar
+    conta e no convite de diretor, com a explicação de que serve para evitar erro de digitação;
+    senhas diferentes são recusadas antes de a conta nascer.

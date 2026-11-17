@@ -1,4 +1,4 @@
-// Casos que o roteiro não percorre: senha errada, convite expirado, planilha errada, CNPJ
+// Casos que o roteiro não percorre: senha errada, convite expirado ou antigo, planilha errada, CNPJ
 // alfanumérico, IA, links de nova senha e o comportamento das telas (formulário limpo, sessão
 // expirada, convite aberto já conectado, página inexistente).
 import { createHash } from "node:crypto";
@@ -34,20 +34,51 @@ test("senha errada é recusada sem revelar detalhes", async ({ page }) => {
   await expect(page).toHaveURL(/\/login$/);
 });
 
-test("convite expirado não abre o cadastro", async ({ page }) => {
+test("convite de diretor expirado não abre o cadastro", async ({ page }) => {
   const secret = "expirado-".padEnd(48, "x");
   const inserted = await adminClient()
     .from("invitations")
     .insert({
       token_hash: createHash("sha256").update(secret).digest("hex"),
-      partner_name: "Unidade Expirada",
-      kind: "unit",
+      partner_name: "Diretor Expirado",
+      kind: "director",
       expires_at: new Date(Date.now() - 60_000).toISOString(),
       created_by: staff.director.id,
     });
   expect(inserted.error).toBeNull();
   await page.goto(`/convite/${secret}`);
   await expect(page.getByRole("heading", { level: 1, name: "Convite expirado" })).toBeVisible();
+});
+
+// Decisão 25: convite de parceiro não existe mais. Quem ainda tem um link antigo é levado ao
+// cadastro aberto, em vez de ver um erro.
+test("link antigo de convite de parceiro leva ao cadastro aberto", async ({ page }) => {
+  const secret = "antigo-".padEnd(48, "z");
+  const inserted = await adminClient()
+    .from("invitations")
+    .insert({
+      token_hash: createHash("sha256").update(secret).digest("hex"),
+      partner_name: "Unidade Antiga",
+      kind: "unit",
+      expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+      created_by: staff.director.id,
+    });
+  expect(inserted.error).toBeNull();
+  await page.goto(`/convite/${secret}`);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "O cadastro agora é direto" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Criar conta de parceiro" }).click();
+  await expect(page).toHaveURL(/\/cadastro$/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Criar conta de parceiro" }),
+  ).toBeVisible();
+  // Campo obrigatório vazio: o navegador segura o envio e nenhuma conta nasce.
+  await page.getByLabel("Nome da unidade ou do parceiro").fill("Unidade Antiga");
+  await page.getByRole("button", { name: "Enviar cadastro" }).click();
+  await expect(page).toHaveURL(/\/cadastro$/);
+  await page.getByRole("link", { name: "Já tenho conta: entrar" }).click();
+  await expect(page).toHaveURL(/\/login$/);
 });
 
 test("planilha sem as colunas do BI é recusada com explicação", async ({ page }) => {
@@ -121,8 +152,8 @@ test("convite aberto num navegador já conectado explica e oferece sair", async 
     .from("invitations")
     .insert({
       token_hash: createHash("sha256").update(secret).digest("hex"),
-      partner_name: "Unidade Conectada",
-      kind: "unit",
+      partner_name: "Diretora Conectada",
+      kind: "director",
       expires_at: new Date(Date.now() + 86_400_000).toISOString(),
       created_by: staff.director.id,
     });
@@ -132,12 +163,12 @@ test("convite aberto num navegador já conectado explica e oferece sair", async 
   await expect(
     page.getByRole("heading", { level: 1, name: "Você já está conectado" }),
   ).toBeVisible();
-  await expect(page.getByText(/Este convite é para Unidade Conectada/)).toBeVisible();
+  await expect(page.getByText(/Este convite é para Diretora Conectada/)).toBeVisible();
   await page.getByRole("button", { name: "Sair" }).click();
   await expect(page).toHaveURL(/\/login/);
   await page.goto(`/convite/${secret}`);
   await expect(
-    page.getByRole("heading", { level: 1, name: "Cadastro · Unidade Conectada" }),
+    page.getByRole("heading", { level: 1, name: "Cadastro · Diretora Conectada" }),
   ).toBeVisible();
 });
 
