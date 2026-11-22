@@ -20,6 +20,9 @@ type MutationFormProps = {
   resetOnSuccess?: boolean;
   // Campos e botão na mesma linha (ex.: mudar situação dentro de uma tabela).
   inline?: boolean;
+  // id do <form>, para campos fora dele entrarem no envio com o atributo form (ex.: os checkboxes
+  // de quem recebe, que ficam na tabela do fechamento).
+  id?: string;
 };
 
 // Formulário com server action. O envio é feito fora de <form action> para que o React
@@ -35,6 +38,7 @@ export function MutationForm({
   linkLabel = "Link do convite",
   resetOnSuccess = true,
   inline = false,
+  id,
 }: MutationFormProps) {
   const [state, submit, pending] = useActionState<FormState, FormData>(action, {});
   const formRef = useRef<HTMLFormElement>(null);
@@ -61,6 +65,7 @@ export function MutationForm({
 
   return (
     <form
+      id={id}
       ref={formRef}
       onSubmit={handleSubmit}
       className={`${inline ? "fp-inline-form" : "space-y-4"} ${className}`}

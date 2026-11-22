@@ -89,8 +89,15 @@ export function formatDate(value: string | Date): string {
   );
 }
 
-// Day of the month in Fortaleza, for "vidas até o dia N".
+// Day of the month in Fortaleza.
 export function currentDayOfMonth(now: Date = new Date()): number {
   const day = new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, day: "numeric" }).format(now);
   return Number(day);
+}
+
+// Regra D-1 de "vidas até o dia N": a base do BI vai até ontem. No dia 1 o mês ainda não tem dia
+// fechado, então não há número (null).
+export function lastFullDayOfMonth(now: Date = new Date()): number | null {
+  const today = currentDayOfMonth(now);
+  return today > 1 ? today - 1 : null;
 }

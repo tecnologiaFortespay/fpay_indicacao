@@ -5,6 +5,10 @@ import {
   referralConversion,
   referralExplanation,
   referralStage,
+  sellerExplanation,
+  sellerStageDescriptions,
+  sellerStageTitles,
+  sellerStatusNames,
   statusChipClass,
 } from "./stages";
 
@@ -82,6 +86,39 @@ describe("etapas da indicação", () => {
       "1 indicação · 0 viraram cliente · 1 em andamento · 0 perdidas",
     );
     expect(conversionSentence(conversionSummary([]))).toBe("Nenhuma indicação ainda");
+  });
+
+  // Decisão 29: o vendedor acompanha o andamento e as vidas, sem nenhum valor.
+  it("explica a indicação ao vendedor sem falar de valor, prazo ou comissão", () => {
+    const statuses = [
+      "referred",
+      "negotiating",
+      "signed",
+      "active",
+      "delinquent",
+      "lost",
+      "cancelled",
+    ];
+    const texts = [
+      ...statuses.map((status) => sellerExplanation({ ...base, status })),
+      ...Object.values(sellerStageTitles),
+      ...Object.values(sellerStageDescriptions),
+      ...Object.values(sellerStatusNames),
+    ];
+    for (const text of texts) {
+      expect(text).not.toBe("");
+      expect(text).not.toMatch(/R\$|por vida|prazo|meses|comiss|rend/i);
+    }
+    expect(sellerExplanation({ ...base, status: "active" })).toBe(
+      "Cliente pagando desde ago/2026.",
+    );
+    expect(sellerExplanation({ ...base, status: "active", activated_competency: null })).toBe(
+      "Cliente pagando.",
+    );
+    expect(sellerExplanation({ ...base, status: "referred" })).toBe(
+      "Indicada em 02/09/2026. A Fortes Pay ainda vai falar com o cliente.",
+    );
+    expect(sellerStatusNames.active).toBe("Cliente pagando");
   });
 
   it("dá cor pelo que acontece: verde rende, vermelho parou, tracejado encerrou", () => {

@@ -49,7 +49,7 @@ Navegador ──► Vercel (Next.js 16, região gru1 / São Paulo)
 ## 4. Estrutura do repositório
 
 ```
-supabase/migrations/   21 migrations, em ordem; toda escrita é função SQL que confere o perfil
+supabase/migrations/   23 migrations, em ordem; toda escrita é função SQL que confere o perfil
 supabase/config.toml   configuração do Supabase LOCAL (não aplicar no projeto real)
 src/app/               rotas em português: login, inicio, parceiros, indicacoes, importacoes,
                        fechamento, fechamentos, equipe, minha-conta, meu-cadastro, cadastro,
@@ -73,20 +73,20 @@ só com aprovação.
 
 ### Tabelas
 
-| Tabela           | Guarda                                                                                                                                                                                                                                                     |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `profiles`       | um por usuário do Auth: perfil (`director` ou `partner`), parceiro, nome; hash do link de nova senha                                                                                                                                                       |
-| `partners`       | parceiros: tipo (unidade/externo, escolhido na aprovação; nulo enquanto aguarda), contato, situação (pendente, ativo, recusado), motivo da recusa, aprovação                                                                                               |
-| `partner_rules`  | vigências da regra: valor por vida, vale a partir de (mês), prazo em meses; `referral_id` nulo = vigência do parceiro (vale para indicações feitas a partir do mês), preenchido = vigência própria da indicação (vale por mês)                             |
-| `invitations`    | convites de diretor: hash do token, nome, tipo, validade, uso (os de parceiro, anteriores à decisão 25, ficam como histórico)                                                                                                                              |
-| `companies`      | empresas indicadas (CNPJ, nome, grupo, primeiro mês visto)                                                                                                                                                                                                 |
-| `referrals`      | indicações: parceiro, CNPJ, situação, primeiro mês pago, primeiro pagamento do BI (`first_cashin`), vigência do parceiro escolhida pelo diretor (`rule_month`), vidas estimadas, vendedor (texto); valor e prazo próprios são vigências em `partner_rules` |
-| `import_batches` | cada envio da planilha: arquivo, hash, meses, contagens (lidas, importadas, fora, ignoradas), quem enviou                                                                                                                                                  |
-| `import_rows`    | linhas ignoradas ou mescladas de cada envio, com o motivo                                                                                                                                                                                                  |
-| `monthly_lives`  | vidas pagas por CNPJ e mês (substituídas a cada envio do mês)                                                                                                                                                                                              |
-| `closings`       | fechamento por mês: em preparação ou fechado, quem preparou e quem fechou                                                                                                                                                                                  |
-| `closing_items`  | linha do fechamento por parceiro: vidas, valor, ajuste e motivo, saldo anterior, total, decisão, resposta do parceiro, como foi pago, e `details` (jsonb: os clientes do mês com vidas, valor por vida, valor e vendedor, gravados no cálculo)             |
-| `ai_reviews`     | análises da IA (de um envio ou de um fechamento): situação, resumo, alertas, erro                                                                                                                                                                          |
+| Tabela           | Guarda                                                                                                                                                                                                                                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `profiles`       | um por usuário do Auth: perfil (`director` ou `partner`), parceiro, nome; hash do link de nova senha                                                                                                                                                                                                                     |
+| `partners`       | parceiros: tipo (unidade/externo, escolhido na aprovação; nulo enquanto aguarda), contato, situação (pendente, ativo, recusado), motivo da recusa, aprovação                                                                                                                                                             |
+| `partner_rules`  | vigências da regra: valor por vida, vale a partir de (mês), prazo em meses; `referral_id` nulo = vigência do parceiro (vale para indicações feitas a partir do mês), preenchido = vigência própria da indicação (vale por mês)                                                                                           |
+| `invitations`    | convites de diretor: hash do token, nome, tipo, validade, uso (os de parceiro, anteriores à decisão 25, ficam como histórico)                                                                                                                                                                                            |
+| `companies`      | empresas indicadas (CNPJ, nome, grupo, primeiro mês visto)                                                                                                                                                                                                                                                               |
+| `referrals`      | indicações: parceiro, CNPJ, situação, primeiro mês pago, primeiro pagamento do BI (`first_cashin`), vigência do parceiro escolhida pelo diretor (`rule_month`), vidas estimadas, vendedor (texto: o e-mail da conta que registrou, ou o que o diretor escreveu); valor e prazo próprios são vigências em `partner_rules` |
+| `import_batches` | cada envio da planilha: arquivo, hash, meses, contagens (lidas, importadas, fora, ignoradas), quem enviou                                                                                                                                                                                                                |
+| `import_rows`    | linhas ignoradas ou mescladas de cada envio, com o motivo                                                                                                                                                                                                                                                                |
+| `monthly_lives`  | vidas pagas por CNPJ e mês (substituídas a cada envio do mês)                                                                                                                                                                                                                                                            |
+| `closings`       | fechamento por mês: em preparação ou fechado, quem preparou e quem fechou                                                                                                                                                                                                                                                |
+| `closing_items`  | linha do fechamento por parceiro: vidas, valor, ajuste e motivo, saldo anterior, total, decisão, resposta do parceiro, como foi pago, e `details` (jsonb: os clientes do mês com vidas, valor por vida, valor e vendedor, gravados no cálculo)                                                                           |
+| `ai_reviews`     | análises da IA (de um envio ou de um fechamento): situação, resumo, alertas, erro                                                                                                                                                                                                                                        |
 
 ### Views de cálculo
 
@@ -111,7 +111,8 @@ só com aprovação.
 
 Regras garantidas no banco (não só na tela):
 
-- **RLS ligada nas 12 tabelas.** Parceiro lê só o que é dele; diretor lê tudo.
+- **RLS ligada nas 12 tabelas.** Parceiro lê só o que é dele; diretor lê tudo; vendedor não lê
+  tabela nenhuma (a lista dele sai da função `seller_referrals`, sem colunas de valor).
 - **Mês fechado é imutável.** O trigger `protect_partner_rules` impede criar, editar ou apagar
   vigência usada por mês fechado; `import_lives` ignora linhas de mês fechado.
 - **Regra pela data da indicação** (`referral_month_lives`, decisão 23): para cada indicação e mês,
@@ -142,7 +143,9 @@ Regras garantidas no banco (não só na tela):
 
 - Supabase Auth com e-mail e senha. O cookie de sessão é `fp-indicacao-auth` (httpOnly, `secure`
   em https). `src/proxy.ts` renova a sessão a cada requisição.
-- São dois perfis: **diretor** e **parceiro**. Quem envia a planilha do BI usa o perfil de diretor.
+- São três perfis: **diretor**, **parceiro** e **vendedor** (`profiles.role`; o vendedor é ligado
+  ao parceiro e tem `profiles.status` pendente, ativo ou sem acesso, decidido pelo diretor). Quem
+  envia a planilha do BI usa o perfil de diretor.
 - **Diretores**: o primeiro é criado por script (`npm run bootstrap`); os demais entram por convite
   em **Equipe** (tipo `director` em `invitations`, função `register_director`) e entram direto, sem
   aprovação. Todos os diretores são iguais.
@@ -368,7 +371,11 @@ comandos acima. Passo a passo no README.
 - Vercel aceita requisições de até 4,5 MB: o envio da planilha aceita até 4 MB (o export real tem
   cerca de 150 KB) e 50.000 linhas.
 - Funções da Vercel: até 300 s nas páginas com IA (`maxDuration`).
-- Um login por parceiro; perfil de vendedor ainda não existe (fase 2, prevê duas tabelas novas).
+- Um login por parceiro, mais os vendedores aprovados (perfil `seller`, sem tabela nova). Comissão
+  de vendedor não existe (fase 2, prevê tabelas novas).
+- Mês fechado só muda pela reabertura do lote (`reopen_closing`, só o último mês fechado), que
+  apaga decisão, resposta do parceiro e forma de pagamento; a planilha de mês fechado é recusada
+  por `import_lives`.
 - Hipóteses a confirmar com a Fortes Pay: "C. Cash-in" é a coluna de vidas pagas; o export parcial
   traz o acumulado do mês (`docs/arquivo-bi.md`, `docs/decisoes.md`).
 - O que ficou para depois está em `docs/depois.md`.

@@ -10,12 +10,13 @@ import { changePassword } from "./actions";
 
 export const metadata: Metadata = { title: "Minha conta" };
 
-// Dados de acesso da pessoa conectada e troca da própria senha (decisão 19). Vale para os dois
+// Dados de acesso da pessoa conectada e troca da própria senha (decisão 19). Vale para os três
 // perfis; quem esqueceu a senha atual pede o link de nova senha a um diretor.
 export default async function MyAccountPage() {
   const user = await requireUser();
   const partner = user.profile.partner;
-  const roleLabel = partner ? `${roleLabels.partner} · ${partner.name}` : roleLabels.director;
+  const roleName = roleLabels[user.profile.role];
+  const roleLabel = partner ? `${roleName} · ${partner.name}` : roleName;
   const forgotten =
     user.profile.role === "director"
       ? "Esqueceu a senha atual? Peça a outro diretor um link de nova senha, em Equipe."

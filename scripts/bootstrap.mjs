@@ -64,12 +64,11 @@ export async function ensureStaffUser({ email, role, name, password }) {
       throw new Error(`Não foi possível atualizar a senha: ${updated.error.message}`);
     }
   }
-  const profile = await admin
-    .from("profiles")
-    .upsert(
-      { user_id: user.id, role, display_name: name, partner_id: null },
-      { onConflict: "user_id" },
-    );
+  const profile = await admin.from("profiles").upsert(
+    // status: a conta podia ser um pedido de vendedor pendente; diretor é sempre "active".
+    { user_id: user.id, role, display_name: name, partner_id: null, status: "active" },
+    { onConflict: "user_id" },
+  );
   if (profile.error) {
     throw new Error(`Não foi possível gravar o perfil: ${profile.error.message}`);
   }

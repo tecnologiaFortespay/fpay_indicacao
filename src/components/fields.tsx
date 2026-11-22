@@ -23,7 +23,7 @@ type FieldProps = {
 // O rótulo leva só o nome do campo: o asterisco dos obrigatórios vem do CSS e a ajuda fica fora do
 // <label>, ligada por aria-describedby. Assim o leitor de tela lê "Empresa, obrigatório" e depois a
 // ajuda, em vez de tudo junto como nome do campo.
-function FieldShell({
+export function FieldShell({
   label,
   required,
   hint,

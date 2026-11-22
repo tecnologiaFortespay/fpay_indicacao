@@ -17,9 +17,9 @@ const schema = z
     path: ["confirmation"],
   });
 
-// Troca a própria senha (diretor ou parceiro) conferindo a atual no banco; a sessão continua.
+// Troca a própria senha (qualquer perfil) conferindo a atual no banco; a sessão continua.
 export async function changePassword(_previous: FormState, form: FormData): Promise<FormState> {
-  const user = await actionUser("director", "partner");
+  const user = await actionUser("director", "partner", "seller");
   if (!user) {
     return deniedState();
   }

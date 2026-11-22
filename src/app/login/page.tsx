@@ -61,7 +61,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
       <p className="text-center text-sm text-muted-foreground">
         Quer indicar clientes?{" "}
         <Link href="/cadastro" className="font-medium text-primary hover:underline">
-          Criar conta de parceiro
+          Solicitar criação de conta
         </Link>
       </p>
       {built && (

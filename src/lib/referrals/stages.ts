@@ -136,6 +136,51 @@ type ExplainTerms = {
   termMonths: number | null;
 };
 
+// Vendedor (decisão 29): acompanha o andamento das indicações que registrou e as vidas pagas, sem
+// nenhum valor. Por isso os textos dele não falam de comissão, valor por vida nem prazo.
+export const sellerStageTitles: Record<Stage, string> = {
+  earning: "Clientes pagando",
+  not_earning: "Em andamento",
+  closed: "Encerradas",
+};
+
+export const sellerStageDescriptions: Record<Stage, string> = {
+  earning: "O cliente já paga a Fortes Pay. A coluna de vidas mostra quantas foram pagas no mês.",
+  not_earning:
+    "Indicada, em negociação ou com contrato fechado: o cliente ainda não começou a pagar.",
+  closed: "Perdida ou cancelada.",
+};
+
+export const sellerStatusNames: Record<ReferralStatus, string> = {
+  ...partnerStatusNames,
+  active: "Cliente pagando",
+};
+
+// O que está acontecendo com a indicação, para o vendedor.
+export function sellerExplanation(referral: ExplainInput): string {
+  const changed = referral.status_changed_at ?? referral.created_at;
+  switch (referral.status) {
+    case "referred":
+      return `Indicada em ${formatDate(referral.created_at)}. A Fortes Pay ainda vai falar com o cliente.`;
+    case "negotiating":
+      return "Em negociação com o cliente.";
+    case "signed":
+      return "Contrato fechado. Falta o cliente começar a pagar a Fortes Pay.";
+    case "active":
+      return referral.activated_competency
+        ? `Cliente pagando desde ${shortCompetencyLabel(dateToCompetency(referral.activated_competency))}.`
+        : "Cliente pagando.";
+    case "delinquent":
+      return "O cliente não pagou no último mês completo.";
+    case "lost":
+      return `Perdida em ${formatDate(changed)}: a negociação não fechou.`;
+    case "cancelled":
+      return `Cancelada em ${formatDate(changed)}: o cliente encerrou.`;
+    default:
+      return "";
+  }
+}
+
 // Uma frase com o que está acontecendo com a indicação e o que falta para render.
 export function referralExplanation(referral: ExplainInput, terms: ExplainTerms): string {
   const changed = referral.status_changed_at ?? referral.created_at;

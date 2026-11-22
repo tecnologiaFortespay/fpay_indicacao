@@ -17,8 +17,16 @@ export async function AppShell({ title, children, flash }: AppShellProps) {
   const user = await requireUser();
   const role = user.profile.role;
   const areas = navigationFor(role);
-  const roleLabel = user.profile.partner ? user.profile.partner.name : roleLabels[role];
-  const scope = role === "partner" ? "Portal do parceiro" : "Área interna";
+  const partnerName = user.profile.partner?.name;
+  const roleLabel =
+    role === "seller" && partnerName
+      ? `${roleLabels.seller} · ${partnerName}`
+      : (partnerName ?? roleLabels[role]);
+  const scope = {
+    director: "Área interna",
+    partner: "Portal do parceiro",
+    seller: "Portal do vendedor",
+  }[role];
   const environment = environmentLabel();
   return (
     <div className="orbita-shell">

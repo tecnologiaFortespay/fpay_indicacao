@@ -2,7 +2,17 @@
 export const roleLabels = {
   director: "Diretor",
   partner: "Parceiro",
+  seller: "Vendedor",
 } as const;
+
+// Acesso do vendedor, como o diretor lê (decisão 29).
+export const sellerStatusLabels = {
+  pending: "Aguardando aprovação",
+  active: "Com acesso",
+  rejected: "Sem acesso",
+} as const;
+
+export type SellerStatus = keyof typeof sellerStatusLabels;
 
 export const partnerKindLabels = {
   unit: "Unidade",

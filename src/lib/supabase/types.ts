@@ -231,14 +231,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "created_at": string,"display_name": string,"partner_id": string | null,"password_reset_expires_at": string | null,"password_reset_hash": string | null,"role": string,"user_id": string
+                    "created_at": string,"display_name": string,"partner_id": string | null,"password_reset_expires_at": string | null,"password_reset_hash": string | null,"role": string,"status": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"display_name": string,"partner_id"?: string | null,"password_reset_expires_at"?: string | null,"password_reset_hash"?: string | null,"role": string,"user_id": string
+                    "created_at"?: string,"display_name": string,"partner_id"?: string | null,"password_reset_expires_at"?: string | null,"password_reset_hash"?: string | null,"role": string,"status"?: string,"user_id": string
                   }
                   Update: {
-                    "created_at"?: string,"display_name"?: string,"partner_id"?: string | null,"password_reset_expires_at"?: string | null,"password_reset_hash"?: string | null,"role"?: string,"user_id"?: string
+                    "created_at"?: string,"display_name"?: string,"partner_id"?: string | null,"password_reset_expires_at"?: string | null,"password_reset_hash"?: string | null,"role"?: string,"status"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -383,7 +383,15 @@ isOneToOne: false
               "created_at": string,"display_name": string,"email": string,"user_id": string
             }[]
                            },
+"list_sellers":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "created_at": string,"display_name": string,"email": string,"partner_id": string,"partner_name": string,"status": string,"user_id": string
+            }[]
+                           },
 "my_partner_id":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"my_seller_partner_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
 "optional_term_months":
@@ -420,8 +428,14 @@ isOneToOne: false
 "register_partner":
 { Args: { "payload": Json }; Returns: string
                            },
+"register_seller":
+{ Args: { "payload": Json }; Returns: undefined
+                           },
 "reject_partner":
 { Args: { "reason": string,"target": string }; Returns: undefined
+                           },
+"reopen_closing":
+{ Args: { "target": string }; Returns: undefined
                            },
 "request_password_reset":
 { Args: { "account_email": string,"secret": string }; Returns: Json
@@ -438,6 +452,11 @@ isOneToOne: false
 "save_partner_rule":
 { Args: { "payload": Json }; Returns: string
                            },
+"seller_referrals":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "activated_competency": string,"cnpj": string,"company_name": string,"competency": string,"created_at": string,"id": string,"lives": number,"status": string,"status_changed_at": string
+            }[]
+                           },
 "set_closing_adjustment":
 { Args: { "amount": number,"note": string,"target": string }; Returns: undefined
                            },
@@ -451,6 +470,9 @@ isOneToOne: false
 { Args: { "name": string,"target": string }; Returns: undefined
                            },
 "set_referral_status":
+{ Args: { "new_status": string,"target": string }; Returns: undefined
+                           },
+"set_seller_status":
 { Args: { "new_status": string,"target": string }; Returns: undefined
                            },
 "start_ai_review":

@@ -3,17 +3,49 @@ import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth-shell";
 import { Notice } from "@/components/notice";
 import { LogoutButton, SessionGuard } from "@/components/session-controls";
-import { currentUser, hasAccess, landingPath } from "@/lib/auth/session";
+import { currentUser, hasAccess, landingPath, type Profile } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Cadastro em análise" };
+
+// Vendedor sem acesso (decisão 29): pedido aguardando o diretor, recusado ou com o acesso removido.
+function SellerWaiting({ profile, email }: { profile: Profile; email: string }) {
+  const pending = profile.status === "pending";
+  return (
+    <AuthShell
+      title={pending ? "Solicitação em análise" : "Acesso não liberado"}
+      description={
+        pending
+          ? "Sua solicitação de conta de vendedor foi recebida. O acesso é liberado assim que a Fortes Pay aprovar."
+          : "A Fortes Pay não liberou ou encerrou o seu acesso de vendedor. Se precisar de esclarecimentos, fale com a sua unidade."
+      }
+    >
+      <SessionGuard />
+      <p className="text-sm">
+        <strong>{profile.display_name}</strong>
+      </p>
+      {profile.partner && <p className="text-sm">Unidade: {profile.partner.name}</p>}
+      <p className="break-all text-sm text-muted-foreground">{email}</p>
+      {pending && (
+        <Notice tone="info" compact>
+          Quando a Fortes Pay aprovar, basta entrar de novo com o seu e-mail e senha para ver as
+          suas indicações.
+        </Notice>
+      )}
+      <LogoutButton />
+    </AuthShell>
+  );
+}
 
 export default async function PendingRegistrationPage() {
   const user = await currentUser();
   if (!user) {
     redirect("/login");
   }
-  if (!user.profile || user.profile.role !== "partner" || hasAccess(user)) {
+  if (!user.profile || hasAccess(user)) {
     redirect(landingPath(user));
+  }
+  if (user.profile.role === "seller") {
+    return <SellerWaiting profile={user.profile} email={user.email} />;
   }
   const partner = user.profile.partner;
   const rejected = partner?.status === "rejected";

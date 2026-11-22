@@ -9,6 +9,7 @@ import { LinkButton } from "@/components/link-button";
 import { MutationForm } from "@/components/mutation-form";
 import { Notice } from "@/components/notice";
 import { PageIntro } from "@/components/page-intro";
+import { PayAllCheckbox } from "@/components/pay-all-checkbox";
 import { PanelBody, SectionCard } from "@/components/section-card";
 import { Stepper, type Step } from "@/components/stepper";
 import { aiConfigured } from "@/lib/ai/claude";
@@ -36,12 +37,16 @@ import { formatCurrency, formatInteger } from "@/lib/money";
 import {
   closeClosing,
   prepareClosing,
+  reopenClosing,
   reviewClosing,
   setClosingAdjustment,
   setPaymentNote,
 } from "./actions";
 
 export const metadata: Metadata = { title: "Fechamento do mês" };
+
+// Formulário "Fechar lote": os checkboxes de quem recebe ficam na tabela, ligados a ele por este id.
+const CLOSE_FORM_ID = "fechar-lote-form";
 
 // A análise da IA roda depois da resposta (after()) e pode levar alguns minutos na Vercel.
 export const maxDuration = 300;
@@ -80,6 +85,11 @@ export default async function ClosingPage({ searchParams }: PageProps) {
     review !== null &&
     detail !== null &&
     Date.parse(detail.closing.prepared_at) > Date.parse(review.created_at);
+  // Só o último mês fechado reabre: havendo um mês posterior fechado, ele vem antes (a lista está
+  // do mais recente ao mais antigo).
+  const laterClosed = history.find(
+    (closing) => closing.status === "closed" && dateToCompetency(closing.competency) > competency,
+  );
 
   const steps: Step[] = [
     {
@@ -130,7 +140,7 @@ export default async function ClosingPage({ searchParams }: PageProps) {
       text: closed
         ? `Fechado em ${formatDateTime(detail?.closing.closed_at ?? "")}${detail?.closing.closed_by_name ? ` por ${detail.closing.closed_by_name}` : ""}. Nada mais entra neste mês.`
         : detail
-          ? "Marque abaixo quem recebe agora. Quem não for marcado acumula para o mês seguinte."
+          ? "Na tabela abaixo, quem tem valor a receber já vem marcado para pagamento. Desmarque quem deve acumular para o mês seguinte."
           : "Depois de preparar o cálculo.",
       action: detail && !closed && (
         <a href="#fechar-lote" className="text-sm font-medium text-primary underline">
@@ -167,7 +177,16 @@ export default async function ClosingPage({ searchParams }: PageProps) {
             <table className="fp-table">
               <thead>
                 <tr>
-                  <th>Parceiro</th>
+                  <th>
+                    {closed ? (
+                      "Parceiro"
+                    ) : (
+                      <span className="inline-flex items-center gap-3">
+                        <PayAllCheckbox form={CLOSE_FORM_ID} />
+                        Parceiro
+                      </span>
+                    )}
+                  </th>
                   <th>Vendedor(es)</th>
                   <th className="fp-num">Vidas</th>
                   {!closed && <th className="fp-num">Valor por vida</th>}
@@ -183,7 +202,25 @@ export default async function ClosingPage({ searchParams }: PageProps) {
                 {detail.items.flatMap((item) => [
                   <tr key={item.id}>
                     <td>
-                      <strong>{item.partner_name}</strong>
+                      {closed ? (
+                        <strong>{item.partner_name}</strong>
+                      ) : (
+                        // Marcado = recebe agora; desmarcado = acumula. Sem valor a pagar, não marca.
+                        <label
+                          className="inline-flex items-center gap-3"
+                          title={Number(item.total) <= 0 ? "Nada a pagar neste mês" : undefined}
+                        >
+                          <input
+                            type="checkbox"
+                            name="pay"
+                            value={item.partner_id}
+                            form={CLOSE_FORM_ID}
+                            defaultChecked={Number(item.total) > 0}
+                            disabled={Number(item.total) <= 0}
+                          />
+                          <strong>{item.partner_name}</strong>
+                        </label>
+                      )}
                     </td>
                     <td>{sellerNames(item).join(", ") || "—"}</td>
                     <td className="fp-num">{formatInteger(item.lives)}</td>
@@ -253,6 +290,22 @@ export default async function ClosingPage({ searchParams }: PageProps) {
                                   </tr>
                                 ))}
                               </tbody>
+                              <tfoot>
+                                <tr>
+                                  <td colSpan={3}>Total dos clientes</td>
+                                  <td className="fp-num">
+                                    {formatInteger(
+                                      item.clients.reduce((sum, client) => sum + client.lives, 0),
+                                    )}
+                                  </td>
+                                  <td />
+                                  <td className="fp-num">
+                                    {formatCurrency(
+                                      item.clients.reduce((sum, client) => sum + client.amount, 0),
+                                    )}
+                                  </td>
+                                </tr>
+                              </tfoot>
                             </table>
                           </div>
                         </details>
@@ -357,38 +410,70 @@ export default async function ClosingPage({ searchParams }: PageProps) {
         <SectionCard
           id="fechar-lote"
           title={`Fechar o lote de ${monthLabel}`}
-          subtitle="Marque quem recebe agora. Quem não for marcado acumula: o total entra como saldo anterior no mês seguinte."
+          subtitle="Recebe agora quem está marcado na tabela acima, ao lado do nome: todos com valor a receber já vêm marcados. Quem for desmarcado acumula: o total entra como saldo anterior no mês seguinte."
         >
           <PanelBody>
-            <MutationForm action={closeClosing} label="Fechar lote" pendingLabel="Fechando…">
+            <MutationForm
+              id={CLOSE_FORM_ID}
+              action={closeClosing}
+              label="Fechar lote"
+              pendingLabel="Fechando…"
+            >
               <input type="hidden" name="closing_id" value={detail.closing.id} />
               <input type="hidden" name="competency" value={competency} />
-              <fieldset className="space-y-2">
-                <legend className="mb-2 text-sm font-semibold">Quem recebe agora</legend>
-                {detail.items.map((item) => (
-                  <label key={item.id} className="flex items-center gap-3 text-sm">
-                    <input
-                      type="checkbox"
-                      name="pay"
-                      value={item.partner_id}
-                      disabled={Number(item.total) <= 0}
-                    />
-                    <span>
-                      {item.partner_name} · {formatCurrency(item.total)}
-                      {Number(item.total) <= 0 ? " (nada a pagar)" : ""}
-                    </span>
-                  </label>
-                ))}
-              </fieldset>
               <Notice tone="warning" compact>
                 Depois de fechar, nada mais entra neste mês: planilhas novas de {monthLabel} são
-                ignoradas e os valores ficam como estão.
+                recusadas e os valores ficam como estão. Para corrigir depois, é preciso reabrir o
+                lote.
               </Notice>
               <label className="flex items-center gap-3 text-sm font-medium">
                 <input type="checkbox" name="confirmation" />
                 Conferi a base e o cálculo. Depois de fechar, nada mais entra neste mês.
               </label>
             </MutationForm>
+          </PanelBody>
+        </SectionCard>
+      )}
+
+      {detail && closed && (
+        <SectionCard
+          id="reabrir-lote"
+          title={`Reabrir o lote de ${monthLabel}`}
+          subtitle="Para corrigir um erro depois do fechamento. O mês volta para “Em preparação” com os mesmos valores e ajustes."
+        >
+          <PanelBody>
+            {laterClosed ? (
+              <p className="fp-help">
+                Só o último mês fechado pode ser reaberto. Para reabrir {monthLabel}, reabra antes{" "}
+                <Link
+                  href={`/fechamento?competency=${dateToCompetency(laterClosed.competency)}`}
+                  className="text-primary underline"
+                >
+                  {competencyLabel(dateToCompetency(laterClosed.competency))}
+                </Link>
+                .
+              </p>
+            ) : (
+              <MutationForm
+                action={reopenClosing}
+                label="Reabrir lote"
+                pendingLabel="Reabrindo…"
+                variant="outline"
+              >
+                <input type="hidden" name="closing_id" value={detail.closing.id} />
+                <input type="hidden" name="competency" value={competency} />
+                <Notice tone="warning" compact>
+                  Ao reabrir, a decisão de pagar ou acumular, a resposta dos parceiros e o “como foi
+                  pago” de {monthLabel} são apagados, e o mês sai de Meus fechamentos dos parceiros
+                  até ser fechado de novo. Depois de reabrir: envie a planilha corrigida, se for o
+                  caso, recalcule e feche o lote outra vez.
+                </Notice>
+                <label className="flex items-center gap-3 text-sm font-medium">
+                  <input type="checkbox" name="confirmation" />
+                  Entendi o que será apagado e quero reabrir {monthLabel}.
+                </label>
+              </MutationForm>
+            )}
           </PanelBody>
         </SectionCard>
       )}

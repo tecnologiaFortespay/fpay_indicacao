@@ -7,7 +7,7 @@ import { PageIntro } from "@/components/page-intro";
 import { PartnerPanel } from "@/components/partner-panel";
 import { SectionCard } from "@/components/section-card";
 import { getClosing, pendingBalances } from "@/lib/closings/queries";
-import { requireUser } from "@/lib/auth/session";
+import { requireRole } from "@/lib/auth/session";
 import {
   competencyLabel,
   currentCompetency,
@@ -19,7 +19,7 @@ import {
 import { directorOverview, latestCompetency } from "@/lib/dashboard/queries";
 import { latestImport } from "@/lib/imports/queries";
 import { partnerKindLabels, referralStatusLabels, type ReferralStatus } from "@/lib/labels";
-import { pendingPartnerCount } from "@/lib/partners/queries";
+import { pendingPartnerCount, pendingSellerCount } from "@/lib/partners/queries";
 import { referralStatusCounts } from "@/lib/referrals/queries";
 import {
   referralStage,
@@ -34,7 +34,8 @@ export const metadata: Metadata = { title: "Visão geral" };
 type PageProps = { searchParams: Promise<{ competency?: string }> };
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const user = await requireUser();
+  // O vendedor não tem painel: requireRole o leva para as indicações dele.
+  const user = await requireRole("director", "partner");
   const params = await searchParams;
   if (user.profile.role === "partner") {
     return <PartnerPanel user={user} requestedCompetency={params.competency} />;
@@ -43,13 +44,14 @@ export default async function HomePage({ searchParams }: PageProps) {
   const competency = isCompetency(params.competency)
     ? params.competency
     : (latest ?? currentCompetency());
-  const [overview, last, counts, pending, closing, waiting] = await Promise.all([
+  const [overview, last, counts, pending, closing, waiting, waitingSellers] = await Promise.all([
     directorOverview(competency),
     latestImport(),
     referralStatusCounts(),
     pendingBalances(),
     getClosing(competency),
     pendingPartnerCount(),
+    pendingSellerCount(),
   ]);
   const statusEntries = Object.entries(referralStatusLabels) as [ReferralStatus, string][];
   const monthLabel = competencyLabel(competency);
@@ -73,6 +75,23 @@ export default async function HomePage({ searchParams }: PageProps) {
           O parceiro criou a própria conta e só entra no sistema depois que você aprova.{" "}
           <Link href="/parceiros" className="underline">
             Analisar em Parceiros
+          </Link>
+          .
+        </Notice>
+      )}
+
+      {waitingSellers > 0 && (
+        <Notice
+          tone="info"
+          title={
+            waitingSellers === 1
+              ? "1 vendedor aguardando aprovação"
+              : `${waitingSellers} vendedores aguardando aprovação`
+          }
+        >
+          O vendedor pediu a conta informando o e-mail da unidade e só entra depois que você aprova.{" "}
+          <Link href="/parceiros" className="underline">
+            Analisar vendedores em Parceiros
           </Link>
           .
         </Notice>

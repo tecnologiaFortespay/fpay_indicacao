@@ -97,9 +97,10 @@ describe("fatia 3 — indicações com 7 situações e CNPJ único", () => {
     expect(denied.error?.code).toBe("42501");
   });
 
-  // Item 1 da reunião de 09/11/2026 (decisão 22): o vendedor é um texto opcional na indicação,
-  // informado por quem registra; só o diretor corrige depois. Login e comissão continuam fase 2.
-  it("indicação guarda o vendedor (texto opcional); só o diretor corrige depois", async () => {
+  // Decisão 29 (22/11/2026): o vendedor da indicação é o e-mail da conta que registra; o texto que
+  // o parceiro mandar não vale. Só o diretor escreve ou corrige o vendedor (decisão 22).
+  it("indicação do parceiro guarda o e-mail da conta como vendedor; só o diretor corrige depois", async () => {
+    const account = await natal.auth.getUser();
     const id = ok(
       await natal.rpc("create_referral", {
         payload: { cnpj: CNPJ_V, company_name: "Empresa V", seller_name: "  Carla  " },
@@ -109,7 +110,8 @@ describe("fatia 3 — indicações com 7 situações e CNPJ único", () => {
     const seller = async () =>
       ok(await natal.from("referrals").select("seller_name").eq("id", id).single(), "seller")
         .seller_name;
-    expect(await seller()).toBe("Carla");
+    expect(account.data.user?.email).toMatch(/^partner-.+@test\.local$/);
+    expect(await seller()).toBe(account.data.user?.email);
     const long = await natal.rpc("create_referral", {
       payload: {
         cnpj: cnpjWithDigits("557778880001"),

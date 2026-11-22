@@ -3,8 +3,13 @@
 export const flashMessages = {
   parceiro_aprovado: "Parceiro aprovado. O acesso dele está liberado.",
   cadastro_recusado: "Cadastro recusado. O parceiro vê o motivo ao entrar.",
+  vendedor_aprovado: "Vendedor aprovado. O acesso dele está liberado.",
+  vendedor_sem_acesso:
+    "Vendedor sem acesso. As indicações que ele registrou continuam com a unidade.",
   vigencia_removida: "Vigência removida.",
   lote_fechado: "Lote fechado. Nada mais entra neste mês.",
+  lote_reaberto:
+    "Lote reaberto. O mês voltou para preparação: corrija, recalcule se enviar planilha nova e feche de novo.",
   resposta_registrada: "Resposta registrada. A Fortes Pay já consegue ver.",
   situacao_atualizada: "Situação atualizada.",
   regra_escolhida:

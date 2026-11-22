@@ -50,6 +50,9 @@ const E = company("778889990001", "Empresa E Ltda", "Grupo E");
 const F = company("889990001001", "Empresa F Ltda", "Grupo F");
 // Empresa nova, indicada e paga pela primeira vez no mês corrente (bloco 15).
 const G = company("990001112001", "Empresa G Ltda", "Grupo G");
+// Empresa indicada pelo vendedor da Unidade Teresina (bloco 16).
+const H = company("121314150001", "Empresa H Ltda", "Grupo H");
+const SELLER_EMAIL = "carla.e2e@fortespay.local";
 
 // Clientes da Fortes Pay que não foram indicados (ficam "fora da plataforma") e duas linhas inválidas.
 const OTHERS: ExportRow[] = Array.from({ length: 8 }, (_, index) => ({
@@ -96,6 +99,12 @@ const OCTOBER_UPDATE = exportFor(OCT, { A: 40, D: 58, E: 23 }, "csv");
 // Envio parcial seguinte: entra a empresa G, nova, com 15 vidas (bloco 15).
 const OCTOBER_WITH_G = exportFor(OCT, { A: 40, D: 58, E: 23 }, "xlsx", [
   { cnpj: G.cnpj, company: G.company, lives: 15, group: G.group },
+]);
+
+// Envio parcial seguinte: entra também a empresa H, indicada pelo vendedor, com 9 vidas (bloco 16).
+const OCTOBER_WITH_H = exportFor(OCT, { A: 40, D: 58, E: 23 }, "xlsx", [
+  { cnpj: G.cnpj, company: G.company, lives: 15, group: G.group },
+  { cnpj: H.cnpj, company: H.company, lives: 9, group: H.group },
 ]);
 
 const NEW_PASSWORD = "Nova-senha-e2e-999";
@@ -173,16 +182,16 @@ async function approve(
   return clean(await section(director, "Regra de remuneração").locator("tbody").innerText());
 }
 
-async function refer(page: Page, entry: Company, estimated?: string, seller?: string) {
+// Parceiro ou vendedor registra a indicação. Não há campo de vendedor (decisão 29): o sistema grava
+// o e-mail da conta que registra.
+async function refer(page: Page, entry: Company, estimated?: string) {
   await page.goto("/indicacoes");
   const form = await openDisclosure(page, "Nova indicação");
+  await expect(form.getByLabel("Vendedor", { exact: true })).toHaveCount(0);
   await form.getByLabel("CNPJ do cliente").fill(entry.cnpj);
   await form.getByLabel("Empresa", { exact: true }).fill(entry.company);
   if (estimated) {
     await form.getByLabel("Vidas estimadas").fill(estimated);
-  }
-  if (seller) {
-    await form.getByLabel("Vendedor", { exact: true }).fill(seller);
   }
   await submitIn(form, "Registrar indicação").click();
 }
@@ -224,7 +233,7 @@ function minuteOf(time: number): number {
 }
 
 test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
-  test.setTimeout(10 * 60 * 1000);
+  test.setTimeout(15 * 60 * 1000);
   const base = baseURL ?? "http://localhost:3100";
   const staff = await resetAndSeedStaff({
     director: "Diretor Roteiro",
@@ -239,6 +248,8 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   const con = await actor(browser, base);
   const rec = await actor(browser, base);
   const pen = await actor(browser, base);
+  // Vendedor da Unidade Teresina (bloco 16).
+  const ven = await actor(browser, base);
   const ids: Record<string, string> = {};
   let septemberAt = 0;
 
@@ -282,11 +293,15 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(dir.getByRole("heading", { name: "Convites" })).toHaveCount(0);
     await expect(section(dir, "Aguardando aprovação")).toContainText(`${base}/cadastro`);
     await ter.goto("/login");
-    await ter.getByRole("link", { name: "Criar conta de parceiro" }).click();
+    await ter.getByRole("link", { name: "Solicitar criação de conta" }).click();
     await expect(ter).toHaveURL(/\/cadastro$/);
     await expect(
       ter.getByRole("heading", { level: 1, name: "Criar conta de parceiro" }),
     ).toBeVisible();
+    // O telefone ganha a máscara (DDD) 9XXXX-XXXX enquanto é digitado.
+    const phone = ter.getByLabel("Telefone");
+    await phone.pressSequentially("86999990000");
+    await expect(phone).toHaveValue("(86) 99999-0000");
   });
 
   await test.step("2.2 confirmação de senha diferente é recusada; cadastro certo fica em análise, inclusive em /inicio", async () => {
@@ -476,9 +491,9 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(ter).toHaveURL(/\/inicio$/);
   });
 
-  await test.step("3.1 Teresina indica A: Indicada, com data e vendedor", async () => {
-    // Item 1 da reunião de 09/11/2026 (decisão 22): quem indica informa o vendedor (opcional).
-    await refer(ter, A, "40", "Carla");
+  await test.step("3.1 Teresina indica A: Indicada, com data e o e-mail da unidade como vendedor", async () => {
+    // Decisão 29 (22/11/2026): o vendedor da indicação é o e-mail da conta que registra.
+    await refer(ter, A, "40");
     await expect(
       ter.getByRole("status").filter({ hasText: "Indicação registrada." }),
     ).toBeVisible();
@@ -488,7 +503,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     const row = await rowText(ter, A.company);
     expect(row).toContain("Indicada");
     expect(row).toContain(today);
-    expect(row).toContain("Vendedor: Carla");
+    expect(row).toContain("Vendedor: teresina.e2e@fortespay.local");
   });
 
   await test.step("3.2 a 3.4 Teresina indica B e C; Natal indica D; Contador indica E", async () => {
@@ -525,7 +540,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     ] as const) {
       expect(await rowText(dir, entry.company)).toContain(partner);
     }
-    expect(await rowText(dir, A.company)).toContain("Vendedor: Carla");
+    expect(await rowText(dir, A.company)).toContain("Vendedor: teresina.e2e@fortespay.local");
     // Busca por empresa e por CNPJ (item 4 da reunião de 09/11/2026): acha só a indicação certa.
     await dir.getByLabel("Buscar por CNPJ ou empresa").fill(A.company.toLowerCase());
     await dir.getByRole("button", { name: "Filtrar" }).click();
@@ -707,18 +722,36 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     expect(clean(await dir.locator("tfoot").innerText())).toContain("Total 122 R$ 210,50");
   });
 
-  await test.step("5.3 painel de Teresina em agosto: só A e B", async () => {
-    await ter.goto(`/inicio?competency=${AUG}`);
+  await test.step("5.3 painel de Teresina em agosto: só A e B, com o total e o saldo no cartão", async () => {
+    // O seletor de mês troca o mês assim que é escolhido, sem botão.
+    await ter.goto("/inicio");
+    await expect(ter.getByRole("button", { name: "Ver mês" })).toHaveCount(0);
+    await ter.getByLabel("Mês", { exact: true }).fill(AUG);
+    await expect(ter).toHaveURL(new RegExp(`/inicio\\?competency=${AUG}$`));
     const month = clean(await section(ter, `${AUG_LABEL} · prévia`).innerText());
     expect(month).toContain(
       `Regra para quem você indicar em ${AUG_LABEL}: R$ 1,50 por vida · sem prazo.`,
     );
     expect(month).toContain("Vidas pagas no mês inteiro 50");
     expect(month).toContain("Valor previsto prévia R$ 75,00");
+    // O saldo acumulado e o total ficam dentro do cartão do valor previsto; a seção "Meses
+    // fechados" saiu do painel.
+    expect(month).toContain(
+      "Saldo acumulado de meses anteriores: R$ 0,00 Saldo total (previsto + acumulado): R$ 75,00",
+    );
+    await expect(ter.getByRole("heading", { name: /Meses fechados/ })).toHaveCount(0);
     const rows = section(ter, /Minhas indicações/).locator("tbody tr");
     await expect(rows).toHaveCount(2);
     expect(await rowText(ter, A.company)).toContain("30 R$ 1,50 R$ 45,00");
     expect(await rowText(ter, B.company)).toContain("20 R$ 1,50 R$ 30,00");
+    // Total de vidas e de valor das indicações do mês.
+    expect(
+      clean(
+        await section(ter, /Minhas indicações/)
+          .locator("tfoot")
+          .innerText(),
+      ),
+    ).toBe("Total 50 R$ 75,00");
     await expect(ter.getByText(/Prévia com a base do BI de/)).toBeVisible();
     await expect(ter.getByText(D.company)).toHaveCount(0);
     // Item 5: Minhas indicações também diz de quando é a base das vidas.
@@ -771,7 +804,9 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   });
 
   await test.step("6.2 setembro com agosto aberto: feche agosto primeiro", async () => {
-    await dir.goto(`/fechamento?competency=${SEP}`);
+    // O mês do fechamento também troca na hora, pelo seletor.
+    await dir.getByLabel("Mês do fechamento", { exact: true }).fill(SEP);
+    await expect(dir).toHaveURL(new RegExp(`/fechamento\\?competency=${SEP}$`));
     await expect(dir.locator(".fp-steps")).toContainText(`Feche ${AUG_LABEL} primeiro`);
     await expect(dir.getByRole("button", { name: "Preparar cálculo" })).toHaveCount(0);
   });
@@ -793,17 +828,21 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     );
     // Itens 1 e 2 (decisão 22): a linha do parceiro mostra os vendedores do mês; sob ela, os
     // clientes com vidas, valor por vida, valor e vendedor; a soma é o valor do parceiro.
-    expect(await rowText(dir, /^Unidade Teresina/)).toContain("Carla");
+    expect(await rowText(dir, /^Unidade Teresina/)).toContain("teresina.e2e@fortespay.local");
     const teresinaClients = dir
       .locator("tr.fp-row-clients")
       .filter({ hasText: "Ver clientes de Unidade Teresina (2)" });
     await teresinaClients.locator("summary").click();
     expect(
       clean(await teresinaClients.getByRole("row", { name: new RegExp(A.company) }).innerText()),
-    ).toContain("Carla 30 R$ 1,50 R$ 45,00");
+    ).toContain("teresina.e2e@fortespay.local 30 R$ 1,50 R$ 45,00");
     expect(
       clean(await teresinaClients.getByRole("row", { name: new RegExp(B.company) }).innerText()),
     ).toContain("Bruno 20 R$ 1,50 R$ 30,00");
+    // O detalhe tem o próprio total, para não confundir com o total do parceiro.
+    expect(clean(await teresinaClients.locator("tfoot").innerText())).toBe(
+      "Total dos clientes 50 R$ 75,00",
+    );
     expect(await rowText(dir, /^Contador Fulano/)).toMatch(
       /10 R\$ 1,50 R\$ 15,00 .*R\$ 0,00 R\$ 15,00$/,
     );
@@ -829,11 +868,31 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     expect(row).toMatch(/R\$ 90,00$/);
   });
 
-  await test.step("6.5 fechar sem confirmar é bloqueado; fecha pagando Teresina e Natal", async () => {
+  await test.step("6.5 todos vêm marcados ao lado do nome; fechar sem confirmar é bloqueado; fecha pagando Teresina e Natal", async () => {
+    // Os checkboxes de quem recebe ficam na tabela, ao lado do parceiro, e já vêm marcados; o do
+    // cabeçalho marca e desmarca todos.
+    const all = dir.getByRole("checkbox", { name: "Marcar ou desmarcar todos os parceiros" });
+    const boxes = [/Unidade Teresina/, /Unidade Natal/, /Contador Fulano/].map((name) =>
+      dir.getByRole("checkbox", { name }),
+    );
+    await expect(all).toBeChecked();
+    for (const box of boxes) {
+      await expect(box).toBeChecked();
+    }
+    await all.uncheck();
+    for (const box of boxes) {
+      await expect(box).not.toBeChecked();
+    }
+    await all.check();
+    for (const box of boxes) {
+      await expect(box).toBeChecked();
+    }
+    // O Contador acumula: desmarcado; o do cabeçalho deixa de estar marcado.
+    await boxes[2].uncheck();
+    await expect(all).not.toBeChecked();
     await dir.getByRole("button", { name: "Fechar lote" }).click();
     await expect(dir.getByRole("alert").filter({ hasText: "Confirme que conferiu" })).toBeVisible();
-    await dir.getByRole("checkbox", { name: /Unidade Teresina/ }).check();
-    await dir.getByRole("checkbox", { name: /Unidade Natal/ }).check();
+    await expect(boxes[2]).not.toBeChecked();
     await dir.getByLabel(/^Conferi a base/).check();
     await dir.getByRole("button", { name: "Fechar lote" }).click();
     await expect(
@@ -856,16 +915,22 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     expect(clean(await dir.locator("tfoot").innerText())).toMatch(/R\$ 15,00$/);
   });
 
-  await test.step("6.8 reenviar agosto: linhas ignoradas, fechamento intacto", async () => {
+  await test.step("6.8 reenviar agosto: planilha de mês fechado é recusada, fechamento intacto", async () => {
     await dir.goto(`/fechamento?competency=${AUG}`);
-    const before = clean(await dir.locator("tfoot").first().innerText());
+    // O último rodapé da página é o total do fechamento (cada "Ver clientes" tem o seu).
+    const before = clean(await dir.locator("tfoot").last().innerText());
+    // Decisão 31: a recusa aparece já em "Conferir arquivo"; nada é gravado.
     await upload(bi, "Detalhamento Empresas - agosto.xlsx", AUG, AUGUST);
-    await batchSummary(bi);
     await expect(
-      bi.getByRole("cell", { name: `Mês já fechado (${AUG_NUMERIC}); a linha não entrou.` }),
-    ).toHaveCount(4);
+      bi.getByRole("alert").filter({
+        hasText: `Mês já fechado (${AUG_NUMERIC}): a planilha não entra. Para corrigir, reabra o lote em Fechamento do mês.`,
+      }),
+    ).toBeVisible();
+    await expect(bi.getByRole("region", { name: "Conferência do envio" })).toHaveCount(0);
+    await bi.goto("/importacoes");
+    await expect(bi.locator("a.fp-action-row")).toHaveCount(4);
     await dir.reload();
-    expect(clean(await dir.locator("tfoot").first().innerText())).toBe(before);
+    expect(clean(await dir.locator("tfoot").last().innerText())).toBe(before);
   });
 
   await test.step("6.9 vigência do Contador em agosto: recusada; em outubro: aceita", async () => {
@@ -889,7 +954,7 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
   });
 
   await test.step("6.10 Teresina confere agosto e confirma", async () => {
-    // Item 5: o mês fechado também diz de quando é a base do BI (o reenvio de 6.8 não conta: nada entrou).
+    // Item 5: o mês fechado também diz de quando é a base do BI (o reenvio de 6.8 foi recusado).
     await ter.goto(`/inicio?competency=${AUG}`);
     expect(clean(await section(ter, `${AUG_LABEL} · valor oficial`).innerText())).toMatch(
       /Base do BI de .*: último envio em .* \(mês completo\)\./,
@@ -932,6 +997,15 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     const card = clean(await section(con, AUG_LABEL).innerText());
     expect(card).toContain("Acumulado para o próximo mês");
     expect(card).toContain("Total R$ 15,00");
+    // No painel, o saldo que ficou de agosto aparece dentro do cartão do valor previsto de
+    // setembro, somado a ele; o aviso para responder o fechamento continua lá.
+    await con.goto(`/inicio?competency=${SEP}`);
+    expect(clean(await section(con, `${SEP_LABEL} · prévia`).innerText())).toContain(
+      `Saldo acumulado de ${AUG_LABEL}: R$ 15,00 Saldo total (previsto + acumulado): R$ 33,00`,
+    );
+    await expect(
+      con.getByText(`Confira o valor de ${AUG_LABEL} e responda em Meus fechamentos.`),
+    ).toBeVisible();
   });
 
   await test.step("6.13 resposta do parceiro: confirmou com data, contestou com texto, sem resposta", async () => {
@@ -976,9 +1050,9 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     ]);
   });
 
-  await test.step("7.2 os três pagos; saldo pendente zera", async () => {
+  await test.step("7.2 os três pagos (já vêm marcados); saldo pendente zera", async () => {
     for (const name of [/Unidade Teresina/, /Unidade Natal/, /Contador Fulano/]) {
-      await dir.getByRole("checkbox", { name }).check();
+      await expect(dir.getByRole("checkbox", { name })).toBeChecked();
     }
     await dir.getByLabel(/^Conferi a base/).check();
     await dir.getByRole("button", { name: "Fechar lote" }).click();
@@ -990,6 +1064,66 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await expect(
       dir.locator(".fp-kpi").filter({ hasText: "Saldo acumulado a pagar" }),
     ).toContainText("R$ 0,00");
+  });
+
+  // Bloco 17 — decisão 30 de 22/11/2026: reabrir o último mês fechado para corrigir erro. Roda
+  // aqui, com agosto e setembro fechados, e deixa setembro fechado de novo como estava.
+  await test.step("17.1 agosto não reabre com setembro fechado; reabrir exige a confirmação", async () => {
+    await dir.goto(`/fechamento?competency=${AUG}`);
+    const august = section(dir, `Reabrir o lote de ${AUG_LABEL}`);
+    await expect(august).toContainText("Só o último mês fechado pode ser reaberto.");
+    await expect(august.getByRole("button", { name: "Reabrir lote" })).toHaveCount(0);
+    await august.getByRole("link", { name: SEP_LABEL }).click();
+    await expect(dir).toHaveURL(new RegExp(`/fechamento\\?competency=${SEP}$`));
+    const september = section(dir, `Reabrir o lote de ${SEP_LABEL}`);
+    await september.getByRole("button", { name: "Reabrir lote" }).click();
+    await expect(
+      dir.getByRole("alert").filter({ hasText: "Confirme que entendeu o que será apagado" }),
+    ).toBeVisible();
+    await expect(
+      dir.getByRole("heading", { name: new RegExp(`${SEP_LABEL} · Fechado`) }),
+    ).toBeVisible();
+  });
+
+  await test.step("17.2 setembro reaberto: volta à preparação com os valores; some do parceiro", async () => {
+    await ter.goto("/fechamentos");
+    await expect(section(ter, SEP_LABEL)).toHaveCount(1);
+    const card = section(dir, `Reabrir o lote de ${SEP_LABEL}`);
+    await card.getByLabel(/^Entendi o que será apagado/).check();
+    await card.getByRole("button", { name: "Reabrir lote" }).click();
+    await expect(dir.getByRole("status").filter({ hasText: "Lote reaberto." })).toBeVisible();
+    await expect(
+      dir.getByRole("heading", { name: new RegExp(`${SEP_LABEL} · Em preparação`) }),
+    ).toBeVisible();
+    // Valores e saldo anterior continuam; a decisão sumiu e todos voltam marcados para pagamento.
+    expect(await rowText(dir, /^Contador Fulano/)).toMatch(
+      /12 R\$ 1,50 R\$ 18,00 .*R\$ 15,00 R\$ 33,00$/,
+    );
+    await expect(dir.getByRole("checkbox", { name: /Contador Fulano/ })).toBeChecked();
+    await expect(section(dir, /^Reabrir o lote de /)).toHaveCount(0);
+    // Para o parceiro, setembro deixa de ser valor oficial até fechar de novo.
+    await ter.reload();
+    await expect(section(ter, SEP_LABEL)).toHaveCount(0);
+    await expect(section(ter, AUG_LABEL)).toHaveCount(1);
+    await ter.goto(`/inicio?competency=${SEP}`);
+    await expect(ter.getByRole("heading", { name: `${SEP_LABEL} · prévia` })).toBeVisible();
+  });
+
+  await test.step("17.3 mês reaberto aceita a planilha de novo; recalcula e fecha outra vez", async () => {
+    await upload(bi, "Detalhamento Empresas - setembro (3).xlsx", SEP, SEPTEMBER_A8);
+    expect((await batchSummary(bi)).imported).toBe(4);
+    await dir.goto(`/fechamento?competency=${SEP}`);
+    await dir.getByRole("button", { name: "Recalcular" }).click();
+    await expect(dir.getByRole("status").filter({ hasText: "Cálculo preparado." })).toBeVisible();
+    await dir.reload();
+    await dir.getByLabel(/^Conferi a base/).check();
+    await dir.getByRole("button", { name: "Fechar lote" }).click();
+    await expect(
+      dir.getByRole("heading", { name: new RegExp(`${SEP_LABEL} · Fechado`) }),
+    ).toBeVisible();
+    expect(await rowText(dir, /^Contador Fulano/)).toContain("R$ 33,00 Pagar");
+    await ter.goto(`/inicio?competency=${SEP}`);
+    await expect(ter.getByRole("heading", { name: `${SEP_LABEL} · valor oficial` })).toBeVisible();
   });
 
   await test.step("7.3 fechamentos com preparo, fechamento e quem fechou; linhas com data e quem decidiu", async () => {
@@ -1055,7 +1189,15 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     await changeStatus(dir, D, "cancelled", "Cancelada");
     await nat.goto("/inicio");
     const october = section(nat, `${OCT_LABEL} · prévia`);
-    await expect(october.locator(".fp-kpi-heading span").first()).toContainText("até o dia");
+    // Regra D-1: as vidas valem até ontem (Fortaleza); no dia 1 o mês ainda não tem dia fechado.
+    const today = Number(
+      new Intl.DateTimeFormat("en-US", { timeZone: "America/Fortaleza", day: "numeric" }).format(
+        new Date(),
+      ),
+    );
+    await expect(october.locator(".fp-kpi-heading span").first()).toHaveText(
+      today > 1 ? `até o dia ${today - 1}` : "ainda sem dia fechado",
+    );
     await expect(october.locator(".fp-kpi-value").first()).toHaveText("0");
     await expect(nat.getByRole("row", { name: new RegExp(D.company) })).toHaveCount(0);
     await nat.goto(`/inicio?competency=${AUG}`);
@@ -1378,6 +1520,189 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     const locked = section(dir, "Vigência do parceiro aplicada");
     await expect(locked).toContainText("já teve vidas num mês fechado");
     await expect(locked.getByRole("button", { name: "Aplicar" })).toHaveCount(0);
+  });
+
+  // Bloco 16 — decisão 29 de 22/11/2026: conta de vendedor. Ele pede a conta com o e-mail da
+  // unidade, o diretor aprova, e ele só registra e acompanha as próprias indicações, sem valores.
+  const moneyWords = /R\$|por vida|prazo|comiss/i;
+
+  await test.step("16.1 vendedor pede a conta: e-mail de unidade errado é recusado; o certo fica em análise", async () => {
+    await ven.goto("/login");
+    await ven.getByRole("link", { name: "Solicitar criação de conta" }).click();
+    await ven.getByRole("link", { name: "Solicitar conta de vendedor" }).click();
+    await expect(ven).toHaveURL(/\/cadastro\/vendedor$/);
+    await expect(
+      ven.getByRole("heading", { level: 1, name: "Solicitar conta de vendedor" }),
+    ).toBeVisible();
+    await ven.getByLabel("Seu nome").fill("Carla Vendedora");
+    await ven.getByLabel("E-mail da unidade").fill("unidade.errada.e2e@fortespay.local");
+    await ven.getByLabel("E-mail de acesso").fill(SELLER_EMAIL);
+    await ven.getByLabel("Senha (mínimo de 8 caracteres)").fill(PASSWORD);
+    await ven.getByLabel("Confirmar senha").fill(PASSWORD);
+    await ven.getByRole("button", { name: "Enviar solicitação" }).click();
+    await expect(
+      ven
+        .getByRole("alert")
+        .filter({ hasText: "Não encontramos uma unidade ativa com este e-mail." }),
+    ).toBeVisible();
+    // A conta de acesso já existe; falta só acertar a unidade (com maiúsculas, tanto faz).
+    await expect(ven.getByText(`Conta: ${SELLER_EMAIL}`)).toBeVisible();
+    await ven.getByLabel("Seu nome").fill("Carla Vendedora");
+    await ven.getByLabel("E-mail da unidade").fill("Teresina.E2E@fortespay.local");
+    await ven.getByRole("button", { name: "Enviar solicitação" }).click();
+    await expect(ven).toHaveURL(/\/cadastro-em-analise$/);
+    await expect(
+      ven.getByRole("heading", { level: 1, name: "Solicitação em análise" }),
+    ).toBeVisible();
+    await expect(ven.getByText("Unidade: Unidade Teresina")).toBeVisible();
+    for (const path of ["/indicacoes", "/inicio"]) {
+      await ven.goto(path);
+      await expect(ven).toHaveURL(/\/cadastro-em-analise$/);
+    }
+  });
+
+  await test.step("16.2 diretor é avisado, vê o pedido em Parceiros e na ficha da unidade, e aprova", async () => {
+    await dir.goto("/inicio");
+    await expect(dir.getByText("1 vendedor aguardando aprovação")).toBeVisible();
+    await dir.getByRole("link", { name: "Analisar vendedores em Parceiros" }).click();
+    await expect(dir).toHaveURL(/\/parceiros$/);
+    const pendingRow = section(dir, "Vendedores pedindo acesso (1)").getByRole("row", {
+      name: /Carla Vendedora/,
+    });
+    await expect(pendingRow).toContainText(SELLER_EMAIL);
+    await expect(pendingRow).toContainText("Unidade Teresina");
+    // A ficha da unidade continua abrindo com o vendedor ligado a ela.
+    await pendingRow.getByRole("link", { name: "Unidade Teresina" }).click();
+    await expect(dir).toHaveURL(new RegExp(`/parceiros/${ids.teresina}$`));
+    await expect(
+      section(dir, "Vendedores (1)").getByRole("row", { name: /Carla Vendedora/ }),
+    ).toContainText("Aguardando aprovação");
+    await expect(section(dir, "Acesso ao sistema")).toContainText("teresina.e2e@fortespay.local");
+    await dir.goto("/parceiros");
+    await section(dir, "Vendedores pedindo acesso (1)")
+      .getByRole("button", { name: "Aprovar vendedor" })
+      .click();
+    await expect(
+      dir
+        .getByRole("status")
+        .filter({ hasText: "Vendedor aprovado. O acesso dele está liberado." }),
+    ).toBeVisible();
+    await expect(section(dir, /^Vendedores pedindo acesso/)).toHaveCount(0);
+  });
+
+  await test.step("16.3 vendedor entra só em Minhas indicações, sem valores e sem as outras telas", async () => {
+    await ven.reload();
+    await expect(ven).toHaveURL(/\/indicacoes$/);
+    await expect(ven.getByRole("heading", { level: 1, name: "Minhas indicações" })).toBeVisible();
+    expect(await navLabels(ven)).toEqual(["Minhas indicações"]);
+    await expect(ven.locator("main")).not.toContainText(moneyWords);
+    for (const path of [
+      "/inicio",
+      "/fechamentos",
+      "/meu-cadastro",
+      "/parceiros",
+      `/parceiros/${ids.teresina}`,
+      "/fechamento",
+      "/importacoes",
+      "/equipe",
+    ]) {
+      await ven.goto(path);
+      await expect(ven).toHaveURL(/\/indicacoes$/);
+    }
+  });
+
+  await test.step("16.4 vendedor indica H; CNPJ já indicado mostra só a data", async () => {
+    await refer(ven, H, "9");
+    await expect(
+      ven.getByRole("status").filter({ hasText: "Indicação registrada." }),
+    ).toBeVisible();
+    await expect(ven.getByRole("heading", { name: "Em andamento (1)" })).toBeVisible();
+    expect(await rowText(ven, H.company)).toContain("Indicada");
+    await refer(ven, A);
+    await expect(ven.getByRole("alert").filter({ hasText: "CNPJ já indicado em" })).toHaveText(
+      /^CNPJ já indicado em \d{2}\/\d{2}\/\d{4}\.$/,
+    );
+  });
+
+  await test.step("16.5 unidade e diretor veem H com o e-mail do vendedor", async () => {
+    await ter.goto("/indicacoes");
+    expect(await rowText(ter, H.company)).toContain(`Vendedor: ${SELLER_EMAIL}`);
+    await dir.goto("/indicacoes");
+    const row = await rowText(dir, H.company);
+    expect(row).toContain("Unidade Teresina");
+    expect(row).toContain(`Vendedor: ${SELLER_EMAIL}`);
+  });
+
+  await test.step("16.6 com a planilha, o vendedor vê as vidas pagas de H e nenhum valor", async () => {
+    await upload(bi, "outubro-com-h.xlsx", OCT, OCTOBER_WITH_H);
+    await batchSummary(bi);
+    await ven.goto("/indicacoes");
+    await expect(ven.getByRole("heading", { name: "Clientes pagando (1)" })).toBeVisible();
+    await expect(ven.getByRole("columnheader", { name: `Vidas em ${OCT_LABEL}` })).toBeVisible();
+    const row = await rowText(ven, H.company);
+    expect(row).toContain("Cliente pagando");
+    expect(row).toMatch(/ 9 \d{2}\/\d{2}\/\d{4}$/);
+    // Só as indicações dele: A, B e G são da unidade e não aparecem.
+    await expect(ven.locator("main tbody tr")).toHaveCount(1);
+    await expect(ven.locator("main")).not.toContainText(moneyWords);
+  });
+
+  await test.step("16.7 pela API o vendedor não lê tabela nenhuma: só a lista dele, sem valores", async () => {
+    const client = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    expect(
+      (await client.auth.signInWithPassword({ email: SELLER_EMAIL, password: PASSWORD })).error,
+    ).toBeNull();
+    for (const table of [
+      "partners",
+      "partner_rules",
+      "referrals",
+      "monthly_lives",
+      "closing_items",
+      "import_batches",
+      "referral_month_lives",
+      "partner_month_amounts",
+    ]) {
+      expect((await client.from(table).select("*")).data, table).toEqual([]);
+    }
+    const own = (await client.rpc("seller_referrals")).data ?? [];
+    expect(own).toHaveLength(1);
+    expect(Object.keys(own[0]).sort()).toEqual([
+      "activated_competency",
+      "cnpj",
+      "company_name",
+      "competency",
+      "created_at",
+      "id",
+      "lives",
+      "status",
+      "status_changed_at",
+    ]);
+    const denied = await client.rpc("prepare_closing", { month: `${OCT}-01` });
+    expect(denied.error?.code).toBe("42501");
+  });
+
+  await test.step("16.8 diretor gera link de nova senha e remove o acesso; a indicação fica com a unidade", async () => {
+    await dir.goto(`/parceiros/${ids.teresina}`);
+    const row = section(dir, "Vendedores (1)").getByRole("row", { name: /Carla Vendedora/ });
+    await expect(row).toContainText("Com acesso");
+    await row.getByRole("button", { name: "Gerar link", exact: true }).click();
+    expect(await row.getByLabel("Link de nova senha").inputValue()).toMatch(
+      /\/nova-senha\/[A-Za-z0-9_-]{43}$/,
+    );
+    await row.getByRole("button", { name: "Remover acesso" }).click();
+    await expect(dir.getByRole("status").filter({ hasText: "Vendedor sem acesso." })).toBeVisible();
+    await expect(
+      section(dir, "Vendedores (1)").getByRole("row", { name: /Carla Vendedora/ }),
+    ).toContainText("Sem acesso");
+    await ven.goto("/indicacoes");
+    await expect(ven).toHaveURL(/\/cadastro-em-analise$/);
+    await expect(ven.getByRole("heading", { level: 1, name: "Acesso não liberado" })).toBeVisible();
+    await ter.goto("/indicacoes");
+    expect(await rowText(ter, H.company)).toContain(`Vendedor: ${SELLER_EMAIL}`);
   });
 
   // Bloco 12 (continuação) — decisão 19 de 09/11/2026 (Minha conta e Equipe) e decisão 26 de

@@ -22,12 +22,18 @@ export default async function NoAccessPage() {
   return (
     <AuthShell
       title="Cadastro não concluído"
-      description="Esta conta existe, mas o cadastro não foi concluído. Parceiro: conclua o cadastro abaixo. Diretor: abra de novo o link do convite que recebeu, com esta conta já conectada."
+      description="Esta conta existe, mas o cadastro não foi concluído. Parceiro ou vendedor: conclua o cadastro abaixo. Diretor: abra de novo o link do convite que recebeu, com esta conta já conectada."
     >
       <SessionGuard />
       <p className="break-all text-sm text-muted-foreground">{user.email}</p>
       <Link href="/cadastro" className="block text-sm font-medium text-primary hover:underline">
         Concluir cadastro de parceiro
+      </Link>
+      <Link
+        href="/cadastro/vendedor"
+        className="block text-sm font-medium text-primary hover:underline"
+      >
+        Concluir solicitação de conta de vendedor
       </Link>
       <LogoutButton />
     </AuthShell>

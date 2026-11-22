@@ -19,15 +19,17 @@ sem precisar perguntar à Fortes Pay.
 
 ## 2. Quem usa
 
-| Perfil       | Quem é                                                         | O que faz                                                                                                                                 |
-| ------------ | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Diretor**  | Gestão da Fortes Pay e quem envia a planilha do BI             | Vê tudo. Aprova o cadastro dos parceiros, define as regras de remuneração, acompanha indicações, envia a planilha, fecha o mês. Usa a IA. |
-| **Parceiro** | Unidade franqueada ou parceiro externo (por exemplo, contador) | Registra indicações e acompanha as próprias: o que já rende, quanto vai receber, os meses fechados.                                       |
+| Perfil       | Quem é                                                         | O que faz                                                                                                                                        |
+| ------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Diretor**  | Gestão da Fortes Pay e quem envia a planilha do BI             | Vê tudo. Aprova o cadastro dos parceiros, define as regras de remuneração, acompanha indicações, envia a planilha, fecha o mês. Usa a IA.        |
+| **Parceiro** | Unidade franqueada ou parceiro externo (por exemplo, contador) | Registra indicações e acompanha as próprias: o que já rende, quanto vai receber, os meses fechados.                                              |
+| **Vendedor** | Quem vende por uma unidade ou parceiro                         | Registra indicações em nome da unidade e acompanha só as que ele mesmo registrou: a etapa e as vidas pagas do mês. Não vê nenhum valor em reais. |
 
-São só esses dois perfis. Quem exporta e envia a planilha do BI usa o perfil de diretor, com o
+São esses três perfis. Quem exporta e envia a planilha do BI usa o perfil de diretor, com o
 mesmo acesso. Todos os diretores são iguais: qualquer um convida outro diretor em **Equipe** e gera
 link de nova senha para ele. Cada pessoa troca a própria senha em **Minha conta**. Cada parceiro vê
-só os próprios dados: nenhum parceiro vê outro parceiro nem as indicações dele.
+só os próprios dados: nenhum parceiro vê outro parceiro nem as indicações dele. O vendedor vê só
+as indicações que ele registrou, sem painel, fechamentos nem valores.
 
 ## 3. Palavras do sistema
 
@@ -49,7 +51,7 @@ só os próprios dados: nenhum parceiro vê outro parceiro nem as indicações d
 
 ## 4. O caminho completo, em uma página
 
-1. O parceiro abre o site e clica em **Criar conta de parceiro** (o diretor pode enviar o
+1. O parceiro abre o site e clica em **Solicitar criação de conta** (o diretor pode enviar o
    endereço do cadastro).
 2. O parceiro preenche o cadastro e cria a senha. Fica **em análise**.
 3. O diretor **aprova** o cadastro e, na mesma tela, escolhe o tipo do parceiro e define a
@@ -68,10 +70,11 @@ só os próprios dados: nenhum parceiro vê outro parceiro nem as indicações d
 
 ### Cadastro
 
-- O parceiro cria a própria conta, sem convite: na tela de entrada, **Criar conta de parceiro**. A
+- O parceiro cria a própria conta, sem convite: na tela de entrada, **Solicitar criação de conta**. A
   tela **Parceiros** mostra o endereço direto do cadastro, para o diretor enviar como preferir
   (WhatsApp, e-mail).
-- O parceiro preenche: nome da unidade ou do parceiro, cidade/UF, responsável, telefone, e-mail de
+- O parceiro preenche: nome da unidade ou do parceiro, cidade/UF, responsável, telefone (o campo
+  formata sozinho como `(86) 99999-0000`), e-mail de
   acesso, senha e **confirmação da senha** (digitar duas vezes evita erro de digitação; se forem
   diferentes, nada é criado).
 - O cadastro fica **Aguardando aprovação** e o parceiro vê a tela "Cadastro em análise". Ele só
@@ -134,15 +137,31 @@ senha e quer trocá-la usa **Minha conta** (ao lado de Sair): senha atual, nova 
 
 ### Registro
 
-- O parceiro registra em **Minhas indicações → Nova indicação**: CNPJ do cliente, nome da empresa,
-  se souber, quantas vidas a empresa tem (estimativa) e, se houver, o **Vendedor** (quem da equipe
-  fez a indicação; texto livre, opcional).
-- O diretor também pode registrar uma indicação em nome de um parceiro e corrigir o vendedor na
-  ficha da indicação. O vendedor aparece junto da empresa nas listas e no fechamento; login e
-  comissão de vendedor ficam para a fase 2.
+- O parceiro registra em **Minhas indicações → Nova indicação**: CNPJ do cliente, nome da empresa
+  e, se souber, quantas vidas a empresa tem (estimativa). O **vendedor da indicação** é gravado
+  sozinho: o e-mail da conta que registra (o da unidade, ou o do vendedor quando é ele quem
+  registra).
+- O diretor também pode registrar uma indicação em nome de um parceiro, informando o vendedor em
+  texto livre, e corrigir o vendedor na ficha da indicação. O vendedor aparece junto da empresa
+  nas listas e no fechamento; comissão de vendedor fica para a fase 2.
 - **Vale a primeira indicação de cada CNPJ.** Se outro parceiro tentar o mesmo CNPJ, o sistema
   recusa com "CNPJ já indicado em dd/mm/aaaa", sem mostrar quem indicou. Só o diretor vê o nome.
 - O CNPJ é conferido (dígitos verificadores) e aceita o formato alfanumérico novo.
+
+### Vendedores
+
+- O vendedor pede a própria conta: na tela de entrada, **Solicitar criação de conta** e depois
+  **Solicitar conta de vendedor**. Ele informa o seu nome, o **e-mail da unidade** a que pertence
+  (o e-mail com que a unidade entra no sistema), o e-mail de acesso e a senha, e fica com a
+  **solicitação em análise**.
+- O diretor é avisado na **Visão geral** e aprova ou recusa em **Parceiros → Vendedores pedindo
+  acesso**. Na ficha do parceiro, o quadro **Vendedores** lista os vendedores da unidade e permite
+  remover o acesso, liberar de novo e gerar o link de nova senha do vendedor.
+- O vendedor aprovado tem um menu só, **Minhas indicações**: registra indicações em nome da
+  unidade e vê as que ele mesmo registrou, com a etapa, o que está acontecendo e as vidas pagas do
+  mês. Ele **não vê valor por vida, valor, prazo nem comissão**, nem as indicações da unidade ou
+  de outros vendedores.
+- A unidade e o diretor veem, em cada indicação, o e-mail de quem a registrou.
 
 ### Situações e etapas
 
@@ -230,7 +249,8 @@ dela, a partir do mês atual.
 - O rodapé "Filtros aplicados" da planilha é de outro mês, ou de mais de um mês.
 - O mês escolhido é futuro.
 - O arquivo não tem as colunas do BI, passa de 4 MB ou não é .csv nem .xlsx.
-- Linhas de um mês já fechado não entram ("Mês já fechado"); o fechamento não muda.
+- O mês escolhido já está fechado: "Mês já fechado (mm/aaaa): a planilha não entra". Para
+  corrigir um mês fechado, reabra o lote em Fechamento do mês (seção 9).
 
 ## 8. Como o valor é calculado
 
@@ -271,8 +291,8 @@ mostra três etapas e diz o que falta em cada uma:
 
 A tabela mostra, por parceiro: vendedor(es) do mês, vidas, valor do mês, ajuste, **saldo
 anterior** (o que vinha acumulado) e total. Sob cada parceiro, **Ver clientes (n)** abre os
-clientes daquele mês, cada um com vendedor, vidas, valor por vida e valor; a soma dos clientes é o
-valor do parceiro. Esse detalhe é gravado no momento do cálculo e fica igual depois de fechado,
+clientes daquele mês, cada um com vendedor, vidas, valor por vida e valor, e a linha **Total dos
+clientes**; a soma dos clientes é o valor do parceiro. Esse detalhe é gravado no momento do cálculo e fica igual depois de fechado,
 mesmo que a indicação mude de valor ou de situação. Antes de fechar, o diretor pode:
 
 - **Ajustar o valor de um parceiro** (a mais ou a menos), sempre com motivo. O parceiro vê o ajuste
@@ -282,16 +302,32 @@ mesmo que a indicação mude de valor ou de situação. Antes de fechar, o diret
 
 ### Fechar o lote
 
-- O diretor marca **quem recebe** neste mês e confirma que conferiu a base e o cálculo.
-- Quem foi marcado fica como **Pagar**. Quem não foi marcado fica como **Acumular**: o total entra
+- Na tabela, ao lado do nome de cada parceiro, um checkbox diz **quem recebe** neste mês. Todos
+  com valor a receber já vêm marcados; o checkbox do cabeçalho marca ou desmarca todos. O diretor
+  desmarca quem deve acumular e confirma que conferiu a base e o cálculo.
+- Quem ficou marcado fica como **Pagar**. Quem foi desmarcado fica como **Acumular**: o total entra
   como saldo anterior no próximo fechamento, e assim por diante, sem limite de meses.
-- Depois de fechado, **nada mais entra naquele mês**: nova planilha, vigência ou ajuste não mudam o
-  valor oficial.
+- Depois de fechado, **nada mais entra naquele mês**: a planilha do mês é recusada, e vigência ou
+  ajuste não mudam o valor oficial.
 - Para cada parceiro pago, o diretor anota **Como foi pago** (por exemplo, "PIX em 05/11"). O
   parceiro vê essa anotação.
 
 Exemplo de acúmulo: o contador tem R$ 15,00 em setembro e não é marcado (acumula). Em outubro tem
 R$ 18,00; o fechamento de outubro mostra saldo anterior R$ 15,00 e total R$ 33,00.
+
+### Reabrir um mês fechado
+
+Para corrigir um erro depois do fechamento, o diretor usa **Reabrir o lote**, no fim da tela do mês
+fechado. Só o **último mês fechado** pode ser reaberto; havendo um mês posterior fechado, reabre-se
+ele antes. Ao reabrir:
+
+- o mês volta para **Em preparação**, com os mesmos valores e ajustes;
+- a decisão de pagar ou acumular, a resposta dos parceiros e o "como foi pago" são **apagados**;
+- o mês sai de Meus fechamentos dos parceiros (volta a ser prévia) até ser fechado de novo;
+- a planilha do mês volta a ser aceita.
+
+Depois de corrigir (nova planilha, ajuste), o diretor **recalcula** e **fecha o lote** outra vez, e
+os parceiros respondem de novo.
 
 ### Resposta do parceiro
 
@@ -312,22 +348,31 @@ registrados** lista os meses com quem preparou e quem fechou.
 | Menu                  | O que tem                                                                                                                                                                                                                               |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Visão geral**       | Valor do mês, vidas pagas, saldo acumulado a pagar e parceiros com vidas; tabela por parceiro; indicações por etapa. Avisa quando o mês escolhido já está fechado.                                                                      |
-| **Parceiros**         | Aguardando aprovação (com o endereço do cadastro para enviar ao parceiro), Ativos (com a regra de hoje) e Recusados. Cada parceiro abre a ficha (seção 5).                                                                              |
+| **Parceiros**         | Aguardando aprovação (com o endereço do cadastro para enviar ao parceiro), Vendedores pedindo acesso, Ativos (com a regra de hoje) e Recusados. Cada parceiro abre a ficha (seção 5), que também lista os vendedores dele.              |
 | **Indicações**        | Todas as indicações, com filtros por parceiro e situação, busca por CNPJ ou empresa e o mês das vidas; situação, parceiro, valor e prazo; mudar situação; registrar em nome de um parceiro. É o relatório de quem indicou cada cliente. |
 | **Importações**       | Enviar a planilha; histórico de envios; detalhe de cada envio com as empresas do mês (e a vigência aplicada a cada uma), as linhas ignoradas e a análise da IA.                                                                         |
-| **Fechamento do mês** | As três etapas, a tabela do mês, ajustes, fechar o lote, como foi pago, revisão da IA e fechamentos registrados.                                                                                                                        |
+| **Fechamento do mês** | As três etapas, a tabela do mês (com quem recebe marcado ao lado do nome), ajustes, fechar o lote, como foi pago, reabrir o lote, revisão da IA e fechamentos registrados.                                                              |
 | **Equipe**            | Os diretores, com e-mail de acesso. **Convidar diretor** gera um link de uso único: quem abre cria o próprio acesso e entra direto. **Gerar link de nova senha** para outro diretor (24 horas, uso único).                              |
+
+O seletor de **Mês** (Visão geral, Indicações, Fechamento do mês e Meu painel) troca o mês assim que
+é escolhido, sem botão.
 
 ### Parceiro
 
-| Menu                  | O que tem                                                                                                                                                                                                                                                                                                                                                                                       |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Meu painel**        | "Como funciona" em três passos; o mês escolhido como **prévia** (vidas pagas até o dia, valor previsto, data do último envio da planilha **daquele mês**) ou como **valor oficial**, se já fechado (também com a data da base do BI); **Últimos envios da planilha** (data/hora, mês, parcial ou mês completo); saldo acumulado a receber e último fechamento; as indicações que rendem no mês. |
-| **Minhas indicações** | Resumo em números (quantas indicações viraram cliente, quantas estão em andamento, quantas foram perdidas), Nova indicação e as indicações nas três etapas, cada uma com uma frase do que está acontecendo e do que falta.                                                                                                                                                                      |
-| **Meus fechamentos**  | Cada mês fechado com o valor oficial, a decisão, como foi pago e os botões Confirmar valor e Contestar.                                                                                                                                                                                                                                                                                         |
-| **Meu cadastro**      | Dados do cadastro e a regra de remuneração (só leitura).                                                                                                                                                                                                                                                                                                                                        |
+| Menu                  | O que tem                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Meu painel**        | "Como funciona" em três passos; o mês escolhido como **prévia** (vidas pagas até o dia anterior, valor previsto com o saldo acumulado e o saldo total, data do último envio da planilha **daquele mês**) ou como **valor oficial**, se já fechado (também com a data da base do BI); **Últimos envios da planilha** (data/hora, mês, parcial ou mês completo); o aviso para responder o último fechamento; as indicações que rendem no mês, com o total de vidas e de valor. |
+| **Minhas indicações** | Resumo em números (quantas indicações viraram cliente, quantas estão em andamento, quantas foram perdidas), Nova indicação e as indicações nas três etapas, cada uma com uma frase do que está acontecendo e do que falta.                                                                                                                                                                                                                                                   |
+| **Meus fechamentos**  | Cada mês fechado com o valor oficial, a decisão, como foi pago e os botões Confirmar valor e Contestar.                                                                                                                                                                                                                                                                                                                                                                      |
+| **Meu cadastro**      | Dados do cadastro e a regra de remuneração (só leitura).                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
-Nos dois perfis, **Minha conta** (ao lado de Sair) mostra nome, e-mail de acesso e perfil, e é onde
+### Vendedor
+
+Só **Minhas indicações**: resumo em números, Nova indicação e as indicações que ele registrou, em
+três grupos (Clientes pagando, Em andamento, Encerradas), com as vidas pagas do mês e sem nenhum
+valor.
+
+Nos três perfis, **Minha conta** (ao lado de Sair) mostra nome, e-mail de acesso e perfil, e é onde
 a pessoa troca a própria senha: senha atual, nova e confirmação. Quem esqueceu a senha pede o link a
 um diretor.
 
@@ -369,7 +414,9 @@ pagar ou acumular e não altera dados.
   não recebe o link de nova senha; o diretor corrige gerando o link pela ficha.
 - **Endereço**: o sistema está em https://fpay-indicacao.vercel.app até o domínio da Fortes Pay ser
   configurado.
-- **Um login por parceiro**. Vendedores (fase 2) ainda não existem.
+- **Um login por parceiro**, mais os vendedores que o diretor aprovar. A unidade não administra os
+  próprios vendedores (é o diretor quem aprova e remove) e não há comissão de vendedor.
+- Uma conta tem um perfil só: o e-mail da unidade não pode ser também de um vendedor.
 - Um CNPJ indicado fica com aquele parceiro, mesmo que a indicação seja perdida ou cancelada.
 - O parceiro não edita o próprio cadastro nem muda a resposta depois de confirmar ou contestar.
 - Não há exportação do fechamento em CSV ou PDF.
@@ -385,7 +432,7 @@ Já confirmado em 09/11/2026: **"C. Cash-in" é a medida de vidas pagas do mês.
 
 ## 15. Próximos passos possíveis
 
-Anotados durante o projeto e fora desta fase: vendedores e comissão de vendedor (fase 2); vários
+Anotados durante o projeto e fora desta fase: comissão de vendedor (fase 2); vários
 logins por parceiro; inativar parceiro; reindicar CNPJ perdido; e-mail automático de cadastro novo,
 aprovação e fechamento; exportar o fechamento; carga do histórico da planilha antiga; automação da leitura do
 BI (somente leitura); alerta de "cliente já pagava antes da indicação".

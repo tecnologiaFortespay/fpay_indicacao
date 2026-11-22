@@ -23,9 +23,11 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 - **Banco limpo** e **uma pessoa por vez** seguindo o roteiro: dois testes ao mesmo tempo usam os
   mesmos CNPJs e os mesmos meses e um atrapalha o outro.
 - Navegador **Chrome** (o seletor de mês do Firefox e do Safari é uma caixa de texto: digite AAAA-MM).
+  O mês troca assim que é escolhido; não há botão.
   Use janelas separadas (ou perfis) para o diretor e para cada parceiro: duas janelas anônimas
   do mesmo navegador dividem a mesma sessão.
-- Dois perfis: **diretor** (quem envia a planilha do BI usa o mesmo acesso) e **parceiro**. O
+- Três perfis: **diretor** (quem envia a planilha do BI usa o mesmo acesso), **parceiro** e
+  **vendedor** (bloco 16: pede a conta com o e-mail da unidade e o diretor aprova). O
   primeiro login de diretor é criado pela equipe técnica (`npm run bootstrap`); os demais, por
   convite em **Equipe** (bloco 12). O parceiro cria a própria conta (bloco 2). Cada parceiro precisa
   de um e-mail diferente, que você consiga abrir (ex.: `seunome+teresina@empresa.com.br`).
@@ -44,9 +46,9 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 
 ## Bloco 2 — Cadastro e aprovação (3 parceiros)
 
-2.1. Diretor → Parceiros. Não existe "Novo parceiro" nem convite: o parceiro cria a própria conta. Em Aguardando aprovação aparece o **endereço direto do cadastro**, para enviar ao parceiro. Janela do parceiro → tela de entrada → **Criar conta de parceiro** → abre o cadastro.
+2.1. Diretor → Parceiros. Não existe "Novo parceiro" nem convite: o parceiro cria a própria conta. Em Aguardando aprovação aparece o **endereço direto do cadastro**, para enviar ao parceiro. Janela do parceiro → tela de entrada → **Solicitar criação de conta** → abre o cadastro ("Criar conta de parceiro"). Digitar só os números do telefone (86999990000) → o campo mostra **(86) 99999-0000**.
 2.2. Preencher nome ("Unidade Teresina"), cidade/UF, responsável, telefone, e-mail e senha, com a **confirmação de senha diferente** → "As senhas precisam ser iguais." e nada é criado. Corrigir a confirmação → **Enviar cadastro** → **Cadastro em análise**. Tentar /inicio → continua em Cadastro em análise. Na Visão geral do diretor aparece "1 cadastro de parceiro aguardando aprovação", com o atalho **Analisar em Parceiros**.
-2.3. Em outra janela, Criar conta de parceiro com o **mesmo e-mail** e outra senha → "Este e-mail já tem conta…"; nenhum cadastro novo aparece para o diretor. Um endereço de convite que não existe (/convite/…) → "Convite inválido".
+2.3. Em outra janela, Solicitar criação de conta com o **mesmo e-mail** e outra senha → "Este e-mail já tem conta…"; nenhum cadastro novo aparece para o diretor. Um endereço de convite que não existe (/convite/…) → "Convite inválido".
 2.4. Diretor → Parceiros → Aguardando aprovação → **Analisar e aprovar** em Teresina: o Tipo aparece como "a escolher na aprovação". Clicar **Aprovar e liberar acesso** sem escolher o **Tipo de parceiro** → o navegador avisa que o campo é obrigatório; escolher Unidade e clicar sem valor por vida → mesmo aviso no valor.
 2.5. Tipo Unidade, valor por vida 1,50, **Vale a partir de** [M-2], prazo em branco → aviso "Parceiro aprovado. O acesso dele está liberado."; a ficha mostra Situação Ativo, Tipo Unidade e "Hoje: R$ 1,50 por vida · sem prazo · vale desde [M-2]".
 2.6. Na janela do parceiro, recarregar → entra em Meu painel com "Olá, Unidade Teresina".
@@ -58,16 +60,16 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 
 ## Bloco 3 — Indicações e etapas
 
-3.1. Teresina → Minhas indicações → **Nova indicação**: CNPJ A, empresa, vidas estimadas 40, **Vendedor** "Carla" (opcional: quem da unidade fez a indicação) → "Indicação registrada."; os campos ficam limpos; A aparece em **Ainda não rende** com "Indicada em dd/mm/aaaa. A Fortes Pay ainda vai falar com o cliente…" e "Vendedor: Carla".
+3.1. Teresina → Minhas indicações → **Nova indicação**: CNPJ A, empresa, vidas estimadas 40 (não existe campo Vendedor: o sistema grava o e-mail de quem registra) → "Indicação registrada."; os campos ficam limpos; A aparece em **Ainda não rende** com "Indicada em dd/mm/aaaa. A Fortes Pay ainda vai falar com o cliente…" e "Vendedor: <e-mail de Teresina>".
 3.2. Teresina indica B e C. 3.3. Natal indica D. 3.4. Contador indica E.
 3.5. Natal tenta A → "CNPJ já indicado em dd/mm/aaaa." sem o nome de Teresina; Natal continua com "Ainda não rende (1)".
-3.6. Diretor → Indicações → Lista (5), cada uma com o parceiro (A com "Vendedor: Carla"). **Buscar por CNPJ ou empresa**: o nome de A → só A; o CNPJ de B (com ou sem pontuação) → só B; limpar → as 5 de novo. **Registrar indicação em nome de um parceiro**: A em nome de Natal → mensagem cita "por Unidade Teresina".
+3.6. Diretor → Indicações → Lista (5), cada uma com o parceiro (A com "Vendedor: <e-mail de Teresina>"). **Buscar por CNPJ ou empresa**: o nome de A → só A; o CNPJ de B (com ou sem pontuação) → só B; limpar → as 5 de novo. **Registrar indicação em nome de um parceiro**: A em nome de Natal → mensagem cita "por Unidade Teresina".
 3.7. Diretor muda A: Indicada → Em negociação → Fechada (aviso "Situação atualizada." a cada vez). O menu só mostra as mudanças permitidas (Cancelada não aparece antes de Ativa).
 3.8. Diretor marca C como Perdida.
 3.9. Teresina recarrega → A em Ainda não rende como **Contrato fechado** ("Começa a render no primeiro mês em que o cliente pagar"); C em **Encerradas (1)**. Nenhum botão de mudar situação.
 3.10. Natal → só D.
 3.11. Teresina → Minhas indicações → **Resumo**: "3 indicações · 1 virou cliente · 1 em andamento · 1 perdida" (virou cliente = contrato fechado ou já pagou, inclusive cancelada; em andamento = indicada ou em negociação; perdida = perdida). Meu painel, ainda sem nenhuma vida paga: a prévia diz "Nenhuma vida paga em [M0]." e repete o resumo, em vez de só "0"; como nenhuma planilha foi enviada, o rodapé diz "Ainda não houve envio da planilha de [M0]."
-3.12. Diretor → Indicações → B → ficha da indicação → **Vendedor** "Bruno" → **Salvar vendedor** → "Vendedor salvo."; a lista mostra "Vendedor: Bruno" em B. Só o diretor corrige o vendedor depois de registrado.
+3.12. Diretor → Indicações → B → ficha da indicação → **Vendedor** "Bruno" → **Salvar vendedor** → "Vendedor salvo."; a lista mostra "Vendedor: Bruno" em B. Só o diretor escreve ou corrige o vendedor (texto livre); para parceiro e vendedor vale o e-mail da conta.
 
 ## Bloco 4 — Importação ([M-2] e [M-1])
 
@@ -84,7 +86,7 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 
 5.1. Diretor → Visão geral → [M-2]: Teresina (A+B × 1,50), Natal (D × 2,00), Contador (E × 1,50); total = soma; "Planilha do BI enviada em … por …".
 5.2. [M-1]: recalculado com as vidas de [M-1].
-5.3. Teresina → Meu painel → [M-2]: cartão "[M-2] · prévia" com "Regra para quem você indicar em [M-2]: R$ 1,50 por vida · sem prazo", vidas e valor previsto e "Prévia com a base do BI de …" (a data do último envio **de [M-2]**); Minhas indicações só com A e B; "Rendendo comissão" conta 2. Em Minhas indicações, a introdução diz de quando é a base do BI das vidas.
+5.3. Teresina → Meu painel → escolher [M-2] no seletor **Mês** (a tela troca na hora, sem botão): cartão "[M-2] · prévia" com "Regra para quem você indicar em [M-2]: R$ 1,50 por vida · sem prazo", vidas e valor previsto e "Prévia com a base do BI de …" (a data do último envio **de [M-2]**); dentro do cartão **Valor previsto**, "Saldo acumulado de meses anteriores: R$ 0,00" e "Saldo total (previsto + acumulado)" = o valor previsto; não existe mais a seção "Meses fechados". Minhas indicações só com A e B, com a linha **Total** (vidas e valor no mês somados); "Rendendo comissão" conta 2. Em Minhas indicações, a introdução diz de quando é a base do BI das vidas.
 5.4. Contador → Meu painel: "Regra para quem você indicar em [M0]: R$ 1,50 por vida · prazo de 12 meses"; E com "12 meses: [M-2] a …".
 5.5. Diretor envia de novo [M-1] com A +8 vidas → Teresina recarrega: vidas e "Prévia com a base do BI de …" mudam (a página não se atualiza sozinha: é preciso recarregar).
 5.6. Teresina → Meu painel → **Últimos envios da planilha**: quatro envios ([M-2] duas vezes, [M-1] duas vezes), do mais novo ao mais antigo, cada um com a data/hora e o mês, marcado como "mês completo" (mês já terminado) — o parceiro sabe sozinho se o que espera já entrou.
@@ -93,22 +95,22 @@ O roteiro usa meses relativos a hoje, para valer em qualquer mês:
 
 6.1. Diretor → Fechamento do mês → [M0] → etapa 1 "[M0] ainda não terminou"; sem botão Preparar cálculo.
 6.2. [M-1] com [M-2] aberto → etapa 2 "Feche [M-2] primeiro" e botão "Ir para [M-2]".
-6.3. [M-2] → etapa 1 concluída ("Planilha de [M-2] enviada em …, depois do fim do mês") → **Preparar cálculo** → tabela por parceiro: vendedor(es) do mês, vidas, valor por vida, valor do mês, ajuste, saldo anterior (0), total. Sob cada parceiro, **Ver clientes (n)** abre os clientes do mês com vendedor, vidas, valor por vida e valor: Teresina = A (Carla, 30 × 1,50 = 45,00) + B (Bruno, 20 × 1,50 = 30,00) = 75,00.
+6.3. [M-2] → etapa 1 concluída ("Planilha de [M-2] enviada em …, depois do fim do mês") → **Preparar cálculo** → tabela por parceiro: vendedor(es) do mês, vidas, valor por vida, valor do mês, ajuste, saldo anterior (0), total. Sob cada parceiro, **Ver clientes (n)** abre os clientes do mês com vendedor, vidas, valor por vida e valor, e a linha **Total dos clientes**: Teresina = A (e-mail de Teresina, 30 × 1,50 = 45,00) + B (Bruno, 20 × 1,50 = 30,00) = 50 vidas e 75,00.
 6.4. **Ajustar o valor de um parceiro**: Natal, -10,00, motivo → "Ajuste salvo."; total de Natal cai 10. Recalcular → o ajuste continua.
-6.5. **Fechar lote** sem marcar a conferência → "Confirme que conferiu…". Marcar Teresina e Natal, não marcar o Contador, marcar a conferência → "Lote fechado. Nada mais entra neste mês."; título "[M-2] · Fechado"; as três etapas concluídas.
+6.5. Na tabela, ao lado do nome de cada parceiro há um checkbox, **já marcado**; o do cabeçalho marca e desmarca todos (testar os dois sentidos). Desmarcar só o Contador. **Fechar lote** sem marcar a conferência → "Confirme que conferiu…" (as marcações continuam como estavam). Marcar a conferência → "Lote fechado. Nada mais entra neste mês."; título "[M-2] · Fechado"; as três etapas concluídas.
 6.6. Teresina e Natal "Pagar"; Contador "Acumular".
 6.7. Visão geral → "Saldo acumulado a pagar" = valor do Contador em [M-2], na linha dele e no total.
-6.8. Diretor reenvia [M-2] → linhas "Mês já fechado"; o fechamento não muda.
+6.8. Diretor reenvia [M-2] → **Conferir arquivo** recusa: "Mês já fechado (mm/aaaa): a planilha não entra. Para corrigir, reabra o lote em Fechamento do mês."; nenhum envio novo aparece em Importações e o fechamento não muda.
 6.9. Contador → Nova vigência a partir de [M-2] → recusada (mês fechado). A partir de [M0] → aceita.
-6.10. Teresina → Meu painel → [M-2] (fechado): o cartão "valor oficial" diz "Base do BI de [M-2]: último envio em … (mês completo)" — o reenvio de 6.8 não conta, porque nada entrou. Meus fechamentos → [M-2]: vidas, valor, saldo que vinha de antes 0, total, Pagar → **Confirmar valor** → "Resposta registrada…" e "Você confirmou em …".
+6.10. Teresina → Meu painel → [M-2] (fechado): o cartão "valor oficial" diz "Base do BI de [M-2]: último envio em … (mês completo)" — o reenvio de 6.8 foi recusado. Meus fechamentos → [M-2]: vidas, valor, saldo que vinha de antes 0, total, Pagar → **Confirmar valor** → "Resposta registrada…" e "Você confirmou em …".
 6.11. Natal → [M-2] mostra o ajuste -10 com o motivo. Contestar sem texto → "Explique o que não confere". Com texto → "Você contestou em …".
-6.12. Contador → [M-2]: "Acumulado para o próximo mês".
+6.12. Contador → [M-2]: "Acumulado para o próximo mês". Meu painel → [M-1]: o cartão Valor previsto mostra "Saldo acumulado de [M-2]" = total de [M-2] e "Saldo total" = previsto de [M-1] + esse saldo; o aviso "Confira o valor de [M-2] e responda em Meus fechamentos" continua no painel.
 6.13. Diretor → Fechamento → [M-2] → coluna "Resposta do parceiro": Teresina confirmou (data), Natal contestou (texto), Contador "aguardando".
 
 ## Bloco 7 — Fechamento de [M-1] (saldo carrega)
 
 7.1. Diretor → Fechamento → [M-1] → Preparar cálculo → Contador: saldo anterior = valor de [M-2] + valor de [M-1] = total.
-7.2. Marcar os três → conferir → fechar → Contador "Pagar" com o total acumulado; Visão geral → saldo acumulado a pagar 0.
+7.2. Os três já vêm marcados → conferir → fechar → Contador "Pagar" com o total acumulado; Visão geral → saldo acumulado a pagar 0.
 7.3. Ainda em Fechamento do mês, seção **Fechamentos registrados**: [M-2] e [M-1] com preparo, fechamento e quem fechou. Abrir [M-2]: cada linha guarda valor do mês, ajuste, saldo anterior, total, decisão, data e quem decidiu.
 7.4. Teresina → Meu painel → [M0]: "Regra para quem você indicar em [M0]: R$ 1,80 por vida"; A, indicada em [M0], conta 1,80 em [M0]; [M-1] mostra "[M-1] · valor oficial" e A continua a 1,50 lá. Uma indicação feita antes de [M0] continuaria a 1,50 também em [M0] (decisão 23; coberto no teste de banco).
 
@@ -118,7 +120,7 @@ O mês em andamento pode ser enviado várias vezes; cada envio substitui o mês 
 
 8.1. Diretor → Importações → [M0] → planilha de [M0] sem o CNPJ B → envio "[M0] (parcial)".
 8.2. Diretor → Indicações → A, B, D, E continuam Ativa.
-8.3. Teresina → Meu painel → [M0]: B "Rendendo" com 0 vidas; A com vidas × 1,80.
+8.3. Teresina → Meu painel → [M0]: "Vidas pagas" diz "até o dia" de **ontem** (regra D-1; no dia 1 do mês, "ainda sem dia fechado"); B "Rendendo" com 0 vidas; A com vidas × 1,80.
 8.4. Diretor → nova planilha parcial de [M0] com mais vidas em A, **em CSV** (como o Google Planilhas exporta) → a conferência mostra A com as vidas de hoje e as novas → confirmar → Teresina vê o novo número de A (substitui, não soma); em Últimos envios da planilha, o envio aparece primeiro, com [M0] marcado como "parcial".
 8.5. Diretor muda D para Cancelada → Natal → [M0]: D não conta; [M-2] e [M-1] mostram o valor oficial, inalterados.
 8.6. Visão geral → Indicações por etapa: Ativa 3, Inadimplente 0, Cancelada 1, Perdida 1.
@@ -169,7 +171,7 @@ Exige a chave da IA no servidor (`/status` mostra `"ia":"ligada"`). Sem ela, as 
 
 ## Bloco 14 — Mensagens e navegação
 
-14.1. Aprovar, recusar, remover vigência, fechar lote, responder fechamento e mudar situação mostram um aviso verde no topo da página; recarregar a página não repete o aviso.
+14.1. Aprovar, recusar, remover vigência, fechar lote, reabrir lote, aprovar vendedor, responder fechamento e mudar situação mostram um aviso verde no topo da página; recarregar a página não repete o aviso.
 14.2. Depois de "Indicação registrada." ou "Convite criado", os campos ficam limpos: clicar de novo não repete o cadastro.
 14.3. Abrir um convite de diretor numa janela já conectada com outra conta → "Você já está conectado", com botão Sair.
 14.4. Deixar uma tela aberta, sair em outra aba e salvar algo na primeira → "Sua sessão expirou. Entre de novo para continuar." e o login.
@@ -184,6 +186,27 @@ Teresina tem duas vigências: 1,50 desde [M-2] e 1,80 desde [M0] (passo 2.10). O
 15.2. Na linha de H, escolher "Vigência de [M-2] · R$ 1,50 · sem prazo" → **Aplicar** → aviso "Regra da indicação atualizada…"; a linha passa a "R$ 1,50 por vida", "(escolhida pelo diretor)", e o valor do mês = vidas × 1,50.
 15.3. Teresina → Meu painel → [M0]: H a R$ 1,50.
 15.4. Diretor → Indicações → H → **Vigência do parceiro aplicada** mostra a vigência de [M-2], "escolhida pelo diretor"; escolher "Automática" → Aplicar → H volta a 1,80, também no painel de Teresina. Na ficha de A não há seletor: a indicação já teve vidas num mês fechado.
+
+## Bloco 16 — Conta de vendedor
+
+O vendedor pertence a uma unidade (aqui, Teresina). Ele pede a conta, o diretor aprova, e ele só registra e acompanha as próprias indicações, sem nenhum valor em reais.
+
+16.1. Janela nova → tela de entrada → **Solicitar criação de conta** → **Solicitar conta de vendedor**. Preencher o nome, um **e-mail da unidade** que não existe, e-mail e senha → **Enviar solicitação** → "Não encontramos uma unidade ativa com este e-mail…" (a conta de acesso já fica criada: a tela mostra "Conta: <e-mail>"). Corrigir para o e-mail de Teresina (maiúsculas não importam) → **Solicitação em análise**, com "Unidade: Unidade Teresina". Tentar /indicacoes ou /inicio → continua em análise.
+16.2. Diretor → Visão geral: "1 vendedor aguardando aprovação" → **Analisar vendedores em Parceiros** → seção **Vendedores pedindo acesso (1)** com nome, e-mail e unidade. A ficha de Teresina abre normalmente e mostra o vendedor em **Vendedores (1)** como "Aguardando aprovação". Em Parceiros → **Aprovar vendedor** → "Vendedor aprovado. O acesso dele está liberado."
+16.3. Vendedor recarrega → entra em **Minhas indicações**; o menu só tem Minhas indicações; nenhuma tela mostra valor, prazo ou comissão. Digitar /inicio, /fechamentos, /meu-cadastro, /parceiros, /fechamento, /importacoes ou /equipe → volta para Minhas indicações.
+16.4. Vendedor → **Nova indicação** (sem campo Vendedor): empresa H → "Indicação registrada."; H aparece em **Em andamento (1)** como Indicada. Tentar o CNPJ A → "CNPJ já indicado em dd/mm/aaaa.", sem dizer de quem é.
+16.5. Teresina → Minhas indicações: H aparece com "Vendedor: <e-mail do vendedor>". Diretor → Indicações: H com Unidade Teresina e o mesmo vendedor.
+16.6. Diretor envia a planilha de [M0] com H → vendedor recarrega: H em **Clientes pagando (1)**, "Cliente pagando", com as vidas na coluna "Vidas em [M0]"; só as indicações dele aparecem (A, B e G, da unidade, não); nenhum valor em reais.
+16.7. (Técnico, coberto no teste automático) Pela API, com o login do vendedor, nenhuma tabela devolve linhas; só a lista dele, sem colunas de valor.
+16.8. Diretor → ficha de Teresina → **Vendedores** → **Gerar link** (link de nova senha do vendedor, para copiar) → **Remover acesso** → "Vendedor sem acesso…"; a linha mostra "Sem acesso" e **Liberar acesso**. O vendedor recarrega → "Acesso não liberado". Teresina continua vendo H com o e-mail do vendedor.
+
+## Bloco 17 — Reabrir um mês fechado
+
+Para corrigir erro depois do fechamento. **Faça logo depois do passo 7.2**, com [M-2] e [M-1] fechados; ao fim, [M-1] fica fechado de novo e o roteiro segue igual.
+
+17.1. Diretor → Fechamento → [M-2] → cartão **Reabrir o lote de [M-2]**: "Só o último mês fechado pode ser reaberto", com o atalho para [M-1], e sem botão. Em [M-1] → **Reabrir lote** sem marcar a confirmação → "Confirme que entendeu o que será apagado…"; o mês continua Fechado.
+17.2. Marcar "Entendi o que será apagado…" → **Reabrir lote** → "Lote reaberto…"; título "[M-1] · Em preparação"; valores, ajustes e saldo anterior iguais; a decisão sumiu e todos voltam marcados para pagamento. Para Teresina, [M-1] sai de Meus fechamentos ([M-2] continua) e o painel de [M-1] volta a ser **prévia**.
+17.3. Diretor → Importações → planilha de [M-1] de novo → aceita (o mês está aberto). Fechamento → [M-1] → **Recalcular** → conferir → **Fechar lote** → "[M-1] · Fechado", Contador "Pagar" com o total; Teresina volta a ver [M-1] como valor oficial e responde de novo, se já tinha respondido.
 
 ## Como rodar à mão (ambiente local)
 

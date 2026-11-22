@@ -28,11 +28,13 @@ export function uniqueEmail(prefix: string): string {
   return `${prefix}-${randomUUID()}@test.local`;
 }
 
-// Cria um usuário no Auth e, se pedido, o perfil correspondente.
+// Cria um usuário no Auth e, se pedido, o perfil correspondente. status só muda para o vendedor
+// (pedido pendente ou recusado); diretor e parceiro são sempre "active".
 export async function createUser(
   admin: Client,
-  role: "director" | "partner" | null,
+  role: "director" | "partner" | "seller" | null,
   partnerId: string | null = null,
+  status: "pending" | "active" | "rejected" = "active",
 ): Promise<{ id: string; email: string }> {
   const email = uniqueEmail(role ?? "user");
   const created = await admin.auth.admin.createUser({
@@ -49,6 +51,7 @@ export async function createUser(
       role,
       partner_id: partnerId,
       display_name: `Teste ${role}`,
+      status,
     });
     if (profile.error) {
       throw new Error(`profile: ${profile.error.message}`);

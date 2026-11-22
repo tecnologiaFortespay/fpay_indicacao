@@ -10,7 +10,10 @@ import { createClient } from "@/lib/supabase/server";
 
 const profileSchema = z.object({
   user_id: z.uuid(),
-  role: z.enum(["director", "partner"]),
+  role: z.enum(["director", "partner", "seller"]),
+  // Só o vendedor passa por pending/rejected; diretor e parceiro são sempre active. O padrão cobre
+  // o banco ainda sem a migration do vendedor (nele não existe vendedor).
+  status: z.enum(["pending", "active", "rejected"]).default("active"),
   display_name: z.string(),
   partner: z
     .object({
@@ -63,17 +66,22 @@ export function hasAccess(user: SessionUser): user is AuthorizedUser {
   if (user.profile.role === "partner") {
     return user.profile.partner?.status === "active";
   }
-  return true;
+  // Vendedor (decisão 29): pedido aprovado pelo diretor e unidade ativa.
+  if (user.profile.role === "seller") {
+    return user.profile.status === "active" && user.profile.partner?.status === "active";
+  }
+  return user.profile.role === "director";
 }
 
 export function landingPath(user: SessionUser): string {
   if (!user.profile) {
     return "/sem-acesso";
   }
-  if (user.profile.role === "partner" && user.profile.partner?.status !== "active") {
+  if (!hasAccess(user)) {
     return "/cadastro-em-analise";
   }
-  return "/inicio";
+  // O vendedor só tem as próprias indicações.
+  return user.profile.role === "seller" ? "/indicacoes" : "/inicio";
 }
 
 export async function requireUser(): Promise<AuthorizedUser> {

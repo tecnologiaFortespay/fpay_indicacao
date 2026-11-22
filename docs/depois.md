@@ -12,7 +12,7 @@ Regra 4 da seção 11: nada fora do documento entra sem decisão explícita.
 - Edição do próprio cadastro pelo parceiro (hoje só o diretor edita).
 - Vários logins para o mesmo parceiro.
 - CNPJ/CPF do parceiro para emissão da nota.
-- Vendedor (fase 2): `sellers`, `seller_commissions`, comissão única no fechamento do cliente, relatório por vendedor. (Desde 10/11/2026 a indicação guarda o **nome** do vendedor em texto, decisão 22; cadastro, login e comissão continuam aqui.)
+- Vendedor (fase 2): `sellers`, `seller_commissions`, comissão única no fechamento do cliente, relatório por vendedor. (Desde 22/11/2026 o vendedor tem login próprio, aprovado pelo diretor, e a indicação guarda o e-mail de quem registrou, decisão 29; comissão e relatório de vendedor continuam aqui.)
 - Automação da importação do BI (somente leitura, via time da Soma).
 - Penetração por região (depende da fonte de município/UF, a confirmar).
 - Carga inicial do histórico da planilha da Géssica.

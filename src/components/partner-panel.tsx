@@ -10,11 +10,11 @@ import {
   competencyLabel,
   completesMonth,
   currentCompetency,
-  currentDayOfMonth,
   dateToCompetency,
   formatDate,
   formatDateTime,
   isCompetency,
+  lastFullDayOfMonth,
 } from "@/lib/competency";
 import { partnerDecisionLabels, partnerResponseLabels, type ReferralStatus } from "@/lib/labels";
 import { formatCurrency, formatInteger } from "@/lib/money";
@@ -22,7 +22,6 @@ import {
   lastImportAt,
   partnerClosingItems,
   partnerMonthSummary,
-  pendingBalanceOf,
   recentImports,
   type PartnerClosingItem,
 } from "@/lib/partner-panel/queries";
@@ -70,7 +69,7 @@ function responseText(item: PartnerClosingItem): string {
   return partnerResponseLabels[item.partner_response as keyof typeof partnerResponseLabels];
 }
 
-// Painel do parceiro: o mês escolhido (prévia ou valor oficial), os meses fechados e as indicações
+// Painel do parceiro: o mês escolhido (prévia ou valor oficial), os últimos envios e as indicações
 // por etapa. Tudo sob a RLS dele.
 export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelProps) {
   const partnerId = user.profile.partner?.id ?? "";
@@ -89,13 +88,27 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
       listReferralRules(referrals.map((referral) => referral.id)),
       listPartnerRules(partnerId),
     ]);
-  const pending = pendingBalanceOf(closings);
   const latestClosing = closings[0] ?? null;
   const closedMonth = closings.find((item) => item.competency === competency) ?? null;
+  // Saldo acumulado que entra no mês escolhido: o total do último mês fechado antes dele, quando
+  // ficou acumulado (a mesma conta do "saldo anterior" do fechamento).
+  const previousClosing = closings.find((item) => item.competency < competency) ?? null;
+  const carried = previousClosing?.decision === "accumulate" ? Number(previousClosing.total) : 0;
   const monthLabel = competencyLabel(competency);
   const isCurrentMonth = competency === current;
+  const throughDay = lastFullDayOfMonth();
   const rows = referrals.filter((referral) =>
     shownInMonth(referral, competency, months.has(referral.id)),
+  );
+  const rowTotals = rows.reduce(
+    (sum, referral) => {
+      const month = months.get(referral.id);
+      return {
+        lives: sum.lives + (month?.lives ?? 0),
+        amount: sum.amount + Number(month?.amount ?? 0),
+      };
+    },
+    { lives: 0, amount: 0 },
   );
   const delinquent = referrals.filter((referral) => referral.status === "delinquent");
   const counts = { earning: 0, not_earning: 0, closed: 0 };
@@ -199,7 +212,11 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
                 <div className="fp-kpi-heading">
                   <h3>Vidas pagas</h3>
                   <span>
-                    {isCurrentMonth ? `até o dia ${currentDayOfMonth()}` : "no mês inteiro"}
+                    {!isCurrentMonth
+                      ? "no mês inteiro"
+                      : throughDay === null
+                        ? "ainda sem dia fechado"
+                        : `até o dia ${throughDay}`}
                   </span>
                 </div>
                 <p className="fp-kpi-value fp-num">{formatInteger(summary.lives)}</p>
@@ -217,6 +234,17 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
                 <p className="fp-kpi-value fp-num">{formatCurrency(summary.amount)}</p>
                 <p className="fp-kpi-description">
                   Vidas × valor por vida de cada indicação. Pode mudar até o fechamento.
+                </p>
+                <p className="fp-kpi-description">
+                  {previousClosing
+                    ? `Saldo acumulado de ${competencyLabel(previousClosing.competency)}: `
+                    : "Saldo acumulado de meses anteriores: "}
+                  <strong className="fp-num">{formatCurrency(carried)}</strong>
+                  <br />
+                  Saldo total (previsto + acumulado):{" "}
+                  <strong className="fp-num">
+                    {formatCurrency(Number(summary.amount) + carried)}
+                  </strong>
                 </p>
               </article>
             </div>
@@ -263,51 +291,15 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
         )}
       </SectionCard>
 
-      <SectionCard
-        title="Meses fechados (valor oficial)"
-        action={<Link href="/fechamentos">Ver todos →</Link>}
-      >
-        {latestClosing ? (
-          <PanelBody>
-            <div className="fp-kpi-grid fp-kpi-grid-2">
-              <article className="fp-kpi">
-                <div className="fp-kpi-heading">
-                  <h3>Saldo acumulado a receber</h3>
-                  <span>depois de {competencyLabel(latestClosing.competency)}</span>
-                </div>
-                <p className="fp-kpi-value fp-num">{formatCurrency(pending)}</p>
-                <p className="fp-kpi-description">
-                  Valor que ficou para o próximo fechamento. Zero quando o último mês foi pago.
-                </p>
-              </article>
-              <article className="fp-kpi">
-                <div className="fp-kpi-heading">
-                  <h3>Último fechamento</h3>
-                  <span>{competencyLabel(latestClosing.competency)}</span>
-                </div>
-                <p className="fp-kpi-value fp-num">{formatCurrency(latestClosing.total)}</p>
-                <p className="fp-kpi-description">
-                  {decisionText(latestClosing)} · {responseText(latestClosing)}
-                </p>
-              </article>
-            </div>
-            {!latestClosing.partner_response && (
-              <Notice tone="warning" compact>
-                Confira o valor de {competencyLabel(latestClosing.competency)} e responda em{" "}
-                <Link href="/fechamentos" className="underline">
-                  Meus fechamentos
-                </Link>
-                .
-              </Notice>
-            )}
-          </PanelBody>
-        ) : (
-          <EmptyState title="Nenhum mês fechado ainda">
-            Quando a Fortes Pay fechar o primeiro mês, o valor oficial aparece aqui para você
-            confirmar.
-          </EmptyState>
-        )}
-      </SectionCard>
+      {latestClosing && !latestClosing.partner_response && (
+        <Notice tone="warning">
+          Confira o valor de {competencyLabel(latestClosing.competency)} e responda em{" "}
+          <Link href="/fechamentos" className="underline">
+            Meus fechamentos
+          </Link>
+          .
+        </Notice>
+      )}
 
       <SectionCard
         title="Minhas indicações"
@@ -383,6 +375,15 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
                   );
                 })}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={2}>Total</td>
+                  <td className="fp-num">{formatInteger(rowTotals.lives)}</td>
+                  <td />
+                  <td className="fp-num">{formatCurrency(rowTotals.amount)}</td>
+                  <td />
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}

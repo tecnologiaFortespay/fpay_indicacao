@@ -6,11 +6,12 @@ import { EmptyState } from "@/components/empty-state";
 import { OrbitaIcon } from "@/components/orbita-icon";
 import { PageIntro } from "@/components/page-intro";
 import { SectionCard } from "@/components/section-card";
+import { SellerActions } from "@/components/seller-actions";
 import { requireRole } from "@/lib/auth/session";
 import { currentCompetency, formatDate } from "@/lib/competency";
 import { appOrigin } from "@/lib/env";
 import { partnerKindLabels } from "@/lib/labels";
-import { listAllRules, listPartners, type Partner } from "@/lib/partners/queries";
+import { listAllRules, listPartners, listSellers, type Partner } from "@/lib/partners/queries";
 import { currentRule, ruleSentence } from "@/lib/referrals/config";
 
 export const metadata: Metadata = { title: "Parceiros" };
@@ -46,9 +47,17 @@ function PendingRow({ partner }: { partner: Partner }) {
   );
 }
 
-export default async function PartnersPage() {
+type PageProps = { searchParams: Promise<{ msg?: string }> };
+
+export default async function PartnersPage({ searchParams }: PageProps) {
   await requireRole("director");
-  const [partners, rules] = await Promise.all([listPartners(), listAllRules()]);
+  const { msg } = await searchParams;
+  const [partners, rules, sellers] = await Promise.all([
+    listPartners(),
+    listAllRules(),
+    listSellers(),
+  ]);
+  const waitingSellers = sellers.filter((seller) => seller.status === "pending");
   const today = currentCompetency();
   // Endereço que o diretor pode mandar ao parceiro (WhatsApp, e-mail) para ele criar a conta.
   const signupAddress = `${appOrigin(await headers())}/cadastro`;
@@ -56,16 +65,16 @@ export default async function PartnersPage() {
   const active = partners.filter((partner) => partner.status === "active");
   const rejected = partners.filter((partner) => partner.status === "rejected");
   return (
-    <AppShell title="Parceiros">
+    <AppShell title="Parceiros" flash={msg}>
       <PageIntro>
         Unidades e parceiros externos que indicam clientes. O parceiro novo cria a própria conta em
-        “Criar conta de parceiro”, na tela de entrada do sistema; o cadastro aparece aqui e você
+        “Solicitar criação de conta”, na tela de entrada do sistema; o cadastro aparece aqui e você
         aprova escolhendo o tipo e quanto ele recebe por vida.
       </PageIntro>
 
       <SectionCard
         title={`Aguardando aprovação (${pending.length})`}
-        subtitle="Cadastros feitos pelo próprio parceiro em “Criar conta de parceiro”. Ele só entra no sistema depois que você aprova."
+        subtitle="Cadastros feitos pelo próprio parceiro em “Solicitar criação de conta”. Ele só entra no sistema depois que você aprova."
         footnote={
           <>
             Endereço direto do cadastro, para enviar ao parceiro:{" "}
@@ -75,13 +84,50 @@ export default async function PartnersPage() {
       >
         {pending.length === 0 ? (
           <EmptyState title="Nenhum cadastro aguardando">
-            Peça ao parceiro para abrir o sistema e clicar em “Criar conta de parceiro”. Quando ele
-            enviar o cadastro, aparece aqui para você aprovar.
+            Peça ao parceiro para abrir o sistema e clicar em “Solicitar criação de conta”. Quando
+            ele enviar o cadastro, aparece aqui para você aprovar.
           </EmptyState>
         ) : (
           pending.map((partner) => <PendingRow key={partner.id} partner={partner} />)
         )}
       </SectionCard>
+
+      {waitingSellers.length > 0 && (
+        <SectionCard
+          title={`Vendedores pedindo acesso (${waitingSellers.length})`}
+          subtitle="Pedidos feitos em “Solicitar conta de vendedor”. O vendedor só vê e registra as próprias indicações, em nome da unidade; confirme com a unidade antes de aprovar."
+        >
+          <div className="fp-table-wrap">
+            <table className="fp-table">
+              <thead>
+                <tr>
+                  <th>Vendedor</th>
+                  <th>Unidade</th>
+                  <th>Pedido em</th>
+                  <th>Acesso</th>
+                </tr>
+              </thead>
+              <tbody>
+                {waitingSellers.map((seller) => (
+                  <tr key={seller.user_id}>
+                    <td>
+                      {seller.display_name}
+                      <small>{seller.email}</small>
+                    </td>
+                    <td>
+                      <Link href={`/parceiros/${seller.partner_id}`}>{seller.partner_name}</Link>
+                    </td>
+                    <td>{formatDate(seller.created_at)}</td>
+                    <td>
+                      <SellerActions seller={seller} returnTo="list" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </SectionCard>
+      )}
 
       <SectionCard
         title={`Ativos (${active.length})`}

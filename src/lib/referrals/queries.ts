@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import { competencyToDate } from "@/lib/competency";
 import type { ReferralStatus } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
@@ -89,6 +90,32 @@ export async function referralMonthValues(competency: string): Promise<Map<strin
     }
   }
   return values;
+}
+
+const sellerReferralSchema = z.object({
+  id: z.uuid(),
+  cnpj: z.string(),
+  company_name: z.string(),
+  status: z.string(),
+  status_changed_at: z.string(),
+  activated_competency: z.string().nullable(),
+  created_at: z.string(),
+  // Mês das vidas ("YYYY-MM-01"): o mais recente com planilha para a unidade; nulo sem planilha.
+  competency: z.string().nullable(),
+  lives: z.number(),
+});
+
+export type SellerReferral = z.infer<typeof sellerReferralSchema>;
+
+// Indicações que o vendedor conectado registrou, com as vidas pagas do mês (função SQL
+// seller_referrals). O vendedor não lê tabela nenhuma: só estas colunas, sem valor nem regra.
+export async function sellerReferrals(): Promise<SellerReferral[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("seller_referrals");
+  if (error) {
+    throw new Error("Não foi possível consultar as suas indicações.");
+  }
+  return z.array(sellerReferralSchema).parse(data);
 }
 
 export type ReferralDetail = ReferralRow;

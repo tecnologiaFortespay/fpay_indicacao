@@ -261,11 +261,7 @@ function PreviewPanel({
         ]}
       />
 
-      {preview.closed ? (
-        <Notice tone="warning" title={`${month} já está fechado`}>
-          Este envio não muda nenhum valor: as linhas ficam registradas como “Mês já fechado”.
-        </Notice>
-      ) : preview.complete ? (
+      {preview.complete ? (
         <Notice tone="warning" title="Este envio completa o mês">
           Feito depois do fim de {month}: libera o fechamento do mês e marca como Inadimplente a
           indicação ativa sem vidas no arquivo.
@@ -276,7 +272,7 @@ function PreviewPanel({
           parceiros e não marca ninguém como inadimplente.
         </Notice>
       )}
-      {preview.rows_imported === 0 && !preview.closed && (
+      {preview.rows_imported === 0 && (
         <Notice tone="warning" title="Nenhuma empresa indicada aparece no arquivo">
           Se confirmar, as vidas de {month} ficam zeradas para todas as indicações.
         </Notice>

@@ -33,9 +33,10 @@ npm run bootstrap -- --email denis@exemplo.com --role director --name "Denis" --
 npm run dev               # http://localhost:3000
 ```
 
-São dois perfis: diretor e parceiro. O primeiro diretor é criado pelo script acima; os demais (quem
+São três perfis: diretor, parceiro e vendedor (o vendedor pede a conta em `/cadastro/vendedor`,
+com o e-mail da unidade, e um diretor aprova em Parceiros). O primeiro diretor é criado pelo script acima; os demais (quem
 envia a planilha do BI também usa esse perfil) entram por convite em **Equipe**, um login por pessoa.
-Parceiros criam a própria conta em **Criar conta de parceiro** (`/cadastro`), sem convite, e o
+Parceiros criam a própria conta em **Solicitar criação de conta** (`/cadastro`), sem convite, e o
 diretor aprova escolhendo o tipo e a regra do parceiro (valor por vida, vigência, prazo). Uma
 vigência nova do parceiro vale para quem for indicado a partir do mês dela; indicações anteriores
 seguem a regra de quando foram feitas. Cada indicação pode ter vigências próprias de valor e prazo,

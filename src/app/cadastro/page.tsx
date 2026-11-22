@@ -5,6 +5,7 @@ import { AccountFields } from "@/components/account-fields";
 import { AuthShell } from "@/components/auth-shell";
 import { Field } from "@/components/fields";
 import { MutationForm } from "@/components/mutation-form";
+import { PhoneField } from "@/components/phone-field";
 import { LogoutButton } from "@/components/session-controls";
 import { currentUser, landingPath } from "@/lib/auth/session";
 import { registerPartner } from "./actions";
@@ -42,14 +43,7 @@ export default async function SignupPage() {
           maxLength={120}
           autoComplete="name"
         />
-        <Field
-          label="Telefone"
-          name="contact_phone"
-          type="tel"
-          required
-          maxLength={40}
-          autoComplete="tel"
-        />
+        <PhoneField label="Telefone" name="contact_phone" required />
         <AccountFields user={user} />
       </MutationForm>
       {user ? (
@@ -62,6 +56,12 @@ export default async function SignupPage() {
           Já tenho conta: entrar
         </Link>
       )}
+      <p className="text-center text-sm text-muted-foreground">
+        É vendedor de uma unidade parceira?{" "}
+        <Link href="/cadastro/vendedor" className="font-medium text-primary hover:underline">
+          Solicitar conta de vendedor
+        </Link>
+      </p>
     </AuthShell>
   );
 }

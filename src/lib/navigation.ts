@@ -9,6 +9,11 @@ export type NavArea = {
 
 // Apresentação apenas. A autorização real fica em requireRole() e na RLS.
 export function navigationFor(role: Role): NavArea[] {
+  if (role === "seller") {
+    return [
+      { id: "referrals", href: "/indicacoes", label: "Minhas indicações", icon: "commercial" },
+    ];
+  }
   if (role === "partner") {
     return [
       { id: "overview", href: "/inicio", label: "Meu painel", icon: "home" },

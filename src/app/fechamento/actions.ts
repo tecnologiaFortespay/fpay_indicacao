@@ -98,6 +98,35 @@ export async function closeClosing(_previous: FormState, form: FormData): Promis
   );
 }
 
+// Reabre o último mês fechado para corrigir erro (decisão 30). O banco apaga a decisão, a resposta
+// do parceiro e o "como foi pago"; valores e ajustes ficam, e o lote volta para preparação.
+export async function reopenClosing(_previous: FormState, form: FormData): Promise<FormState> {
+  const user = await actionUser("director");
+  if (!user) {
+    return deniedState();
+  }
+  const id = formValue(form, "closing_id");
+  if (!z.uuid().safeParse(id).success) {
+    return { error: "Fechamento inválido." };
+  }
+  if (formValue(form, "confirmation") !== "on") {
+    return { error: "Confirme que entendeu o que será apagado antes de reabrir o lote." };
+  }
+  const supabase = await createClient();
+  const result = await supabase.rpc("reopen_closing", { target: id });
+  if (result.error) {
+    return { error: databaseError(result.error) };
+  }
+  revalidateClosing();
+  const competency = formValue(form, "competency");
+  redirect(
+    withFlash(
+      isCompetency(competency) ? `/fechamento?competency=${competency}` : "/fechamento",
+      "lote_reaberto",
+    ),
+  );
+}
+
 // Texto livre de como a Fortes Pay pagou a linha (ex.: "PIX em 05/11"); o parceiro vê.
 export async function setPaymentNote(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await actionUser("director");

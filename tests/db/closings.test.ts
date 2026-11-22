@@ -21,6 +21,7 @@ const OCTOBER = competencyToDate(TODAY);
 const NEXT_MONTH = competencyToDate(addMonths(TODAY, 1));
 // "MM/YYYY", como as mensagens do banco escrevem o mês.
 const AUGUST_LABEL = `${AUGUST.slice(5, 7)}/${AUGUST.slice(0, 4)}`;
+const SEPTEMBER_LABEL = `${SEPTEMBER.slice(5, 7)}/${SEPTEMBER.slice(0, 4)}`;
 
 async function activePartner(name: string): Promise<string> {
   const partner = ok(
@@ -287,6 +288,26 @@ describe("fatia 4 — fechamento mensal", () => {
       "lives",
     );
     expect(augustLives.lives).toBe(40);
+    // Decisão 31: a planilha do mês fechado (o lote informa o mês, como a tela envia) é recusada
+    // inteira, já na conferência; nada fica gravado.
+    const refusal = `Mês já fechado (${AUGUST_LABEL}): a planilha não entra. Para corrigir, reabra o lote em Fechamento do mês.`;
+    const closedMonthFile = {
+      batch: batch("agosto-fechado.csv", AUGUST),
+      rows: rows([[CNPJ_N, AUGUST, 99]]),
+    };
+    const refusedPreview = await director.rpc("preview_import", closedMonthFile);
+    expect(refusedPreview.error?.message).toBe("IMPORT_FIELDS");
+    expect(refusedPreview.error?.details).toBe(refusal);
+    const refusedImport = await director.rpc("import_lives", closedMonthFile);
+    expect(refusedImport.error?.details).toBe(refusal);
+    const refusedBatch = ok(
+      await director
+        .from("import_batches")
+        .select("id")
+        .eq("file_hash", closedMonthFile.batch.file_hash),
+      "refused batch",
+    );
+    expect(refusedBatch).toEqual([]);
     // Vigência que alcança agosto não muda mais: mês fechado vem antes de "vigência duplicada".
     const locked = await director.rpc("save_partner_rule", {
       payload: { partner_id: natalId, value_per_life: "9.00", valid_from: AUGUST, term_months: "" },
@@ -435,5 +456,122 @@ describe("fatia 4 — fechamento mensal", () => {
       paid_partner_ids: [],
     });
     expect(denied.error?.code).toBe("42501");
+  });
+
+  // Decisão 30 (22/11/2026): reabrir o último mês fechado para corrigir erro.
+  it("reabre só o último mês fechado: limpa decisão, resposta e pagamento e mantém valores", async () => {
+    const august = await items(AUGUST);
+    const september = await items(SEPTEMBER);
+    const natalItem = ok(
+      await director
+        .from("closing_items")
+        .select("id")
+        .eq("closing_id", september.closing.id)
+        .eq("partner_id", natalId)
+        .single(),
+      "natal september item",
+    );
+    done(
+      await natalClient.rpc("respond_closing_item", {
+        target: natalItem.id,
+        response: "disputed",
+        note: "Valor diferente do combinado.",
+      }),
+      "partner response",
+    );
+    done(
+      await director.rpc("set_payment_note", { target: natalItem.id, note: "PIX em 05/10" }),
+      "payment note",
+    );
+    // Só o diretor reabre; agosto espera setembro, que é o último fechado.
+    for (const client of [natalClient, noProfile]) {
+      const denied = await client.rpc("reopen_closing", { target: september.closing.id });
+      expect(denied.error?.code).toBe("42501");
+    }
+    const outOfOrder = await director.rpc("reopen_closing", { target: august.closing.id });
+    expect(outOfOrder.error?.details).toBe(
+      `Reabra primeiro o mês ${SEPTEMBER_LABEL}: só o último mês fechado pode ser reaberto.`,
+    );
+    done(await director.rpc("reopen_closing", { target: september.closing.id }), "reopen");
+    const reopened = ok(
+      await director
+        .from("closings")
+        .select("status, closed_by, closed_at")
+        .eq("id", september.closing.id)
+        .single(),
+      "reopened closing",
+    );
+    expect(reopened).toEqual({ status: "open", closed_by: null, closed_at: null });
+    const cleared = ok(
+      await director
+        .from("closing_items")
+        .select(
+          "month_amount, previous_balance, total, decision, decided_by, decided_at, partner_response, partner_response_at, partner_note, payment_note",
+        )
+        .eq("id", natalItem.id)
+        .single(),
+      "cleared item",
+    );
+    expect(cleared).toEqual({
+      month_amount: 72,
+      previous_balance: 50,
+      total: 122,
+      decision: null,
+      decided_by: null,
+      decided_at: null,
+      partner_response: null,
+      partner_response_at: null,
+      partner_note: null,
+      payment_note: null,
+    });
+    // O parceiro deixa de ver o mês reaberto; o mês anterior continua lá.
+    const visible = ok(
+      await natalClient.from("closing_items").select("total").order("total"),
+      "partner items after reopen",
+    );
+    expect(visible.map((item) => item.total)).toEqual([50]);
+    const again = await director.rpc("reopen_closing", { target: september.closing.id });
+    expect(again.error?.details).toBe("Este mês não está fechado.");
+    // Reaberto, o mês volta a aceitar planilha e ajuste.
+    ok(
+      await director.rpc("import_lives", {
+        batch: batch("setembro-corrigido.csv", SEPTEMBER),
+        rows: rows([
+          [CNPJ_N, SEPTEMBER, 48],
+          [CNPJ_T, SEPTEMBER, 50],
+        ]),
+      }),
+      "import into the reopened month",
+    );
+  });
+
+  it("mês reaberto com o seguinte em preparação: fechar de novo atualiza o saldo anterior do seguinte", async () => {
+    const august = await items(AUGUST);
+    // Setembro está em preparação (teste anterior) com o saldo de Natal vindo de agosto.
+    expect((await items(SEPTEMBER)).natal?.previous_balance).toBe(50);
+    done(await director.rpc("reopen_closing", { target: august.closing.id }), "reopen august");
+    // Com agosto aberto, setembro não fecha nem recalcula.
+    const blocked = await director.rpc("prepare_closing", { month: SEPTEMBER });
+    expect(blocked.error?.details).toBe(`Feche primeiro o mês ${AUGUST_LABEL}.`);
+    // Desta vez agosto fecha pagando os dois: não sobra saldo para setembro.
+    done(
+      await director.rpc("close_closing", {
+        target: august.closing.id,
+        paid_partner_ids: [natalId, teresinaId],
+      }),
+      "close august again",
+    );
+    const september = await items(SEPTEMBER);
+    expect(september.closing.status).toBe("open");
+    expect(september.natal).toMatchObject({ month_amount: 72, previous_balance: 0, total: 72 });
+    expect(september.teresina).toMatchObject({ previous_balance: 0, total: 100 });
+    done(
+      await director.rpc("close_closing", {
+        target: september.closing.id,
+        paid_partner_ids: [natalId, teresinaId],
+      }),
+      "close september again",
+    );
+    expect((await items(SEPTEMBER)).closing.status).toBe("closed");
   });
 });

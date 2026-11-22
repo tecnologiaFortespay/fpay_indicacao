@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
 
@@ -52,17 +53,56 @@ export async function getPartner(id: string): Promise<Partner | null> {
 }
 
 // Conta de acesso do parceiro (um login por parceiro), para o diretor gerar o link de nova senha.
+// Os vendedores da unidade também são perfis ligados ao parceiro, por isso o filtro do papel.
 export async function partnerLogin(partnerId: string): Promise<{ user_id: string } | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
     .select("user_id")
     .eq("partner_id", partnerId)
+    .eq("role", "partner")
     .maybeSingle();
   if (error) {
     throw new Error("Não foi possível consultar o acesso do parceiro.");
   }
   return data;
+}
+
+const sellerSchema = z.object({
+  user_id: z.uuid(),
+  display_name: z.string(),
+  email: z.string(),
+  partner_id: z.uuid(),
+  partner_name: z.string(),
+  status: z.enum(["pending", "active", "rejected"]),
+  created_at: z.string(),
+});
+
+export type Seller = z.infer<typeof sellerSchema>;
+
+// Vendedores de todas as unidades, com o e-mail de acesso (função SQL list_sellers; só o diretor
+// chama). Do pedido mais antigo ao mais novo.
+export async function listSellers(): Promise<Seller[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_sellers");
+  if (error) {
+    throw new Error("Não foi possível consultar os vendedores.");
+  }
+  return z.array(sellerSchema).parse(data);
+}
+
+// Pedidos de vendedor aguardando aprovação, para o aviso da Visão geral (o diretor lê os perfis).
+export async function pendingSellerCount(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("profiles")
+    .select("user_id", { count: "exact", head: true })
+    .eq("role", "seller")
+    .eq("status", "pending");
+  if (error) {
+    throw new Error("Não foi possível consultar os vendedores aguardando aprovação.");
+  }
+  return count ?? 0;
 }
 
 // Todas as vigências de parceiro (referral_id nulo) de todos os parceiros, para a regra de hoje na lista.

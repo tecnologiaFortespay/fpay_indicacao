@@ -13,6 +13,7 @@ import { Notice } from "@/components/notice";
 import { PartnerForm } from "@/components/partner-form";
 import { RulesCard } from "@/components/rules-card";
 import { PanelBody, SectionCard } from "@/components/section-card";
+import { SellerActions } from "@/components/seller-actions";
 import { requireRole } from "@/lib/auth/session";
 import { lastClosedCompetency } from "@/lib/closings/queries";
 import { formatCnpj } from "@/lib/cnpj";
@@ -24,7 +25,12 @@ import {
   shortCompetencyLabel,
 } from "@/lib/competency";
 import { glossary } from "@/lib/glossary";
-import { partnerKindLabels, partnerStatusLabels, referralStatusLabels } from "@/lib/labels";
+import {
+  partnerKindLabels,
+  partnerStatusLabels,
+  referralStatusLabels,
+  sellerStatusLabels,
+} from "@/lib/labels";
 import { formatCurrency, formatInteger } from "@/lib/money";
 import {
   getPartner,
@@ -32,12 +38,13 @@ import {
   listPartnerReferrals,
   listPartnerRules,
   listReferralRules,
+  listSellers,
   partnerLogin,
   type Partner,
 } from "@/lib/partners/queries";
 import { referralRuleSummary } from "@/lib/referrals/config";
 import { statusChipClass } from "@/lib/referrals/stages";
-import { createPasswordReset, createReferral } from "../actions";
+import { createPasswordReset, createReferral, createSellerPasswordReset } from "../actions";
 
 export const metadata: Metadata = { title: "Parceiro" };
 
@@ -130,13 +137,15 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
   if (partner.status !== "active") {
     return <PendingPartner partner={partner} flash={msg} />;
   }
-  const [rules, referrals, amounts, lockedThrough, login] = await Promise.all([
+  const [rules, referrals, amounts, lockedThrough, login, allSellers] = await Promise.all([
     listPartnerRules(id),
     listPartnerReferrals(id),
     listPartnerMonthAmounts(id),
     lastClosedCompetency(),
     partnerLogin(id),
+    listSellers(),
   ]);
+  const sellers = allSellers.filter((seller) => seller.partner_id === id);
   const today = currentCompetency();
   const ownRules = await listReferralRules(referrals.map((referral) => referral.id));
   return (
@@ -328,11 +337,70 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
             </MutationForm>
           ) : (
             <p className="fp-help">
-              O login nasce quando o parceiro cria a própria conta em “Criar conta de parceiro”, na
-              tela de entrada.
+              O login nasce quando o parceiro cria a própria conta em “Solicitar criação de conta”,
+              na tela de entrada.
             </p>
           )}
         </PanelBody>
+      </SectionCard>
+
+      <SectionCard
+        id="vendedores"
+        title={`Vendedores (${sellers.length})`}
+        subtitle="Contas de vendedor ligadas a este parceiro. O vendedor só vê e registra as próprias indicações, em nome do parceiro, sem nenhum valor."
+        footnote="O vendedor pede a conta em “Solicitar conta de vendedor”, na tela de cadastro, informando o e-mail deste parceiro; você aprova aqui ou em Parceiros. O link de nova senha vale por 24 horas e uma única vez."
+      >
+        {sellers.length === 0 ? (
+          <EmptyState title="Nenhum vendedor">
+            Quando um vendedor pedir a conta com o e-mail deste parceiro, ele aparece aqui para você
+            aprovar.
+          </EmptyState>
+        ) : (
+          <div className="fp-table-wrap">
+            <table className="fp-table">
+              <thead>
+                <tr>
+                  <th>Vendedor</th>
+                  <th>Situação</th>
+                  <th>Pedido em</th>
+                  <th>Acesso</th>
+                  <th>Nova senha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sellers.map((seller) => (
+                  <tr key={seller.user_id}>
+                    <td>
+                      {seller.display_name}
+                      <small>{seller.email}</small>
+                    </td>
+                    <td>{sellerStatusLabels[seller.status]}</td>
+                    <td>{formatDate(seller.created_at)}</td>
+                    <td>
+                      <SellerActions seller={seller} returnTo="partner" />
+                    </td>
+                    <td>
+                      {seller.status === "active" ? (
+                        <MutationForm
+                          action={createSellerPasswordReset}
+                          label="Gerar link"
+                          pendingLabel="Gerando…"
+                          variant="outline"
+                          size="sm"
+                          linkLabel="Link de nova senha"
+                        >
+                          <input type="hidden" name="user_id" value={seller.user_id} />
+                        </MutationForm>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </SectionCard>
 
       <SectionCard

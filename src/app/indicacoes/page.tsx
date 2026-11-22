@@ -32,6 +32,7 @@ import {
   listReferrals,
   referralMonthValues,
   referralStatusCounts,
+  sellerReferrals,
   type ReferralMonth,
   type ReferralRow,
 } from "@/lib/referrals/queries";
@@ -43,6 +44,10 @@ import {
   partnerStatusNames,
   referralExplanation,
   referralStage,
+  sellerExplanation,
+  sellerStageDescriptions,
+  sellerStageTitles,
+  sellerStatusNames,
   stageDescriptions,
   stageGroupTitles,
   stageOrder,
@@ -82,6 +87,155 @@ function sinceLabel(referral: ReferralRow): string {
     : "—";
 }
 
+// Resumo "viraram cliente / em andamento / perdidas" (decisão 20), igual para parceiro e vendedor.
+function SummaryCard({ statuses }: { statuses: string[] }) {
+  const summary = conversionSummary(statuses);
+  return (
+    <SectionCard title="Resumo" subtitle={conversionSentence(summary)}>
+      <div className="fp-stage-counts">
+        <div>
+          <strong className="fp-num">{summary.client}</strong>
+          <span>{conversionLabels.client}</span>
+        </div>
+        <div>
+          <strong className="fp-num">{summary.in_progress}</strong>
+          <span>{conversionLabels.in_progress}</span>
+        </div>
+        <div>
+          <strong className="fp-num">{summary.lost}</strong>
+          <span>{conversionLabels.lost}</span>
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
+// "Nova indicação" do parceiro e do vendedor. Não há campo de vendedor: o banco grava o e-mail da
+// conta que registra (decisão 29).
+function NewReferralForm({ open }: { open: boolean }) {
+  return (
+    <section className="fp-panel" aria-label="Nova indicação">
+      <FormDisclosure
+        label="Nova indicação"
+        open={open}
+        description="Informe a empresa que você está indicando. A Fortes Pay entra em contato com ela; você acompanha aqui cada etapa."
+      >
+        <MutationForm action={createReferral} label="Registrar indicação">
+          <div className="fp-form-grid fp-form-grid-3">
+            <Field
+              label="CNPJ do cliente"
+              name="cnpj"
+              required
+              maxLength={18}
+              placeholder="00.000.000/0000-00"
+            />
+            <Field label="Empresa" name="company_name" required maxLength={240} />
+            <Field
+              label="Vidas estimadas"
+              name="estimated_lives"
+              type="number"
+              min={0}
+              hint="Quantos funcionários a empresa tem, se souber."
+            />
+          </div>
+        </MutationForm>
+      </FormDisclosure>
+    </section>
+  );
+}
+
+// Vendedor (decisão 29): só as indicações que ele registrou, com a etapa e as vidas pagas do mês.
+// Nenhum valor: os dados vêm de seller_referrals(), que não devolve valor por vida, regra nem prazo.
+async function SellerReferrals() {
+  const referrals = await sellerReferrals();
+  const competency = referrals[0]?.competency ? dateToCompetency(referrals[0].competency) : null;
+  const updatedAt = competency ? await lastImportAt(competency) : null;
+  const stamp =
+    competency && updatedAt
+      ? ` Vidas em ${competencyLabel(competency)}: base do BI de ${formatDateTime(updatedAt)}.`
+      : "";
+  const groups = stageOrder.map((stage) => ({
+    stage,
+    items: referrals.filter((referral) => referralStage(referral.status) === stage),
+  }));
+  return (
+    <AppShell title="Minhas indicações">
+      <PageIntro>
+        As empresas que você indicou pela sua unidade. Vale a primeira indicação de cada CNPJ; a
+        Fortes Pay entra em contato com a empresa e você acompanha cada etapa aqui.{stamp}
+      </PageIntro>
+
+      <SummaryCard statuses={referrals.map((referral) => referral.status)} />
+
+      <NewReferralForm open={referrals.length === 0} />
+
+      {groups.map(({ stage, items }) =>
+        stage === "closed" && items.length === 0 ? null : (
+          <SectionCard
+            key={stage}
+            id={stageAnchors[stage]}
+            title={`${sellerStageTitles[stage]} (${items.length})`}
+            subtitle={sellerStageDescriptions[stage]}
+          >
+            {items.length === 0 ? (
+              <EmptyState
+                title={
+                  stage === "earning"
+                    ? "Nenhum cliente pagando ainda"
+                    : "Nenhuma indicação em andamento"
+                }
+              >
+                {stage === "earning"
+                  ? "Quando um cliente que você indicou começar a pagar a Fortes Pay, ele aparece aqui com as vidas do mês."
+                  : "Indicações novas aparecem aqui até o cliente começar a pagar."}
+              </EmptyState>
+            ) : (
+              <div className="fp-table-wrap">
+                <table className="fp-table">
+                  <thead>
+                    <tr>
+                      <th>Empresa</th>
+                      <th>Situação</th>
+                      <th>O que está acontecendo</th>
+                      {stage === "earning" && (
+                        <th className="fp-num">
+                          {competency ? `Vidas em ${competencyLabel(competency)}` : "Vidas pagas"}
+                        </th>
+                      )}
+                      <th>Indicada em</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((referral) => (
+                      <tr key={referral.id}>
+                        <td>
+                          {referral.company_name}
+                          <small className="fp-num">{formatCnpj(referral.cnpj)}</small>
+                        </td>
+                        <td>
+                          <span className={statusChipClass(referral.status)}>
+                            {sellerStatusNames[referral.status as ReferralStatus] ??
+                              referral.status}
+                          </span>
+                        </td>
+                        <td>{sellerExplanation(referral)}</td>
+                        {stage === "earning" && (
+                          <td className="fp-num">{formatInteger(referral.lives)}</td>
+                        )}
+                        <td>{formatDate(referral.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </SectionCard>
+        ),
+      )}
+    </AppShell>
+  );
+}
+
 async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
   const partnerId = user.profile.partner?.id ?? "";
   const competency = await latestCompetency();
@@ -106,8 +260,6 @@ async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
     stage,
     items: referrals.filter((referral) => referralStage(referral.status) === stage),
   }));
-  // Decisão 20: quantas viraram cliente, quantas andam e quantas se perderam, antes de qualquer vida.
-  const summary = conversionSummary(referrals.map((referral) => referral.status));
   return (
     <AppShell title="Minhas indicações">
       <PageIntro>
@@ -115,56 +267,10 @@ async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
         cliente começa a pagar a Fortes Pay.{stamp}
       </PageIntro>
 
-      <SectionCard title="Resumo" subtitle={conversionSentence(summary)}>
-        <div className="fp-stage-counts">
-          <div>
-            <strong className="fp-num">{summary.client}</strong>
-            <span>{conversionLabels.client}</span>
-          </div>
-          <div>
-            <strong className="fp-num">{summary.in_progress}</strong>
-            <span>{conversionLabels.in_progress}</span>
-          </div>
-          <div>
-            <strong className="fp-num">{summary.lost}</strong>
-            <span>{conversionLabels.lost}</span>
-          </div>
-        </div>
-      </SectionCard>
+      {/* Decisão 20: quantas viraram cliente, quantas andam e quantas se perderam, antes de qualquer vida. */}
+      <SummaryCard statuses={referrals.map((referral) => referral.status)} />
 
-      <section className="fp-panel" aria-label="Nova indicação">
-        <FormDisclosure
-          label="Nova indicação"
-          open={referrals.length === 0}
-          description="Informe a empresa que você está indicando. A Fortes Pay entra em contato com ela; você acompanha aqui cada etapa."
-        >
-          <MutationForm action={createReferral} label="Registrar indicação">
-            <div className="fp-form-grid fp-form-grid-3">
-              <Field
-                label="CNPJ do cliente"
-                name="cnpj"
-                required
-                maxLength={18}
-                placeholder="00.000.000/0000-00"
-              />
-              <Field label="Empresa" name="company_name" required maxLength={240} />
-              <Field
-                label="Vidas estimadas"
-                name="estimated_lives"
-                type="number"
-                min={0}
-                hint="Quantos funcionários a empresa tem, se souber."
-              />
-              <Field
-                label="Vendedor"
-                name="seller_name"
-                maxLength={120}
-                hint="Quem da sua equipe fez a indicação, se houver."
-              />
-            </div>
-          </MutationForm>
-        </FormDisclosure>
-      </section>
+      <NewReferralForm open={referrals.length === 0} />
 
       {groups.map(({ stage, items }) =>
         stage === "closed" && items.length === 0 ? null : (
@@ -506,8 +612,11 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
 }
 
 export default async function ReferralsPage({ searchParams }: PageProps) {
-  const user = await requireRole("director", "partner");
+  const user = await requireRole("director", "partner", "seller");
   const params = await searchParams;
+  if (user.profile.role === "seller") {
+    return <SellerReferrals />;
+  }
   if (user.profile.role === "partner") {
     return <PartnerReferrals user={user} />;
   }

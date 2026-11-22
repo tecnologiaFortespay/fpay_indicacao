@@ -246,3 +246,61 @@ valem sobre o que ele diz.
     14/11/2026 (o teste do time foi anterior a essa publicação). Continua na tela nova de criar
     conta e no convite de diretor, com a explicação de que serve para evitar erro de digitação;
     senhas diferentes são recusadas antes de a conta nascer.
+
+## 22/11/2026 — lista da área de negócio (12 ajustes, pedidos pelo Diego)
+
+29. **Conta de vendedor.** Pedido da área: a unidade registrava as indicações e escrevia o nome do
+    vendedor; passa a existir a conta do vendedor, que só vê as próprias indicações e registra
+    indicação nova com o e-mail dele como identificador. Quando a unidade registra, o vendedor é o
+    e-mail da própria unidade. Com isso o campo "Vendedor" saiu do formulário de indicação do
+    parceiro. Escolhas do Diego (22/11/2026): (a) o vendedor **solicita a conta** numa tela pública
+    (`/cadastro/vendedor`, a partir de "Solicitar criação de conta"), informando o seu nome e o
+    **e-mail da unidade** a que pertence, e o **diretor aprova** em Parceiros; (b) o vendedor vê o
+    **andamento** das indicações dele e as **vidas pagas do mês**, e **nenhum valor em reais**
+    (nem valor por vida, nem valor, nem prazo, nem comissão). O vendedor tem um menu só (Minhas
+    indicações) e a Minha conta; não vê painel, fechamentos nem cadastro. Chamadas do Claude:
+    o vendedor é um terceiro perfil em `profiles` (papel `seller`, ligado ao parceiro, com
+    situação pendente/ativo/sem acesso), **sem tabela nova**; ele não lê tabela nenhuma (nenhuma
+    regra de acesso mudou) e a lista dele sai de uma função que devolve só as colunas sem valor;
+    a unidade é achada pelo e-mail com que ela entra no sistema ou, se for de um parceiro só,
+    pelo e-mail de contato; qualquer parceiro ativo pode ter vendedor; uma conta tem um perfil só
+    (o e-mail da unidade não pode ser também vendedor); o diretor também recusa o pedido, remove
+    o acesso, libera de novo e gera o link de nova senha do vendedor, tudo na ficha do parceiro;
+    a Visão geral avisa quantos vendedores aguardam aprovação. **Não mudou:** os formulários do
+    diretor continuam com o campo Vendedor em texto livre e ele continua corrigindo o vendedor
+    na ficha da indicação (decisão 22); as indicações já registradas ficam com o texto que
+    tinham. Comissão de vendedor continua fora (fase 2). Sobrepõe o trecho "login e comissão de
+    vendedor ficam para a fase 2" da decisão 22, só quanto ao login. Migration
+    `20261122000023_seller_profile.sql`; nenhuma tabela nova.
+30. **Reabrir um mês fechado.** Pedido da área, para corrigir erro depois do fechamento. Escolha
+    do Diego (22/11/2026): o lote volta para **Em preparação** com os mesmos valores e ajustes; a
+    decisão pagar/acumular, a resposta do parceiro e o "como foi pago" são **apagados**, porque os
+    valores podem mudar, e o parceiro responde de novo quando o mês fechar outra vez. Só o
+    **último mês fechado** reabre (os meses fecham em ordem, decisão 5): com um mês posterior
+    fechado, reabre-se ele antes. Enquanto está reaberto, o mês sai de Meus fechamentos do
+    parceiro (volta a ser prévia), aceita planilha e vigência de novo, e o mês seguinte não fecha
+    nem recalcula. Chamadas do Claude: quem reabriu e quando ficam nos campos de preparo do lote
+    (não há tabela de histórico); se o mês seguinte já estava em preparação, o saldo anterior dele
+    é atualizado quando o mês reaberto fecha de novo. Sobrepõe a decisão 8 ("mês fechado não
+    muda") só neste caminho explícito. Migration `20261122000022_reopen_and_closed_imports.sql`;
+    nenhuma tabela nova.
+31. **Planilha de mês fechado é recusada.** Pedido da área. Antes o envio era aceito e as linhas
+    ficavam registradas como "Mês já fechado", sem mudar nada; agora o sistema **recusa o
+    arquivo** já em Conferir arquivo, com a orientação de reabrir o lote (decisão 30). Os envios
+    antigos que ficaram como "nada entrou (mês já fechado)" continuam no histórico. Mesma
+    migration da decisão 30.
+32. **Ajustes de tela da mesma lista.** (a) Telefone do cadastro com máscara `(DDD) 9XXXX-XXXX`
+    (aceita também fixo, com 8 dígitos) e gravado nesse formato; (b) o link da tela de entrada
+    passou de "Criar conta de parceiro" para **"Solicitar criação de conta"** (a tela do cadastro
+    mantém o título); (c) "Vidas pagas até o dia N" do painel do parceiro segue a regra **D-1**
+    (até ontem; no dia 1 mostra "ainda sem dia fechado"); (d) o **seletor de mês** troca o mês
+    assim que é escolhido, sem o botão "Ver mês", nas quatro telas que o têm; (e) **total** de
+    vidas e de valor na tabela Minhas indicações do painel e em "Ver clientes" do fechamento;
+    (f) no fechamento, os **checkboxes de quem recebe** ficam ao lado do nome do parceiro, na
+    tabela, **já marcados**, com um no cabeçalho para marcar/desmarcar todos (antes ficavam num
+    quadro à parte, desmarcados); (g) no painel do parceiro, o **saldo acumulado** e o **saldo
+    total** (previsto + acumulado) ficam dentro do cartão Valor previsto, e a seção "Meses
+    fechados (valor oficial)" saiu. Chamadas do Claude: o aviso "Confira o valor de <mês> e
+    responda em Meus fechamentos" foi mantido no painel, porque é o que chama o parceiro a
+    responder; o saldo mostrado é o do último mês fechado antes do mês escolhido, a mesma conta
+    do "saldo anterior" do fechamento.

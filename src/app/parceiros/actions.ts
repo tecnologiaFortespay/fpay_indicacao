@@ -8,7 +8,7 @@ import { passwordResetLink } from "@/lib/auth/password-reset-link";
 import { actionUser, deniedState } from "@/lib/auth/session";
 import { normalizeCnpj } from "@/lib/cnpj";
 import { withFlash } from "@/lib/flash";
-import { partnerLogin } from "@/lib/partners/queries";
+import { listSellers, partnerLogin } from "@/lib/partners/queries";
 import type { FormState } from "@/lib/auth/validation";
 import { competencyToDate, isCompetency } from "@/lib/competency";
 import { parseMoneyInput } from "@/lib/money";
@@ -118,8 +118,10 @@ export async function deletePartnerRule(_previous: FormState, form: FormData): P
   redirect(withFlash(`/parceiros/${partnerId}`, "vigencia_removida"));
 }
 
+// O parceiro e o vendedor registram em nome da própria unidade (o banco ignora partner_id e grava
+// o e-mail da conta como vendedor da indicação, decisão 29); o diretor escolhe o parceiro.
 export async function createReferral(_previous: FormState, form: FormData): Promise<FormState> {
-  const user = await actionUser("director", "partner");
+  const user = await actionUser("director", "partner", "seller");
   if (!user) {
     return deniedState();
   }
@@ -169,6 +171,65 @@ export async function createPasswordReset(
     return { error: "Este parceiro ainda não tem login." };
   }
   return passwordResetLink(login.user_id, "parceiro");
+}
+
+const sellerFlash = { active: "vendedor_aprovado", rejected: "vendedor_sem_acesso" } as const;
+
+// Vendedor (decisão 29): o diretor aprova o pedido, recusa ou remove o acesso, e pode liberar de
+// novo. A página muda de lugar a linha do vendedor, então a ação redireciona com o aviso.
+export async function setSellerStatus(_previous: FormState, form: FormData): Promise<FormState> {
+  const user = await actionUser("director");
+  if (!user) {
+    return deniedState();
+  }
+  const target = formValue(form, "user_id");
+  if (!z.uuid().safeParse(target).success) {
+    return { error: "Vendedor inválido." };
+  }
+  const status = formValue(form, "status");
+  if (status !== "active" && status !== "rejected") {
+    return { error: "Informe se libera ou retira o acesso do vendedor." };
+  }
+  const supabase = await createClient();
+  const result = await supabase.rpc("set_seller_status", { target, new_status: status });
+  if (result.error) {
+    return { error: databaseError(result.error) };
+  }
+  // Volta para a tela de onde veio: a lista de Parceiros ou a ficha da unidade.
+  const partnerId = formValue(form, "partner_id");
+  const hasPartner = z.uuid().safeParse(partnerId).success;
+  if (hasPartner) {
+    revalidatePartner(partnerId);
+  } else {
+    revalidatePath("/parceiros");
+    revalidatePath("/inicio");
+  }
+  const back =
+    hasPartner && formValue(form, "return_to") === "partner"
+      ? `/parceiros/${partnerId}`
+      : "/parceiros";
+  redirect(withFlash(back, sellerFlash[status]));
+}
+
+// Link de nova senha para um vendedor: mesmo link do parceiro, gerado pelo diretor na ficha da
+// unidade (reserva do "Esqueci minha senha").
+export async function createSellerPasswordReset(
+  _previous: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const user = await actionUser("director");
+  if (!user) {
+    return deniedState();
+  }
+  const target = formValue(form, "user_id");
+  if (!z.uuid().safeParse(target).success) {
+    return { error: "Vendedor inválido." };
+  }
+  const sellers = await listSellers();
+  if (!sellers.some((seller) => seller.user_id === target)) {
+    return { error: "Vendedor inválido." };
+  }
+  return passwordResetLink(target, "vendedor");
 }
 
 export async function approvePartner(_previous: FormState, form: FormData): Promise<FormState> {
