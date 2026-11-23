@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
 import { TextAreaField } from "@/components/fields";
+import { InfoTip } from "@/components/info-tip";
 import { MutationForm } from "@/components/mutation-form";
 import { Notice } from "@/components/notice";
 import { PageIntro } from "@/components/page-intro";
 import { SectionCard } from "@/components/section-card";
 import { requireRole } from "@/lib/auth/session";
 import { competencyLabel, formatDate, formatDateTime } from "@/lib/competency";
+import { help } from "@/lib/help";
 import { partnerDecisionLabels } from "@/lib/labels";
 import { formatCurrency, formatInteger } from "@/lib/money";
 import { partnerClosingItems, pendingBalanceOf } from "@/lib/partner-panel/queries";
@@ -40,33 +42,52 @@ export default async function PartnerClosingsPage({ searchParams }: PageProps) {
           <SectionCard
             key={item.id}
             title={competencyLabel(item.competency)}
+            info={help.parceiro.fechamentos.mes}
             subtitle={item.closed_at ? `Fechado em ${formatDate(item.closed_at)}` : undefined}
           >
             <dl className="fp-balance-composition">
               <div>
-                <dt>Vidas pagas no mês</dt>
+                <dt>
+                  Vidas pagas no mês
+                  <InfoTip text={help.parceiro.fechamentos.vidas} />
+                </dt>
                 <dd className="fp-num">{formatInteger(item.lives)}</dd>
               </div>
               <div>
-                <dt>Valor do mês</dt>
+                <dt>
+                  Valor do mês
+                  <InfoTip text={help.parceiro.fechamentos.valorDoMes} />
+                </dt>
                 <dd className="fp-num">{formatCurrency(item.month_amount)}</dd>
               </div>
               {Number(item.adjustment) !== 0 && (
                 <div>
-                  <dt>Ajuste{item.adjustment_note ? ` · ${item.adjustment_note}` : ""}</dt>
+                  <dt>
+                    Ajuste{item.adjustment_note ? ` · ${item.adjustment_note}` : ""}
+                    <InfoTip text={help.parceiro.fechamentos.ajuste} />
+                  </dt>
                   <dd className="fp-num">{formatCurrency(item.adjustment)}</dd>
                 </div>
               )}
               <div>
-                <dt>Saldo que vinha de antes</dt>
+                <dt>
+                  Saldo que vinha de antes
+                  <InfoTip text={help.parceiro.fechamentos.saldoAnterior} />
+                </dt>
                 <dd className="fp-num">{formatCurrency(item.previous_balance)}</dd>
               </div>
               <div className="fp-balance-result">
-                <dt>Total</dt>
+                <dt>
+                  Total
+                  <InfoTip text={help.parceiro.fechamentos.total} />
+                </dt>
                 <dd className="fp-num">{formatCurrency(item.total)}</dd>
               </div>
               <div>
-                <dt>Decisão da Fortes Pay</dt>
+                <dt>
+                  Decisão da Fortes Pay
+                  <InfoTip text={help.parceiro.fechamentos.decisao} />
+                </dt>
                 <dd>
                   {item.decision
                     ? partnerDecisionLabels[item.decision as keyof typeof partnerDecisionLabels]
@@ -75,7 +96,10 @@ export default async function PartnerClosingsPage({ searchParams }: PageProps) {
               </div>
               {item.decision === "pay" && (
                 <div>
-                  <dt>Como foi pago</dt>
+                  <dt>
+                    Como foi pago
+                    <InfoTip text={help.parceiro.fechamentos.comoFoiPago} />
+                  </dt>
                   <dd>{item.payment_note ?? "a Fortes Pay ainda não informou"}</dd>
                 </div>
               )}
@@ -95,7 +119,10 @@ export default async function PartnerClosingsPage({ searchParams }: PageProps) {
               </div>
             ) : (
               <div className="fp-form-section">
-                <h3>Este valor confere?</h3>
+                <div className="fp-title-row">
+                  <h3>Este valor confere?</h3>
+                  <InfoTip text={help.parceiro.fechamentos.confere} />
+                </div>
                 <p className="fp-help">
                   Confirme se está certo. Se algo não confere, conte o quê: a Fortes Pay vê a sua
                   resposta no fechamento. A resposta não pode ser mudada depois.

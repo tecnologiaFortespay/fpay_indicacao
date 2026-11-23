@@ -5,6 +5,7 @@ import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Field, SelectField } from "@/components/fields";
 import { FormDisclosure } from "@/components/form-disclosure";
+import { InfoTip } from "@/components/info-tip";
 import { MutationForm } from "@/components/mutation-form";
 import { PageIntro } from "@/components/page-intro";
 import { SectionCard } from "@/components/section-card";
@@ -22,6 +23,7 @@ import {
 } from "@/lib/competency";
 import { latestCompetency } from "@/lib/dashboard/queries";
 import { glossary } from "@/lib/glossary";
+import { help } from "@/lib/help";
 import { referralStatusLabels, type ReferralStatus } from "@/lib/labels";
 import { formatInteger } from "@/lib/money";
 import { lastImportAt } from "@/lib/partner-panel/queries";
@@ -81,6 +83,19 @@ const stageAnchors: Record<Stage, string> = {
   closed: "encerradas",
 };
 
+// "i" de ajuda de cada etapa (decisão 33). O do vendedor não fala de valores.
+const partnerStageHelp: Record<Stage, string> = {
+  earning: help.parceiro.indicacoes.rendendo,
+  not_earning: help.parceiro.indicacoes.aindaNaoRende,
+  closed: help.parceiro.indicacoes.encerradas,
+};
+
+const sellerStageHelp: Record<Stage, string> = {
+  earning: help.vendedor.indicacoes.pagando,
+  not_earning: help.vendedor.indicacoes.andamento,
+  closed: help.vendedor.indicacoes.encerradas,
+};
+
 function sinceLabel(referral: ReferralRow): string {
   return referral.activated_competency
     ? shortCompetencyLabel(dateToCompetency(referral.activated_competency))
@@ -91,7 +106,11 @@ function sinceLabel(referral: ReferralRow): string {
 function SummaryCard({ statuses }: { statuses: string[] }) {
   const summary = conversionSummary(statuses);
   return (
-    <SectionCard title="Resumo" subtitle={conversionSentence(summary)}>
+    <SectionCard
+      title="Resumo"
+      subtitle={conversionSentence(summary)}
+      info={help.todos.indicacoes.resumo}
+    >
       <div className="fp-stage-counts">
         <div>
           <strong className="fp-num">{summary.client}</strong>
@@ -176,6 +195,7 @@ async function SellerReferrals() {
             id={stageAnchors[stage]}
             title={`${sellerStageTitles[stage]} (${items.length})`}
             subtitle={sellerStageDescriptions[stage]}
+            info={sellerStageHelp[stage]}
           >
             {items.length === 0 ? (
               <EmptyState
@@ -195,11 +215,18 @@ async function SellerReferrals() {
                   <thead>
                     <tr>
                       <th>Empresa</th>
-                      <th>Situação</th>
-                      <th>O que está acontecendo</th>
+                      <th>
+                        Situação
+                        <InfoTip text={help.vendedor.indicacoes.situacao} />
+                      </th>
+                      <th>
+                        O que está acontecendo
+                        <InfoTip text={help.vendedor.indicacoes.acontecendo} />
+                      </th>
                       {stage === "earning" && (
                         <th className="fp-num">
                           {competency ? `Vidas em ${competencyLabel(competency)}` : "Vidas pagas"}
+                          <InfoTip text={help.vendedor.indicacoes.vidas} />
                         </th>
                       )}
                       <th>Indicada em</th>
@@ -279,6 +306,7 @@ async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
             id={stageAnchors[stage]}
             title={`${stageGroupTitles[stage]} (${items.length})`}
             subtitle={stageDescriptions[stage]}
+            info={partnerStageHelp[stage]}
           >
             {items.length === 0 ? (
               <EmptyState
@@ -298,11 +326,18 @@ async function PartnerReferrals({ user }: { user: AuthorizedUser }) {
                   <thead>
                     <tr>
                       <th>Empresa</th>
-                      <th>Situação</th>
-                      <th>O que está acontecendo</th>
+                      <th>
+                        Situação
+                        <InfoTip text={help.parceiro.indicacoes.situacao} />
+                      </th>
+                      <th>
+                        O que está acontecendo
+                        <InfoTip text={help.parceiro.indicacoes.acontecendo} />
+                      </th>
                       {stage === "earning" && (
                         <th className="fp-num">
                           {competency ? `Vidas em ${competencyLabel(competency)}` : "Vidas pagas"}
+                          <InfoTip text={help.parceiro.indicacoes.vidas} />
                         </th>
                       )}
                       <th>Indicada em</th>
@@ -439,6 +474,7 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
 
       <SectionCard
         title="Indicações por etapa"
+        info={help.diretor.indicacoes.etapas}
         subtitle="Clique numa situação para filtrar a lista."
       >
         <div className="fp-stage-groups">
@@ -467,6 +503,7 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
 
       <SectionCard
         title={`Lista (${referrals.length})`}
+        info={help.diretor.indicacoes.lista}
         subtitle={
           filtered
             ? "Filtrada. Limpe a busca e use Todas/Todos para ver tudo."
@@ -513,12 +550,27 @@ async function DirectorReferrals({ params }: { params: SearchParams }) {
                 <tr>
                   <th>Empresa</th>
                   <th>Parceiro</th>
-                  <th>Situação</th>
-                  <th>Rende desde</th>
-                  <th>Valor e prazo em {shortCompetencyLabel(competency)}</th>
-                  <th className="fp-num">Vidas em {shortCompetencyLabel(competency)}</th>
+                  <th>
+                    Situação
+                    <InfoTip text={help.diretor.indicacoes.situacao} />
+                  </th>
+                  <th>
+                    Rende desde
+                    <InfoTip text={help.diretor.indicacoes.rendeDesde} />
+                  </th>
+                  <th>
+                    Valor e prazo em {shortCompetencyLabel(competency)}
+                    <InfoTip text={help.diretor.indicacoes.valorEPrazoNoMes} />
+                  </th>
+                  <th className="fp-num">
+                    Vidas em {shortCompetencyLabel(competency)}
+                    <InfoTip text={help.diretor.indicacoes.vidasNoMes} />
+                  </th>
                   <th>Indicada em</th>
-                  <th>Mudar situação</th>
+                  <th>
+                    Mudar situação
+                    <InfoTip text={help.diretor.indicacoes.mudarSituacao} />
+                  </th>
                 </tr>
               </thead>
               <tbody>

@@ -6,13 +6,24 @@ import type { PartnerRule } from "@/lib/partners/queries";
 import { currentRule, ruleSentence } from "@/lib/referrals/config";
 import { Field } from "./fields";
 import { FormDisclosure } from "./form-disclosure";
+import { InfoTip } from "./info-tip";
 import { MutationForm } from "./mutation-form";
 import { PanelBody, SectionCard } from "./section-card";
+
+// Textos do "i" de ajuda do cartão e das colunas da tabela de vigências (src/lib/help.ts).
+export type RulesHelp = {
+  card: string;
+  validFrom: string;
+  valuePerLife: string;
+  term: string;
+  editable: string;
+};
 
 type RulesCardProps = {
   title: string;
   subtitle: string;
   footnote: string;
+  help: RulesHelp;
   // Vigências da mais nova para a mais antiga.
   rules: PartnerRule[];
   partnerId: string;
@@ -124,6 +135,7 @@ export function RulesCard({
   title,
   subtitle,
   footnote,
+  help,
   rules,
   partnerId,
   referralId,
@@ -137,7 +149,7 @@ export function RulesCard({
     (lockedThrough === null || dateToCompetency(latest.valid_from) > lockedThrough);
   const rule = currentRule(rules, today);
   return (
-    <SectionCard title={title} subtitle={subtitle} footnote={footnote}>
+    <SectionCard title={title} subtitle={subtitle} footnote={footnote} info={help.card}>
       <PanelBody>
         <p className="fp-sentence">
           {rule ? (
@@ -154,10 +166,22 @@ export function RulesCard({
           <table className="fp-table">
             <thead>
               <tr>
-                <th>Vale a partir de</th>
-                <th className="fp-num">Valor por vida</th>
-                <th>Prazo</th>
-                <th>Pode mudar?</th>
+                <th>
+                  Vale a partir de
+                  <InfoTip text={help.validFrom} />
+                </th>
+                <th className="fp-num">
+                  Valor por vida
+                  <InfoTip text={help.valuePerLife} />
+                </th>
+                <th>
+                  Prazo
+                  <InfoTip text={help.term} />
+                </th>
+                <th>
+                  Pode mudar?
+                  <InfoTip text={help.editable} />
+                </th>
               </tr>
             </thead>
             <tbody>

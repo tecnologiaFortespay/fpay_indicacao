@@ -3,7 +3,8 @@
 Roteiro escrito pelo Diego em 28/10/2026; é a definição do MVP (`docs/decisoes.md`). Os blocos 1 a 9
 são o texto dele, com os ajustes das decisões seguintes; os blocos 10 a 14 cobrem as decisões de 28/10
 a 04/11/2026; o bloco 15 e os passos 2.1 a 2.5, 12.7, 12.8 e 14.6 seguem as decisões 25 a 27, de
-16/11/2026. O teste `e2e/roteiro.spec.ts` executa os passos com planilhas sintéticas no formato do BI.
+16/11/2026; os blocos 16 e 17 seguem as decisões 29 a 32, de 22/11/2026, e o bloco 18 a decisão 33,
+de 23/11/2026. O teste `e2e/roteiro.spec.ts` executa os passos com planilhas sintéticas no formato do BI.
 
 Formato: ação → resultado esperado. Execute em ordem; cada bloco usa o que o anterior criou.
 
@@ -207,6 +208,15 @@ Para corrigir erro depois do fechamento. **Faça logo depois do passo 7.2**, com
 17.1. Diretor → Fechamento → [M-2] → cartão **Reabrir o lote de [M-2]**: "Só o último mês fechado pode ser reaberto", com o atalho para [M-1], e sem botão. Em [M-1] → **Reabrir lote** sem marcar a confirmação → "Confirme que entendeu o que será apagado…"; o mês continua Fechado.
 17.2. Marcar "Entendi o que será apagado…" → **Reabrir lote** → "Lote reaberto…"; título "[M-1] · Em preparação"; valores, ajustes e saldo anterior iguais; a decisão sumiu e todos voltam marcados para pagamento. Para Teresina, [M-1] sai de Meus fechamentos ([M-2] continua) e o painel de [M-1] volta a ser **prévia**.
 17.3. Diretor → Importações → planilha de [M-1] de novo → aceita (o mês está aberto). Fechamento → [M-1] → **Recalcular** → conferir → **Fechar lote** → "[M-1] · Fechado", Contador "Pagar" com o total; Teresina volta a ver [M-1] como valor oficial e responde de novo, se já tinha respondido.
+
+## Bloco 18 — Ajuda nas telas (o "i")
+
+Ao lado do título de cada seção, de cada número de resumo e das colunas que são conceito há um **i**
+num círculo. **Faça com os três perfis conectados**, antes do passo 16.8 (enquanto o vendedor tem acesso).
+
+18.1. Diretor → Fechamento do mês → [M-1]: passar o mouse no **i** da coluna **Saldo anterior** → abre um balão explicando o que é o saldo anterior, inteiro na tela (não cortado pela tabela). **Esc** fecha. Com o teclado, parar no **i** do título **Fechamentos registrados** e apertar **Enter** → o balão abre; **Esc** fecha. Os títulos e os nomes das colunas continuam iguais.
+18.2. Teresina → Meu painel: o **i** do cartão **Valor previsto** explica a prévia, o saldo acumulado e o saldo total. No celular, tocar no **i** abre e tocar fora fecha.
+18.3. Vendedor → Minhas indicações: o **i** de **Clientes pagando** e o da coluna **Vidas em [M0]** explicam a etapa e a contagem, sem falar de valor, prazo ou comissão.
 
 ## Como rodar à mão (ambiente local)
 

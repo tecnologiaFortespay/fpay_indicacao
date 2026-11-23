@@ -9,6 +9,7 @@ import {
   shortCompetencyLabel,
 } from "@/lib/competency";
 import { formatCurrency, formatInteger } from "@/lib/money";
+import { help } from "@/lib/help";
 import { listAllRules, listReferralRules, type PartnerRule } from "@/lib/partners/queries";
 import { ownRuleOf } from "@/lib/referrals/config";
 import {
@@ -19,6 +20,7 @@ import {
 } from "@/lib/referrals/queries";
 import { ruleChoice, ruleChoiceLabel, type RuleChoice } from "@/lib/referrals/rule-choice";
 import { EmptyState } from "./empty-state";
+import { InfoTip } from "./info-tip";
 import { RuleChoiceForm } from "./rule-choice-form";
 import { SectionCard } from "./section-card";
 
@@ -120,6 +122,7 @@ export async function MonthCompanies({
   return (
     <SectionCard
       title={`Empresas com vidas em ${month} (${rows.length})`}
+      info={help.diretor.importacoes.empresasDoMes}
       subtitle="Cada empresa indicada com vidas neste mês e a vigência do parceiro aplicada a ela. Empresa nova que deve seguir outra vigência do parceiro (ex.: pagou no começo do mês, mas vale a regra do mês anterior): escolha em “Vigência aplicada” e clique em Aplicar."
       footnote={
         monthClosed
@@ -139,10 +142,22 @@ export async function MonthCompanies({
                 <th>Empresa</th>
                 <th>Parceiro</th>
                 <th>Indicada em</th>
-                <th>1º pagamento (BI)</th>
-                <th className="fp-num">Vidas</th>
-                <th>Vigência aplicada</th>
-                <th className="fp-num">Valor do mês</th>
+                <th>
+                  1º pagamento (BI)
+                  <InfoTip text={help.diretor.importacoes.primeiroPagamento} />
+                </th>
+                <th className="fp-num">
+                  Vidas
+                  <InfoTip text={help.diretor.importacoes.vidas} />
+                </th>
+                <th>
+                  Vigência aplicada
+                  <InfoTip text={help.diretor.importacoes.vigenciaAplicada} />
+                </th>
+                <th className="fp-num">
+                  Valor do mês
+                  <InfoTip text={help.diretor.importacoes.valorDoMesDaEmpresa} />
+                </th>
               </tr>
             </thead>
             <tbody>

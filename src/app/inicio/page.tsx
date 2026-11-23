@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
+import { InfoTip } from "@/components/info-tip";
 import { Notice } from "@/components/notice";
 import { PageIntro } from "@/components/page-intro";
 import { PartnerPanel } from "@/components/partner-panel";
@@ -18,6 +19,7 @@ import {
 } from "@/lib/competency";
 import { directorOverview, latestCompetency } from "@/lib/dashboard/queries";
 import { latestImport } from "@/lib/imports/queries";
+import { help } from "@/lib/help";
 import { partnerKindLabels, referralStatusLabels, type ReferralStatus } from "@/lib/labels";
 import { pendingPartnerCount, pendingSellerCount } from "@/lib/partners/queries";
 import { referralStatusCounts } from "@/lib/referrals/queries";
@@ -112,7 +114,10 @@ export default async function HomePage({ searchParams }: PageProps) {
       <div className="fp-kpi-grid">
         <article className="fp-kpi fp-kpi-hero">
           <div className="fp-kpi-heading">
-            <h2>Valor do mês</h2>
+            <div className="fp-title-row">
+              <h2>Valor do mês</h2>
+              <InfoTip text={help.diretor.visaoGeral.valorDoMes} />
+            </div>
             <span>{monthLabel}</span>
           </div>
           <p className="fp-kpi-value fp-num">{formatCurrency(overview.total_amount)}</p>
@@ -122,7 +127,10 @@ export default async function HomePage({ searchParams }: PageProps) {
         </article>
         <article className="fp-kpi">
           <div className="fp-kpi-heading">
-            <h2>Vidas pagas</h2>
+            <div className="fp-title-row">
+              <h2>Vidas pagas</h2>
+              <InfoTip text={help.diretor.visaoGeral.vidasPagas} />
+            </div>
             <span>{monthLabel}</span>
           </div>
           <p className="fp-kpi-value fp-num">{formatInteger(overview.total_lives)}</p>
@@ -130,7 +138,10 @@ export default async function HomePage({ searchParams }: PageProps) {
         </article>
         <article className="fp-kpi">
           <div className="fp-kpi-heading">
-            <h2>Saldo acumulado a pagar</h2>
+            <div className="fp-title-row">
+              <h2>Saldo acumulado a pagar</h2>
+              <InfoTip text={help.diretor.visaoGeral.saldoAcumulado} />
+            </div>
             <span>
               {pending.competency
                 ? `depois de ${competencyLabel(dateToCompetency(pending.competency))}`
@@ -145,7 +156,10 @@ export default async function HomePage({ searchParams }: PageProps) {
         </article>
         <article className="fp-kpi">
           <div className="fp-kpi-heading">
-            <h2>Parceiros com vidas</h2>
+            <div className="fp-title-row">
+              <h2>Parceiros com vidas</h2>
+              <InfoTip text={help.diretor.visaoGeral.parceirosComVidas} />
+            </div>
             <span>de {overview.rows.length} ativo(s)</span>
           </div>
           <p className="fp-kpi-value fp-num">{formatInteger(overview.partners_with_lives)}</p>
@@ -159,6 +173,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
       <SectionCard
         title={`Parceiros · ${monthLabel}`}
+        info={help.diretor.visaoGeral.parceiros}
         subtitle="Clique num parceiro para ver a regra, as indicações e os meses."
         action={<Link href="/parceiros">Todos os parceiros →</Link>}
         footnote="Conta só as indicações que rendem (Ativas) e respeita o prazo de cada uma. Valor por vida é a regra do parceiro para indicações novas no mês; cada indicação entra no valor do mês com a regra dela (a de quando foi feita, ou a própria)."
@@ -174,11 +189,26 @@ export default async function HomePage({ searchParams }: PageProps) {
               <thead>
                 <tr>
                   <th>Parceiro</th>
-                  <th>Tipo</th>
-                  <th className="fp-num">Vidas pagas</th>
-                  <th className="fp-num">Valor por vida</th>
-                  <th className="fp-num">Valor do mês</th>
-                  <th className="fp-num">Saldo acumulado</th>
+                  <th>
+                    Tipo
+                    <InfoTip text={help.diretor.visaoGeral.tipo} />
+                  </th>
+                  <th className="fp-num">
+                    Vidas pagas
+                    <InfoTip text={help.diretor.visaoGeral.colunaVidas} />
+                  </th>
+                  <th className="fp-num">
+                    Valor por vida
+                    <InfoTip text={help.diretor.visaoGeral.colunaValorPorVida} />
+                  </th>
+                  <th className="fp-num">
+                    Valor do mês
+                    <InfoTip text={help.diretor.visaoGeral.colunaValorDoMes} />
+                  </th>
+                  <th className="fp-num">
+                    Saldo acumulado
+                    <InfoTip text={help.diretor.visaoGeral.colunaSaldo} />
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -221,6 +251,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
       <SectionCard
         title="Indicações por etapa"
+        info={help.diretor.visaoGeral.etapas}
         subtitle="Só a etapa Rendendo comissão gera valor. Clique numa situação para ver a lista."
         action={<Link href="/indicacoes">Ver indicações →</Link>}
       >

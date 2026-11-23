@@ -7,6 +7,7 @@ import { ApprovalForm, RejectionForm } from "@/components/approval-form";
 import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/fields";
 import { FormDisclosure } from "@/components/form-disclosure";
+import { InfoTip } from "@/components/info-tip";
 import { KeyValueStrip } from "@/components/key-value-strip";
 import { MutationForm } from "@/components/mutation-form";
 import { Notice } from "@/components/notice";
@@ -25,6 +26,7 @@ import {
   shortCompetencyLabel,
 } from "@/lib/competency";
 import { glossary } from "@/lib/glossary";
+import { help } from "@/lib/help";
 import {
   partnerKindLabels,
   partnerStatusLabels,
@@ -103,6 +105,7 @@ function PendingPartner({ partner, flash }: { partner: Partner; flash?: string }
       )}
       <SectionCard
         title={rejected ? "Reconsiderar: aprovar o cadastro" : "Aprovar o cadastro"}
+        info={help.diretor.parceiro.aprovar}
         subtitle="Para liberar o acesso, escolha o tipo e defina quanto este parceiro recebe por vida paga. Depois dá para criar novas vigências e dar valor próprio a uma indicação."
       >
         <PanelBody>
@@ -112,6 +115,7 @@ function PendingPartner({ partner, flash }: { partner: Partner; flash?: string }
       {!rejected && (
         <SectionCard
           title="Ou recusar o cadastro"
+          info={help.diretor.parceiro.recusar}
           subtitle="O parceiro continua sem acesso e vê o motivo que você escrever."
         >
           <PanelBody>
@@ -155,6 +159,7 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
 
       <RulesCard
         title="Regra de remuneração"
+        help={help.diretor.parceiro.regra}
         subtitle="Quanto este parceiro recebe por vida paga, para as indicações feitas a partir de cada vigência. Indicações com valor próprio usam o delas."
         footnote="Uma vigência nova vale do mês dela em diante, para quem for indicado a partir dele; indicações anteriores seguem a regra de quando foram feitas. Só a mais recente pode ser editada, e só enquanto nenhum mês fechado a usa."
         rules={rules}
@@ -166,6 +171,7 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
 
       <SectionCard
         title={`Indicações deste parceiro (${referrals.length})`}
+        info={help.diretor.parceiro.indicacoes}
         subtitle="Só a indicação Ativa rende comissão. Abra uma indicação para dar a ela valor ou prazo próprios."
       >
         {referrals.length === 0 ? (
@@ -178,10 +184,22 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
               <thead>
                 <tr>
                   <th>Empresa</th>
-                  <th>Situação</th>
-                  <th>Rende desde</th>
-                  <th>Valor e prazo hoje</th>
-                  <th className="fp-num">Vidas estimadas</th>
+                  <th>
+                    Situação
+                    <InfoTip text={help.diretor.parceiro.situacao} />
+                  </th>
+                  <th>
+                    Rende desde
+                    <InfoTip text={help.diretor.parceiro.rendeDesde} />
+                  </th>
+                  <th>
+                    Valor e prazo hoje
+                    <InfoTip text={help.diretor.parceiro.valorEPrazoHoje} />
+                  </th>
+                  <th className="fp-num">
+                    Vidas estimadas
+                    <InfoTip text={help.diretor.parceiro.vidasEstimadas} />
+                  </th>
                   <th>Indicada em</th>
                 </tr>
               </thead>
@@ -273,6 +291,7 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
 
       <SectionCard
         title="Vidas e valores por mês"
+        info={help.diretor.parceiro.vidasEValores}
         subtitle="Últimos 12 meses com vidas nas planilhas do BI."
         footnote="O valor soma cada indicação com o valor por vida dela: a vigência própria, quando houver, ou a regra do parceiro de quando a indicação foi feita. Meses fechados: o valor oficial está em Fechamento do mês."
       >
@@ -286,9 +305,18 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
               <thead>
                 <tr>
                   <th>Mês</th>
-                  <th className="fp-num">Vidas pagas</th>
-                  <th className="fp-num">Valor por vida (regra)</th>
-                  <th className="fp-num">Valor</th>
+                  <th className="fp-num">
+                    Vidas pagas
+                    <InfoTip text={help.diretor.parceiro.vidasPagas} />
+                  </th>
+                  <th className="fp-num">
+                    Valor por vida (regra)
+                    <InfoTip text={help.diretor.parceiro.valorPorVidaDaRegra} />
+                  </th>
+                  <th className="fp-num">
+                    Valor
+                    <InfoTip text={help.diretor.parceiro.valor} />
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -312,6 +340,7 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
 
       <SectionCard
         title="Acesso ao sistema"
+        info={help.diretor.parceiro.acesso}
         subtitle={
           login
             ? `Login do parceiro: ${partner.contact_email ?? "e-mail do cadastro"}.`
@@ -347,6 +376,7 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
       <SectionCard
         id="vendedores"
         title={`Vendedores (${sellers.length})`}
+        info={help.diretor.parceiro.vendedores}
         subtitle="Contas de vendedor ligadas a este parceiro. O vendedor só vê e registra as próprias indicações, em nome do parceiro, sem nenhum valor."
         footnote="O vendedor pede a conta em “Solicitar conta de vendedor”, na tela de cadastro, informando o e-mail deste parceiro; você aprova aqui ou em Parceiros. O link de nova senha vale por 24 horas e uma única vez."
       >
@@ -361,10 +391,19 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
               <thead>
                 <tr>
                   <th>Vendedor</th>
-                  <th>Situação</th>
+                  <th>
+                    Situação
+                    <InfoTip text={help.diretor.parceiro.situacaoDoVendedor} />
+                  </th>
                   <th>Pedido em</th>
-                  <th>Acesso</th>
-                  <th>Nova senha</th>
+                  <th>
+                    Acesso
+                    <InfoTip text={help.diretor.parceiro.acessoDoVendedor} />
+                  </th>
+                  <th>
+                    Nova senha
+                    <InfoTip text={help.diretor.parceiro.novaSenha} />
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -405,6 +444,7 @@ export default async function PartnerDetailPage({ params, searchParams }: PagePr
 
       <SectionCard
         title="Dados do cadastro"
+        info={help.diretor.parceiro.dados}
         subtitle="Preenchidos pelo parceiro; só o diretor altera."
       >
         <FormDisclosure label="Editar dados do cadastro">

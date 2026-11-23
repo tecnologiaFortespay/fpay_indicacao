@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
+import { InfoTip } from "@/components/info-tip";
 import { Field, SelectField } from "@/components/fields";
 import { KeyValueStrip } from "@/components/key-value-strip";
 import { MutationForm } from "@/components/mutation-form";
@@ -14,6 +15,7 @@ import { PanelBody, SectionCard } from "@/components/section-card";
 import { requireRole } from "@/lib/auth/session";
 import { lastClosedCompetency } from "@/lib/closings/queries";
 import { formatCnpj } from "@/lib/cnpj";
+import { help } from "@/lib/help";
 import {
   competencyLabel,
   currentCompetency,
@@ -110,11 +112,17 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
             referral.activated_competency
               ? shortCompetencyLabel(dateToCompetency(referral.activated_competency))
               : "—",
+            help.diretor.indicacao.primeiroMesPago,
           ],
-          ["Prazo", termLabel(effectiveTerm, referral.activated_competency)],
+          [
+            "Prazo",
+            termLabel(effectiveTerm, referral.activated_competency),
+            help.diretor.indicacao.prazo,
+          ],
           [
             "Vidas estimadas",
             referral.estimated_lives === null ? "—" : formatInteger(referral.estimated_lives),
+            help.diretor.indicacao.vidasEstimadas,
           ],
           ["Vendedor", referral.seller_name ?? "—"],
         ]}
@@ -129,6 +137,7 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
 
       <SectionCard
         title="Vigência do parceiro aplicada"
+        info={help.diretor.indicacao.vigenciaAplicada}
         subtitle="Qual vigência do parceiro vale para esta indicação. Por padrão é a de quando a indicação foi feita (ou a do primeiro pagamento, se a empresa já pagava antes). Para um caso pontual, escolha outra: por exemplo, a empresa pagou no começo do mês, mas deve seguir a regra do mês anterior."
       >
         <PanelBody>
@@ -163,6 +172,7 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
 
       <RulesCard
         title="Valor e prazo desta indicação"
+        help={help.diretor.indicacao.regra}
         subtitle="Vigências próprias desta indicação, combinadas com a Fortes Pay. Valor em branco usa o do parceiro; sem vigência própria, vale a vigência do parceiro aplicada acima."
         footnote="Uma vigência nova vale do mês dela em diante; os meses anteriores continuam como estavam e meses já fechados não mudam. O prazo conta a partir do primeiro mês pago."
         rules={ownRules}
@@ -175,6 +185,7 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
 
       <SectionCard
         title="Vendedor da indicação"
+        info={help.diretor.indicacao.vendedor}
         subtitle="Quem da equipe do parceiro fez esta indicação. Texto livre; em branco apaga. Aparece nas listas e no fechamento; login e comissão de vendedor ficam para a fase 2."
       >
         <PanelBody>
@@ -192,6 +203,7 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
 
       <SectionCard
         title="Mudar situação"
+        info={help.diretor.indicacao.mudarSituacao}
         subtitle="Ativa e Inadimplente mudam sozinhas a cada envio da planilha do BI. Aqui você registra o andamento da negociação, a perda ou o cancelamento."
       >
         <PanelBody>
@@ -222,6 +234,7 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
 
       <SectionCard
         title="Vidas e valores por mês"
+        info={help.diretor.indicacao.vidasEValores}
         subtitle="Meses em que as vidas desta indicação contam para a comissão."
       >
         {months.length === 0 ? (
@@ -234,9 +247,18 @@ export default async function ReferralDetailPage({ params, searchParams }: PageP
               <thead>
                 <tr>
                   <th>Mês</th>
-                  <th className="fp-num">Vidas pagas</th>
-                  <th className="fp-num">Valor por vida</th>
-                  <th className="fp-num">Valor</th>
+                  <th className="fp-num">
+                    Vidas pagas
+                    <InfoTip text={help.diretor.indicacao.vidasPagas} />
+                  </th>
+                  <th className="fp-num">
+                    Valor por vida
+                    <InfoTip text={help.diretor.indicacao.valorPorVida} />
+                  </th>
+                  <th className="fp-num">
+                    Valor
+                    <InfoTip text={help.diretor.indicacao.valor} />
+                  </th>
                 </tr>
               </thead>
               <tbody>

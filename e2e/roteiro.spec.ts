@@ -9,6 +9,7 @@ import {
   currentCompetency,
   shortCompetencyLabel,
 } from "@/lib/competency";
+import { help } from "@/lib/help";
 import { biExport, biExportCsv, type ExportRow } from "../tests/bi-export";
 import { FAKE_CLOSING_SUMMARY, fakeRequests, resetFakeRequests } from "./fake-anthropic";
 import {
@@ -1683,6 +1684,65 @@ test("roteiro de validação do MVP", async ({ browser, request, baseURL }) => {
     ]);
     const denied = await client.rpc("prepare_closing", { month: `${OCT}-01` });
     expect(denied.error?.code).toBe("42501");
+  });
+
+  // Bloco 18 — decisão 33 de 23/11/2026: o "i" de ajuda ao lado de seções, números e colunas.
+  // Roda aqui porque os três perfis estão conectados e o vendedor ainda tem acesso.
+  await test.step("18.1 diretor: o i abre com o mouse dentro da tabela e com o teclado no título; Esc fecha", async () => {
+    await dir.goto(`/fechamento?competency=${SEP}`);
+    const balloon = dir.getByRole("dialog", { name: "Ajuda" });
+    await expect(balloon).toHaveCount(0);
+    // O nome da coluna e o do título não mudam com o botão ao lado.
+    const column = dir.getByRole("columnheader", { name: "Saldo anterior" });
+    await expect(column).toHaveText("Saldo anterior");
+    await column.getByRole("button", { name: "Ajuda" }).hover();
+    await expect(balloon).toHaveText(help.diretor.fechamento.saldoAnterior);
+    // Dentro da tabela com rolagem o balão não é cortado: fica inteiro na janela.
+    const box = await balloon.boundingBox();
+    const view = dir.viewportSize();
+    expect(box && view && box.x >= 0 && box.y >= 0 && box.x + box.width <= view.width).toBe(true);
+    await dir.keyboard.press("Escape");
+    await expect(balloon).toHaveCount(0);
+    const records = section(dir, "Fechamentos registrados");
+    await expect(
+      records.getByRole("heading", { name: "Fechamentos registrados", exact: true }),
+    ).toBeVisible();
+    await records.getByRole("button", { name: "Ajuda" }).first().focus();
+    await dir.keyboard.press("Enter");
+    await expect(balloon).toHaveText(help.diretor.fechamento.registrados);
+    await dir.keyboard.press("Escape");
+    await expect(balloon).toHaveCount(0);
+  });
+
+  await test.step("18.2 parceiro: o i do cartão Valor previsto explica a prévia e os saldos", async () => {
+    await ter.goto("/inicio");
+    const card = ter
+      .locator("article")
+      .filter({ has: ter.getByRole("heading", { name: "Valor previsto", exact: true }) });
+    await card.getByRole("button", { name: "Ajuda" }).hover();
+    await expect(ter.getByRole("dialog", { name: "Ajuda" })).toHaveText(
+      help.parceiro.painel.valorPrevisto,
+    );
+    await ter.keyboard.press("Escape");
+    await expect(ter.getByRole("dialog", { name: "Ajuda" })).toHaveCount(0);
+  });
+
+  await test.step("18.3 vendedor: o i explica a etapa sem falar de valores", async () => {
+    await ven.goto("/indicacoes");
+    const paying = section(ven, "Clientes pagando (1)");
+    await paying.getByRole("button", { name: "Ajuda" }).first().hover();
+    const balloon = ven.getByRole("dialog", { name: "Ajuda" });
+    await expect(balloon).toHaveText(help.vendedor.indicacoes.pagando);
+    await expect(balloon).not.toContainText(moneyWords);
+    await ven.keyboard.press("Escape");
+    await paying
+      .getByRole("columnheader", { name: /^Vidas em / })
+      .getByRole("button")
+      .hover();
+    await expect(balloon).toHaveText(help.vendedor.indicacoes.vidas);
+    await expect(balloon).not.toContainText(moneyWords);
+    await ven.keyboard.press("Escape");
+    await expect(balloon).toHaveCount(0);
   });
 
   await test.step("16.8 diretor gera link de nova senha e remove o acesso; a indicação fica com a unidade", async () => {

@@ -16,6 +16,7 @@ import {
   formatDateTime,
 } from "@/lib/competency";
 import { BATCH_PAGE_SIZE, latestImport, listBatches } from "@/lib/imports/queries";
+import { help } from "@/lib/help";
 import { ImportForm } from "./import-form";
 
 export const metadata: Metadata = { title: "Importações" };
@@ -67,6 +68,7 @@ export default async function ImportsPage({ searchParams }: PageProps) {
 
       <SectionCard
         title="Enviar a planilha do BI"
+        info={help.diretor.importacoes.enviar}
         subtitle={
           last
             ? `Último envio em ${formatDateTime(last.created_at)} por ${last.author}.`
@@ -80,6 +82,7 @@ export default async function ImportsPage({ searchParams }: PageProps) {
 
       <SectionCard
         title={`Envios realizados (${total})`}
+        info={help.diretor.importacoes.envios}
         subtitle="Do mais novo para o mais antigo. Abra um envio para ver as linhas ignoradas."
       >
         {items.length === 0 ? (

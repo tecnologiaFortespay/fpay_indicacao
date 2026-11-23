@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
+import { InfoTip } from "@/components/info-tip";
 import { OrbitaIcon } from "@/components/orbita-icon";
 import { PageIntro } from "@/components/page-intro";
 import { SectionCard } from "@/components/section-card";
@@ -10,6 +11,7 @@ import { SellerActions } from "@/components/seller-actions";
 import { requireRole } from "@/lib/auth/session";
 import { currentCompetency, formatDate } from "@/lib/competency";
 import { appOrigin } from "@/lib/env";
+import { help } from "@/lib/help";
 import { partnerKindLabels } from "@/lib/labels";
 import { listAllRules, listPartners, listSellers, type Partner } from "@/lib/partners/queries";
 import { currentRule, ruleSentence } from "@/lib/referrals/config";
@@ -74,6 +76,7 @@ export default async function PartnersPage({ searchParams }: PageProps) {
 
       <SectionCard
         title={`Aguardando aprovação (${pending.length})`}
+        info={help.diretor.parceiros.aguardando}
         subtitle="Cadastros feitos pelo próprio parceiro em “Solicitar criação de conta”. Ele só entra no sistema depois que você aprova."
         footnote={
           <>
@@ -95,6 +98,7 @@ export default async function PartnersPage({ searchParams }: PageProps) {
       {waitingSellers.length > 0 && (
         <SectionCard
           title={`Vendedores pedindo acesso (${waitingSellers.length})`}
+          info={help.diretor.parceiros.vendedoresPedindo}
           subtitle="Pedidos feitos em “Solicitar conta de vendedor”. O vendedor só vê e registra as próprias indicações, em nome da unidade; confirme com a unidade antes de aprovar."
         >
           <div className="fp-table-wrap">
@@ -104,7 +108,10 @@ export default async function PartnersPage({ searchParams }: PageProps) {
                   <th>Vendedor</th>
                   <th>Unidade</th>
                   <th>Pedido em</th>
-                  <th>Acesso</th>
+                  <th>
+                    Acesso
+                    <InfoTip text={help.diretor.parceiros.acessoDoVendedor} />
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -131,6 +138,7 @@ export default async function PartnersPage({ searchParams }: PageProps) {
 
       <SectionCard
         title={`Ativos (${active.length})`}
+        info={help.diretor.parceiros.ativos}
         subtitle="Parceiros aprovados, com acesso ao portal."
       >
         {active.length === 0 ? (
@@ -141,10 +149,16 @@ export default async function PartnersPage({ searchParams }: PageProps) {
               <thead>
                 <tr>
                   <th>Parceiro</th>
-                  <th>Tipo</th>
+                  <th>
+                    Tipo
+                    <InfoTip text={help.diretor.parceiros.tipo} />
+                  </th>
                   <th>Local</th>
                   <th>Responsável</th>
-                  <th>Regra hoje</th>
+                  <th>
+                    Regra hoje
+                    <InfoTip text={help.diretor.parceiros.regraHoje} />
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -174,6 +188,7 @@ export default async function PartnersPage({ searchParams }: PageProps) {
       {rejected.length > 0 && (
         <SectionCard
           title={`Recusados (${rejected.length})`}
+          info={help.diretor.parceiros.recusados}
           subtitle="Sem acesso. Abra para ver o motivo ou reconsiderar."
         >
           <div className="fp-table-wrap">
@@ -181,7 +196,10 @@ export default async function PartnersPage({ searchParams }: PageProps) {
               <thead>
                 <tr>
                   <th>Parceiro</th>
-                  <th>Tipo</th>
+                  <th>
+                    Tipo
+                    <InfoTip text={help.diretor.parceiros.tipo} />
+                  </th>
                   <th>Motivo da recusa</th>
                 </tr>
               </thead>

@@ -5,6 +5,7 @@ import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Field, SelectField } from "@/components/fields";
 import { FormDisclosure } from "@/components/form-disclosure";
+import { InfoTip } from "@/components/info-tip";
 import { LinkButton } from "@/components/link-button";
 import { MutationForm } from "@/components/mutation-form";
 import { Notice } from "@/components/notice";
@@ -23,6 +24,7 @@ import {
   type ClosingItem,
 } from "@/lib/closings/queries";
 import { formatCnpj } from "@/lib/cnpj";
+import { help } from "@/lib/help";
 import {
   competencyLabel,
   currentCompetency,
@@ -162,6 +164,7 @@ export default async function ClosingPage({ searchParams }: PageProps) {
       {detail && (
         <SectionCard
           title={`${monthLabel} · ${closingStatusLabels[detail.closing.status as keyof typeof closingStatusLabels]}`}
+          info={help.diretor.fechamento.lote}
           subtitle={
             closed
               ? `Pago: ${formatCurrency(detail.totals.to_pay)} · acumulado para o mês seguinte: ${formatCurrency(detail.totals.total - detail.totals.to_pay)}`
@@ -184,18 +187,52 @@ export default async function ClosingPage({ searchParams }: PageProps) {
                       <span className="inline-flex items-center gap-3">
                         <PayAllCheckbox form={CLOSE_FORM_ID} />
                         Parceiro
+                        <InfoTip text={help.diretor.fechamento.marcar} />
                       </span>
                     )}
                   </th>
-                  <th>Vendedor(es)</th>
-                  <th className="fp-num">Vidas</th>
-                  {!closed && <th className="fp-num">Valor por vida</th>}
-                  <th className="fp-num">Valor do mês</th>
-                  <th className="fp-num">Ajuste</th>
-                  <th className="fp-num">Saldo anterior</th>
-                  <th className="fp-num">Total</th>
-                  {closed && <th>Decisão</th>}
-                  {closed && <th>Resposta do parceiro</th>}
+                  <th>
+                    Vendedor(es)
+                    <InfoTip text={help.diretor.fechamento.vendedores} />
+                  </th>
+                  <th className="fp-num">
+                    Vidas
+                    <InfoTip text={help.diretor.fechamento.vidas} />
+                  </th>
+                  {!closed && (
+                    <th className="fp-num">
+                      Valor por vida
+                      <InfoTip text={help.diretor.fechamento.valorPorVida} />
+                    </th>
+                  )}
+                  <th className="fp-num">
+                    Valor do mês
+                    <InfoTip text={help.diretor.fechamento.valorDoMes} />
+                  </th>
+                  <th className="fp-num">
+                    Ajuste
+                    <InfoTip text={help.diretor.fechamento.ajuste} />
+                  </th>
+                  <th className="fp-num">
+                    Saldo anterior
+                    <InfoTip text={help.diretor.fechamento.saldoAnterior} />
+                  </th>
+                  <th className="fp-num">
+                    Total
+                    <InfoTip text={help.diretor.fechamento.total} />
+                  </th>
+                  {closed && (
+                    <th>
+                      Decisão
+                      <InfoTip text={help.diretor.fechamento.decisao} />
+                    </th>
+                  )}
+                  {closed && (
+                    <th>
+                      Resposta do parceiro
+                      <InfoTip text={help.diretor.fechamento.resposta} />
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -269,9 +306,18 @@ export default async function ClosingPage({ searchParams }: PageProps) {
                                   <th>Empresa</th>
                                   <th>CNPJ</th>
                                   <th>Vendedor</th>
-                                  <th className="fp-num">Vidas</th>
-                                  <th className="fp-num">Valor por vida</th>
-                                  <th className="fp-num">Valor</th>
+                                  <th className="fp-num">
+                                    Vidas
+                                    <InfoTip text={help.diretor.fechamento.clienteVidas} />
+                                  </th>
+                                  <th className="fp-num">
+                                    Valor por vida
+                                    <InfoTip text={help.diretor.fechamento.clienteValorPorVida} />
+                                  </th>
+                                  <th className="fp-num">
+                                    Valor
+                                    <InfoTip text={help.diretor.fechamento.clienteValor} />
+                                  </th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -373,7 +419,10 @@ export default async function ClosingPage({ searchParams }: PageProps) {
 
           {closed && detail.items.some((item) => item.decision === "pay") && (
             <div className="fp-form-section">
-              <h3>Como foi pago</h3>
+              <div className="fp-title-row">
+                <h3>Como foi pago</h3>
+                <InfoTip text={help.diretor.fechamento.comoFoiPago} />
+              </div>
               <p className="fp-help">
                 Anote como a Fortes Pay pagou cada parceiro (ex.: PIX em 05/11). O parceiro vê em
                 Meus fechamentos.
@@ -410,6 +459,7 @@ export default async function ClosingPage({ searchParams }: PageProps) {
         <SectionCard
           id="fechar-lote"
           title={`Fechar o lote de ${monthLabel}`}
+          info={help.diretor.fechamento.fecharLote}
           subtitle="Recebe agora quem está marcado na tabela acima, ao lado do nome: todos com valor a receber já vêm marcados. Quem for desmarcado acumula: o total entra como saldo anterior no mês seguinte."
         >
           <PanelBody>
@@ -439,6 +489,7 @@ export default async function ClosingPage({ searchParams }: PageProps) {
         <SectionCard
           id="reabrir-lote"
           title={`Reabrir o lote de ${monthLabel}`}
+          info={help.diretor.fechamento.reabrirLote}
           subtitle="Para corrigir um erro depois do fechamento. O mês volta para “Em preparação” com os mesmos valores e ajustes."
         >
           <PanelBody>
@@ -481,6 +532,7 @@ export default async function ClosingPage({ searchParams }: PageProps) {
       {detail && (!closed || review) && (
         <AiReviewPanel
           title="Revisão da IA"
+          info={help.diretor.fechamento.revisaoDaIa}
           description="Antes de fechar, a IA confere o cálculo de cada parceiro contra o mês anterior e aponta o que merece atenção: valores que mudaram muito, indicação ativa sem vidas, saldo acumulado há meses, ajuste sem motivo e prazos terminando. Quem decide pagar ou acumular é você."
           review={review}
           configured={aiConfigured()}
@@ -497,6 +549,7 @@ export default async function ClosingPage({ searchParams }: PageProps) {
 
       <SectionCard
         title="Fechamentos registrados"
+        info={help.diretor.fechamento.registrados}
         subtitle="Cada fechamento guarda, por parceiro, o valor do mês, o ajuste, o saldo anterior, o total, a decisão, quem decidiu e como foi pago."
       >
         {history.length === 0 ? (
@@ -507,8 +560,14 @@ export default async function ClosingPage({ searchParams }: PageProps) {
               <thead>
                 <tr>
                   <th>Mês</th>
-                  <th>Situação</th>
-                  <th>Preparado em</th>
+                  <th>
+                    Situação
+                    <InfoTip text={help.diretor.fechamento.situacao} />
+                  </th>
+                  <th>
+                    Preparado em
+                    <InfoTip text={help.diretor.fechamento.preparadoEm} />
+                  </th>
                   <th>Fechado em</th>
                   <th>Fechado por</th>
                 </tr>

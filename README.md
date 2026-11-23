@@ -188,6 +188,10 @@ Toda página monta com os mesmos blocos, para as telas lerem igual nos dois perf
   `FlashMessage` mostra o aviso verde uma vez (`src/lib/flash.ts`).
 - Rótulos e ajudas dos campos de regra em `src/lib/glossary.ts`; etapas e frases da indicação em
   `src/lib/referrals/stages.ts`.
+- `InfoTip`: o "i" de ajuda ao lado de seções (`info=` no `SectionCard`), números e colunas
+  (decisão 33). É um `Popover` do Base UI com `openOnHover`, em portal, para não ser cortado pelo
+  cartão nem pela tabela com rolagem. Os textos ficam todos em `src/lib/help.ts`, por perfil;
+  `help.test.ts` impede que os do vendedor falem de valores.
 
 CSS: as classes `fp-*` e `orbita-*` ficam em `@layer components` (`src/app/globals.css`), então um
 utilitário do Tailwind no `className` sempre vence. Cores só pelos tokens de

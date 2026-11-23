@@ -2,11 +2,13 @@
 
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import { Field } from "@/components/fields";
+import { InfoTip } from "@/components/info-tip";
 import { KeyValueStrip } from "@/components/key-value-strip";
 import { Notice } from "@/components/notice";
 import { Button } from "@/components/ui/button";
 import { formatCnpj } from "@/lib/cnpj";
 import { competencyLabel } from "@/lib/competency";
+import { help } from "@/lib/help";
 import type { ImportPreview, PreviewReferral } from "@/lib/imports/preview";
 import { importOutcomeLabels, referralStatusLabels } from "@/lib/labels";
 import { formatCurrency, formatInteger } from "@/lib/money";
@@ -170,11 +172,26 @@ function ReferralTable({ referrals }: { referrals: PreviewReferral[] }) {
           <tr>
             <th>Empresa</th>
             <th>Parceiro</th>
-            <th>Situação</th>
-            <th className="fp-num">Vidas hoje</th>
-            <th className="fp-num">No arquivo</th>
-            <th className="fp-num">Valor por vida</th>
-            <th className="fp-num">Valor do mês</th>
+            <th>
+              Situação
+              <InfoTip text={help.diretor.importacoes.situacao} />
+            </th>
+            <th className="fp-num">
+              Vidas hoje
+              <InfoTip text={help.diretor.importacoes.vidasHoje} />
+            </th>
+            <th className="fp-num">
+              No arquivo
+              <InfoTip text={help.diretor.importacoes.noArquivo} />
+            </th>
+            <th className="fp-num">
+              Valor por vida
+              <InfoTip text={help.diretor.importacoes.valorPorVida} />
+            </th>
+            <th className="fp-num">
+              Valor do mês
+              <InfoTip text={help.diretor.importacoes.valorDoMes} />
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -253,11 +270,23 @@ function PreviewPanel({
       <KeyValueStrip
         facts={[
           ["Arquivo", preview.file_name],
-          ["Mês", `${month} (${preview.complete ? "mês completo" : "parcial"})`],
-          ["Linhas lidas", formatInteger(preview.rows_read)],
-          ["Indicações no arquivo", formatInteger(preview.rows_imported)],
-          ["Fora da plataforma", formatInteger(preview.rows_skipped)],
-          ["Ignoradas", formatInteger(preview.rows_ignored)],
+          [
+            "Mês",
+            `${month} (${preview.complete ? "mês completo" : "parcial"})`,
+            help.diretor.importacoes.mes,
+          ],
+          ["Linhas lidas", formatInteger(preview.rows_read), help.diretor.importacoes.linhasLidas],
+          [
+            "Indicações no arquivo",
+            formatInteger(preview.rows_imported),
+            help.diretor.importacoes.importadas,
+          ],
+          [
+            "Fora da plataforma",
+            formatInteger(preview.rows_skipped),
+            help.diretor.importacoes.foraDaPlataforma,
+          ],
+          ["Ignoradas", formatInteger(preview.rows_ignored), help.diretor.importacoes.ignoradas],
         ]}
       />
 
@@ -293,10 +322,22 @@ function PreviewPanel({
               <thead>
                 <tr>
                   <th>Parceiro</th>
-                  <th className="fp-num">Vidas hoje</th>
-                  <th className="fp-num">Vidas com o envio</th>
-                  <th className="fp-num">Valor hoje</th>
-                  <th className="fp-num">Valor com o envio</th>
+                  <th className="fp-num">
+                    Vidas hoje
+                    <InfoTip text={help.diretor.importacoes.vidasHoje} />
+                  </th>
+                  <th className="fp-num">
+                    Vidas com o envio
+                    <InfoTip text={help.diretor.importacoes.vidasComOEnvio} />
+                  </th>
+                  <th className="fp-num">
+                    Valor hoje
+                    <InfoTip text={help.diretor.importacoes.valorHoje} />
+                  </th>
+                  <th className="fp-num">
+                    Valor com o envio
+                    <InfoTip text={help.diretor.importacoes.valorComOEnvio} />
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -351,7 +392,10 @@ function PreviewPanel({
               <thead>
                 <tr>
                   <th className="fp-num">Linha</th>
-                  <th>Resultado</th>
+                  <th>
+                    Resultado
+                    <InfoTip text={help.diretor.importacoes.resultado} />
+                  </th>
                   <th>Motivo</th>
                   <th>Conteúdo da linha</th>
                 </tr>

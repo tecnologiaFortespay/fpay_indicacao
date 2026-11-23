@@ -3,11 +3,13 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { Field } from "@/components/fields";
 import { FormDisclosure } from "@/components/form-disclosure";
+import { InfoTip } from "@/components/info-tip";
 import { MutationForm } from "@/components/mutation-form";
 import { PageIntro } from "@/components/page-intro";
 import { SectionCard } from "@/components/section-card";
 import { requireRole } from "@/lib/auth/session";
 import { formatDate } from "@/lib/competency";
+import { help } from "@/lib/help";
 import {
   defaultInvitationValidUntil,
   invitationStatus,
@@ -37,6 +39,7 @@ export default async function TeamPage() {
 
       <SectionCard
         title="Diretores"
+        info={help.diretor.equipe.diretores}
         subtitle="Todos têm o mesmo acesso: convidam, enviam a planilha, fecham o mês e geram link de nova senha uns para os outros."
         footnote="O link de nova senha vale por 24 horas e uma única vez; gerar outro invalida o anterior. Envie por WhatsApp ou e-mail: o sistema não envia sozinho."
       >
@@ -47,7 +50,10 @@ export default async function TeamPage() {
                 <th>Nome</th>
                 <th>E-mail de acesso</th>
                 <th>Desde</th>
-                <th>Acesso</th>
+                <th>
+                  Acesso
+                  <InfoTip text={help.diretor.equipe.acesso} />
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -83,6 +89,7 @@ export default async function TeamPage() {
 
       <SectionCard
         title="Convites de diretor"
+        info={help.diretor.equipe.convites}
         subtitle="Quem abre o link cria o próprio acesso e entra direto: o convite já é a aprovação."
       >
         <FormDisclosure
@@ -122,7 +129,10 @@ export default async function TeamPage() {
                   <th>Convite para</th>
                   <th>Criado em</th>
                   <th>Válido até</th>
-                  <th>Situação</th>
+                  <th>
+                    Situação
+                    <InfoTip text={help.diretor.equipe.situacaoDoConvite} />
+                  </th>
                 </tr>
               </thead>
               <tbody>

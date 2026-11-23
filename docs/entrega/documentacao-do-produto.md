@@ -376,6 +376,15 @@ Nos três perfis, **Minha conta** (ao lado de Sair) mostra nome, e-mail de acess
 a pessoa troca a própria senha: senha atual, nova e confirmação. Quem esqueceu a senha pede o link a
 um diretor.
 
+### Ajuda nas telas (o "i")
+
+Nos três perfis, ao lado do título de cada seção, de cada número de resumo e das colunas que são
+conceito (Vidas, Valor por vida, Ajuste, Saldo anterior, Total, Decisão, Situação…) há um **i** num
+círculo. Passar o mouse, tocar ou apertar Enter abre um balão com a explicação: o que aquilo é, como
+é calculado ou quando usar, e o que acontece depois. Esc, ou um toque fora, fecha. Os textos do
+vendedor não falam de valores. Campos e botões não têm o "i": a ajuda deles continua embaixo do
+campo ou aparece ao abrir o formulário.
+
 ## 11. IA do diretor
 
 Só o diretor vê e usa. A IA (Claude, da Anthropic) **aponta e explica**; não calcula, não decide

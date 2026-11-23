@@ -2,6 +2,7 @@ import type { AiAlert } from "@/lib/ai/claude";
 import type { StoredReview } from "@/lib/ai/reviews";
 import type { FormState } from "@/lib/auth/validation";
 import { formatDateTime } from "@/lib/competency";
+import { InfoTip } from "./info-tip";
 import { MutationForm } from "./mutation-form";
 import { Notice } from "./notice";
 import { RefreshWhileRunning } from "./refresh-while-running";
@@ -23,6 +24,8 @@ type AiReviewPanelProps = {
   notice?: string | null;
   // Falso quando não cabe nova análise (ex.: mês já fechado).
   canRequest?: boolean;
+  // Texto do "i" de ajuda ao lado do título (src/lib/help.ts).
+  info?: string;
 };
 
 // Análise da IA de um envio ou de um fechamento. Só aparece para o diretor.
@@ -35,13 +38,21 @@ export function AiReviewPanel({
   fields,
   notice,
   canRequest = true,
+  info,
 }: AiReviewPanelProps) {
   const running = review?.status === "running";
   return (
     <section className="fp-panel" aria-label={title}>
       <header className="fp-panel-heading">
         <div>
-          <h2>{title}</h2>
+          {info ? (
+            <div className="fp-title-row">
+              <h2>{title}</h2>
+              <InfoTip text={info} />
+            </div>
+          ) : (
+            <h2>{title}</h2>
+          )}
           <p>
             {running
               ? "analisando…"

@@ -55,9 +55,9 @@ src/app/               rotas em português: login, inicio, parceiros, indicacoes
                        fechamento, fechamentos, equipe, minha-conta, meu-cadastro, cadastro,
                        convite, esqueci-senha, nova-senha, status, ...
 src/components/        shell, navegação, formulários e o kit de tela (PageIntro, SectionCard,
-                       Notice, FormDisclosure, Stepper, ...)
+                       Notice, FormDisclosure, Stepper, InfoTip, ...)
 src/lib/               env, sessão, leitor do BI (imports/xlsx.ts, csv.ts, bi.ts), consultas
-                       por domínio, IA (ai/), rótulos e glossário
+                       por domínio, IA (ai/), rótulos, glossário e textos de ajuda (help.ts)
 src/proxy.ts           renova a sessão a cada requisição e impede cache de páginas logadas
 tests/db/              testes das funções SQL e da RLS (Vitest, Supabase local)
 e2e/                   roteiro de validação inteiro + casos extras (Playwright)

@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
+import { InfoTip } from "@/components/info-tip";
 import { KeyValueStrip } from "@/components/key-value-strip";
 import { PanelBody, SectionCard } from "@/components/section-card";
 import { requireRole } from "@/lib/auth/session";
 import { competencyLabel, currentCompetency, dateToCompetency, formatDate } from "@/lib/competency";
+import { help } from "@/lib/help";
 import { partnerKindLabels } from "@/lib/labels";
 import { formatCurrency } from "@/lib/money";
 import { getPartner, listPartnerRules } from "@/lib/partners/queries";
@@ -40,6 +42,7 @@ export default async function MyRegistrationPage() {
       />
       <SectionCard
         title="Minha regra de remuneração"
+        info={help.parceiro.cadastro.regra}
         subtitle="Definida pela Fortes Pay. Cada indicação segue a regra de quando foi feita, salvo valor e prazo próprios combinados com a Fortes Pay."
         footnote="Uma regra nova vale do mês dela em diante; meses já fechados não mudam. Uma indicação pode ter valor e prazo próprios, combinados com a Fortes Pay: eles aparecem em Meu painel. Para corrigir algum dado, fale com a Fortes Pay."
       >
@@ -57,9 +60,18 @@ export default async function MyRegistrationPage() {
             <table className="fp-table">
               <thead>
                 <tr>
-                  <th>Vale a partir de</th>
-                  <th className="fp-num">Valor por vida</th>
-                  <th>Prazo</th>
+                  <th>
+                    Vale a partir de
+                    <InfoTip text={help.parceiro.cadastro.valeAPartirDe} />
+                  </th>
+                  <th className="fp-num">
+                    Valor por vida
+                    <InfoTip text={help.parceiro.cadastro.valorPorVida} />
+                  </th>
+                  <th>
+                    Prazo
+                    <InfoTip text={help.parceiro.cadastro.prazo} />
+                  </th>
                 </tr>
               </thead>
               <tbody>

@@ -304,3 +304,19 @@ valem sobre o que ele diz.
     responda em Meus fechamentos" foi mantido no painel, porque é o que chama o parceiro a
     responder; o saldo mostrado é o do último mês fechado antes do mês escolhido, a mesma conta
     do "saldo anterior" do fechamento.
+
+## 23/11/2026 — ajuda nas telas (pedido do Diego)
+
+33. **"i" de ajuda ao lado de cada função.** Pedido do Diego: um "i" que, ao passar o mouse,
+    explica a função, para ninguém ficar com dúvida do sistema. Escolha dele (23/11/2026): o "i"
+    fica ao lado do **título de cada seção**, de cada **número de resumo** e das **colunas que são
+    conceito** (Vidas, Valor por vida, Ajuste, Saldo anterior, Total, Decisão, Situação…); campos,
+    botões e colunas óbvias (Empresa, CNPJ, datas) ficam como estão. Chamadas do Claude: os
+    textos que já apareciam nas telas **não mudaram** (o "i" entra a mais, com a explicação
+    completa: o que é, como é calculado ou quando usar, e o que acontece depois); o balão abre
+    com o mouse, com toque e com Enter, e fecha com Esc ou tocando fora; vale para os três
+    perfis, e os textos que o vendedor vê não falam de valores (decisão 29), o que um teste
+    confere; os formulários recolhidos (Nova indicação, Nova vigência, Ajustar o valor…) são
+    botões e já mostram a explicação ao abrir, por isso ficaram sem "i"; as telas públicas
+    (entrada e cadastro) também. Todos os textos estão em `src/lib/help.ts`, para a área
+    revisar e corrigir num lugar só. Nenhuma regra, cálculo ou tabela mudou; não há migration.

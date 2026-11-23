@@ -5,6 +5,7 @@ import { z } from "zod";
 import { AiReviewPanel } from "@/components/ai-review-panel";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
+import { InfoTip } from "@/components/info-tip";
 import { KeyValueStrip } from "@/components/key-value-strip";
 import { MonthCompanies } from "@/components/month-companies";
 import { SectionCard } from "@/components/section-card";
@@ -18,6 +19,7 @@ import {
   formatDateTime,
 } from "@/lib/competency";
 import { getBatch } from "@/lib/imports/queries";
+import { help } from "@/lib/help";
 import { importOutcomeLabels } from "@/lib/labels";
 import { analyzeImport } from "../actions";
 
@@ -58,35 +60,40 @@ export default async function ImportDetailPage({ params, searchParams }: PagePro
           ["Arquivo", batch.file_name],
           ["Enviado em", formatDateTime(batch.created_at)],
           ["Por", batch.author],
-          ["Mês", months || "—"],
+          ["Mês", months || "—", help.diretor.importacoes.mes],
           [
             "Linhas lidas",
             <span key="read" className="fp-num">
               {batch.rows_read}
             </span>,
+            help.diretor.importacoes.linhasLidas,
           ],
           [
             "Importadas",
             <span key="imported" className="fp-num">
               {batch.rows_imported}
             </span>,
+            help.diretor.importacoes.importadas,
           ],
           [
             "Fora da plataforma",
             <span key="skipped" className="fp-num">
               {batch.rows_skipped}
             </span>,
+            help.diretor.importacoes.foraDaPlataforma,
           ],
           [
             "Ignoradas",
             <span key="ignored" className="fp-num">
               {batch.rows_ignored}
             </span>,
+            help.diretor.importacoes.ignoradas,
           ],
         ]}
       />
       <AiReviewPanel
         title="Análise da IA"
+        info={help.diretor.importacoes.analiseDaIa}
         description="A IA compara este envio com o anterior do mesmo mês e com o mês passado, aponta quedas, saltos e indicações que sumiram e, no momento do envio, procura no arquivo empresas que podem ser a indicação com o CNPJ digitado errado. Ela não altera nenhum dado."
         review={review}
         configured={aiConfigured()}
@@ -103,6 +110,7 @@ export default async function ImportDetailPage({ params, searchParams }: PagePro
       ))}
       <SectionCard
         title={`Linhas ignoradas ou mescladas (${rows.length})`}
+        info={help.diretor.importacoes.linhasIgnoradas}
         subtitle="Linhas que não entraram como vieram, com o motivo. Empresas sem indicação na plataforma só são contadas."
       >
         {rows.length === 0 ? (
@@ -113,7 +121,10 @@ export default async function ImportDetailPage({ params, searchParams }: PagePro
               <thead>
                 <tr>
                   <th className="fp-num">Linha</th>
-                  <th>Resultado</th>
+                  <th>
+                    Resultado
+                    <InfoTip text={help.diretor.importacoes.resultado} />
+                  </th>
                   <th>Motivo</th>
                   <th>Conteúdo</th>
                 </tr>

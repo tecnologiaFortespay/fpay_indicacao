@@ -5,6 +5,7 @@ import { KeyValueStrip } from "@/components/key-value-strip";
 import { MutationForm } from "@/components/mutation-form";
 import { PanelBody, SectionCard } from "@/components/section-card";
 import { requireUser } from "@/lib/auth/session";
+import { help } from "@/lib/help";
 import { roleLabels } from "@/lib/labels";
 import { changePassword } from "./actions";
 
@@ -32,6 +33,7 @@ export default async function MyAccountPage() {
       />
       <SectionCard
         title="Alterar senha"
+        info={help.todos.conta.alterarSenha}
         subtitle="Informe a senha atual e escolha a nova. Você continua conectado."
         footnote={forgotten}
       >

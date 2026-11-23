@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
+import { InfoTip } from "@/components/info-tip";
 import { Notice } from "@/components/notice";
 import { PageIntro } from "@/components/page-intro";
 import { PanelBody, SectionCard } from "@/components/section-card";
 import type { AuthorizedUser } from "@/lib/auth/session";
 import { formatCnpj } from "@/lib/cnpj";
+import { help } from "@/lib/help";
 import {
   competencyLabel,
   completesMonth,
@@ -149,6 +151,7 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
       {closedMonth ? (
         <SectionCard
           title={`${monthLabel} · valor oficial`}
+          info={help.parceiro.painel.oficial}
           subtitle={`Fechado pela Fortes Pay${closedMonth.closed_at ? ` em ${formatDate(closedMonth.closed_at)}` : ""}.`}
           action={<Link href="/fechamentos">Ver em Meus fechamentos →</Link>}
           footnote={
@@ -161,7 +164,10 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
             <div className="fp-kpi-grid fp-kpi-grid-2">
               <article className="fp-kpi">
                 <div className="fp-kpi-heading">
-                  <h3>Valor do mês</h3>
+                  <div className="fp-title-row">
+                    <h3>Valor do mês</h3>
+                    <InfoTip text={help.parceiro.painel.valorDoMes} />
+                  </div>
                   <span>{formatInteger(closedMonth.lives)} vidas pagas</span>
                 </div>
                 <p className="fp-kpi-value fp-num">{formatCurrency(closedMonth.month_amount)}</p>
@@ -174,7 +180,10 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
               </article>
               <article className="fp-kpi fp-kpi-hero">
                 <div className="fp-kpi-heading">
-                  <h3>Total do fechamento</h3>
+                  <div className="fp-title-row">
+                    <h3>Total do fechamento</h3>
+                    <InfoTip text={help.parceiro.painel.totalDoFechamento} />
+                  </div>
                   <span>{decisionText(closedMonth)}</span>
                 </div>
                 <p className="fp-kpi-value fp-num">{formatCurrency(closedMonth.total)}</p>
@@ -193,6 +202,7 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
       ) : (
         <SectionCard
           title={`${monthLabel} · prévia`}
+          info={help.parceiro.painel.previa}
           subtitle={`Regra para quem você indicar em ${monthLabel}: ${ruleText}. Cada indicação segue a regra de quando foi feita.`}
           footnote={
             updatedAt ? (
@@ -210,7 +220,10 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
             <div className="fp-kpi-grid fp-kpi-grid-2">
               <article className="fp-kpi">
                 <div className="fp-kpi-heading">
-                  <h3>Vidas pagas</h3>
+                  <div className="fp-title-row">
+                    <h3>Vidas pagas</h3>
+                    <InfoTip text={help.parceiro.painel.vidasPagas} />
+                  </div>
                   <span>
                     {!isCurrentMonth
                       ? "no mês inteiro"
@@ -228,7 +241,10 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
               </article>
               <article className="fp-kpi fp-kpi-preview">
                 <div className="fp-kpi-heading">
-                  <h3>Valor previsto</h3>
+                  <div className="fp-title-row">
+                    <h3>Valor previsto</h3>
+                    <InfoTip text={help.parceiro.painel.valorPrevisto} />
+                  </div>
                   <span>prévia</span>
                 </div>
                 <p className="fp-kpi-value fp-num">{formatCurrency(summary.amount)}</p>
@@ -254,6 +270,7 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
 
       <SectionCard
         title="Últimos envios da planilha"
+        info={help.parceiro.painel.envios}
         subtitle="Cada envio substitui as vidas do mês. Envio do mês em andamento é parcial; o feito depois que o mês termina é o mês completo, que vale para o fechamento."
       >
         {recent.length === 0 ? (
@@ -266,7 +283,10 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
               <thead>
                 <tr>
                   <th>Enviada em</th>
-                  <th>Mês da planilha</th>
+                  <th>
+                    Mês da planilha
+                    <InfoTip text={help.parceiro.painel.mesDaPlanilha} />
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -303,6 +323,7 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
 
       <SectionCard
         title="Minhas indicações"
+        info={help.parceiro.painel.minhasIndicacoes}
         subtitle={`Clientes que rendem em ${monthLabel}. ${conversion}.`}
         action={<Link href="/indicacoes">Ver todas →</Link>}
         footnote={
@@ -336,11 +357,26 @@ export async function PartnerPanel({ user, requestedCompetency }: PartnerPanelPr
               <thead>
                 <tr>
                   <th>Empresa</th>
-                  <th>Situação</th>
-                  <th className="fp-num">Vidas no mês</th>
-                  <th className="fp-num">Valor por vida</th>
-                  <th className="fp-num">Valor no mês</th>
-                  <th>Prazo</th>
+                  <th>
+                    Situação
+                    <InfoTip text={help.parceiro.painel.situacao} />
+                  </th>
+                  <th className="fp-num">
+                    Vidas no mês
+                    <InfoTip text={help.parceiro.painel.vidasNoMes} />
+                  </th>
+                  <th className="fp-num">
+                    Valor por vida
+                    <InfoTip text={help.parceiro.painel.valorPorVida} />
+                  </th>
+                  <th className="fp-num">
+                    Valor no mês
+                    <InfoTip text={help.parceiro.painel.valorNoMes} />
+                  </th>
+                  <th>
+                    Prazo
+                    <InfoTip text={help.parceiro.painel.prazo} />
+                  </th>
                 </tr>
               </thead>
               <tbody>
